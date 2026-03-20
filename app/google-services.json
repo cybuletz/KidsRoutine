@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "172281898866",
+    "project_id": "kids-routine-a9520",
+    "storage_bucket": "kids-routine-a9520.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:172281898866:android:61e8ce0463c9694e79dfeb",
+        "android_client_info": {
+          "package_name": "com.kidsroutine"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "172281898866-7d3kmink10ngr27aouq503t8gsmumrva.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kidsroutine",
+            "certificate_hash": "24e5087516b790a9444e8e9535241a814a6a663f"
+          }
+        },
+        {
+          "client_id": "172281898866-j1fps9unt7pdr3djjkkdql2e110b2hm7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWFIpXj9obPNxuS7jvZonBIcz6jBl9hlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "172281898866-j1fps9unt7pdr3djjkkdql2e110b2hm7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
