@@ -33,6 +33,9 @@ import com.kidsroutine.feature.family.ui.JoinFamilyScreen
 import com.kidsroutine.feature.auth.ui.RoleSelectionScreen
 import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
+import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
+import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -57,6 +60,7 @@ sealed class AppScreen {
     data class FamilySetup(val user: UserModel) : AppScreen()
     data class JoinFamily(val user: UserModel) : AppScreen()
     data class ParentDashboard(val user: UserModel) : AppScreen()
+    data class ChildProposal(val user: UserModel) : AppScreen()
     data class MainApp(val user: UserModel) : AppScreen()
     data class Error(val message: String) : AppScreen()
 }
@@ -106,6 +110,19 @@ fun MainContent() {
             ) {
                 CircularProgressIndicator()
             }
+        }
+
+        is AppScreen.ChildProposal -> {
+            val user = (currentScreen as AppScreen.ChildProposal).user
+            ChildTaskProposalScreen(
+                currentUser = user,
+                onProposalSuccess = {
+                    currentScreen = AppScreen.MainApp(user)
+                },
+                onBackClick = {
+                    currentScreen = AppScreen.MainApp(user)
+                }
+            )
         }
 
         is AppScreen.RoleSelection -> {
@@ -201,6 +218,7 @@ fun MainContent() {
             var showInviteScreen by remember { mutableStateOf(false) }
             var showTaskListScreen by remember { mutableStateOf(false) }
             var showCreateTaskScreen by remember { mutableStateOf(false) }
+            var showPendingTasksScreen by remember { mutableStateOf(false) }
 
             when {
                 showCreateTaskScreen -> {
@@ -227,6 +245,14 @@ fun MainContent() {
                         }
                     )
                 }
+                showPendingTasksScreen -> {
+                    ParentPendingTasksScreen(
+                        currentUser = user,
+                        onBackClick = {
+                            showPendingTasksScreen = false
+                        }
+                    )
+                }
                 showInviteScreen -> {
                     InviteChildrenScreen(
                         currentUser = user,
@@ -238,6 +264,7 @@ fun MainContent() {
                         currentUser = user,
                         onInviteClick = { showInviteScreen = true },
                         onTasksClick = { showTaskListScreen = true },
+                        onPendingClick = { showPendingTasksScreen = true },
                         onSettingsClick = {
                             // TODO: Navigate to settings
                         }

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.UserModel
+import androidx.compose.material.icons.filled.Notifications
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -34,6 +35,7 @@ fun ParentDashboardScreen(
     currentUser: UserModel,
     onInviteClick: () -> Unit,
     onTasksClick: () -> Unit,
+    onPendingClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -204,7 +206,8 @@ fun ParentDashboardScreen(
                 // Action buttons
                 ActionButtonsSection(
                     onInviteClick = onInviteClick,
-                    onTasksClick = onTasksClick
+                    onTasksClick = onTasksClick,
+                    onPendingClick = onPendingClick
                 )
 
                 Spacer(Modifier.height(32.dp))
@@ -425,7 +428,8 @@ private fun MembersListCard(memberIds: List<String>) {
 @Composable
 private fun ActionButtonsSection(
     onInviteClick: () -> Unit,
-    onTasksClick: () -> Unit
+    onTasksClick: () -> Unit,
+    onPendingClick: () -> Unit = {}  // Add this parameter
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -477,6 +481,33 @@ private fun ActionButtonsSection(
             )
             Text(
                 "Manage Tasks",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        // ADD THIS BUTTON FOR PENDING TASKS
+        Button(
+            onClick = onPendingClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF9800)
+            )
+        ) {
+            Icon(
+                Icons.Default.Notifications,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                "Child Requests",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
