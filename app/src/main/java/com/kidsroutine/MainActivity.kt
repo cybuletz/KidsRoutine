@@ -25,17 +25,10 @@ import com.kidsroutine.feature.auth.ui.ParentSignUpScreen
 import com.kidsroutine.feature.family.ui.FamilySetupScreen
 import com.kidsroutine.navigation.KidsRoutineNavGraph
 import dagger.hilt.android.AndroidEntryPoint
-import com.kidsroutine.feature.family.ui.ParentDashboardScreen
-import com.kidsroutine.feature.family.ui.InviteChildrenScreen
 import com.kidsroutine.feature.auth.ui.ChildLoginScreen
 import com.kidsroutine.feature.auth.ui.ChildSignUpScreen
 import com.kidsroutine.feature.family.ui.JoinFamilyScreen
 import com.kidsroutine.feature.auth.ui.RoleSelectionScreen
-import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
-import com.kidsroutine.feature.tasks.ui.TaskListScreen
-import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
-import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
-
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -52,15 +45,13 @@ class MainActivity : ComponentActivity() {
 
 sealed class AppScreen {
     object Loading : AppScreen()
+    object RoleSelection : AppScreen()
     object ParentLogin : AppScreen()
     object ParentSignUp : AppScreen()
     object ChildLogin : AppScreen()
     object ChildSignUp : AppScreen()
-    object RoleSelection : AppScreen()
     data class FamilySetup(val user: UserModel) : AppScreen()
     data class JoinFamily(val user: UserModel) : AppScreen()
-    data class ParentDashboard(val user: UserModel) : AppScreen()
-    data class ChildProposal(val user: UserModel) : AppScreen()
     data class MainApp(val user: UserModel) : AppScreen()
     data class Error(val message: String) : AppScreen()
 }
@@ -84,9 +75,6 @@ fun MainContent() {
                     }
                     user.role == Role.CHILD && user.familyId.isEmpty() -> {
                         AppScreen.JoinFamily(user)
-                    }
-                    user.role == Role.PARENT -> {
-                        AppScreen.ParentDashboard(user)
                     }
                     else -> {
                         AppScreen.MainApp(user)
@@ -112,79 +100,46 @@ fun MainContent() {
             }
         }
 
-        is AppScreen.ChildProposal -> {
-            val user = (currentScreen as AppScreen.ChildProposal).user
-            ChildTaskProposalScreen(
-                currentUser = user,
-                onProposalSuccess = {
-                    currentScreen = AppScreen.MainApp(user)
-                },
-                onBackClick = {
-                    currentScreen = AppScreen.MainApp(user)
-                }
-            )
-        }
-
         is AppScreen.RoleSelection -> {
             RoleSelectionScreen(
-                onParentSelected = {
-                    currentScreen = AppScreen.ParentLogin
-                },
-                onChildSelected = {
-                    currentScreen = AppScreen.ChildLogin
-                }
+                onParentSelected = { currentScreen = AppScreen.ParentLogin },
+                onChildSelected = { currentScreen = AppScreen.ChildLogin }
             )
         }
 
         is AppScreen.ParentLogin -> {
             ParentLoginScreen(
                 onLoginSuccess = { user ->
-                    if (user.role == Role.PARENT && user.familyId.isEmpty()) {
-                        currentScreen = AppScreen.FamilySetup(user)
-                    } else {
-                        currentScreen = AppScreen.ParentDashboard(user)
-                    }
+                    currentScreen = AppScreen.MainApp(user)
                 },
-                onSignUpClick = {
-                    currentScreen = AppScreen.ParentSignUp
-                }
+                onSignUpClick = { currentScreen = AppScreen.ParentSignUp }
             )
         }
 
         is AppScreen.ParentSignUp -> {
             ParentSignUpScreen(
                 onSignUpSuccess = { user ->
-                    currentScreen = AppScreen.FamilySetup(user)
+                    currentScreen = AppScreen.MainApp(user)
                 },
-                onBackClick = {
-                    currentScreen = AppScreen.ParentLogin
-                }
+                onBackClick = { currentScreen = AppScreen.ParentLogin }
             )
         }
 
         is AppScreen.ChildLogin -> {
             ChildLoginScreen(
                 onLoginSuccess = { user ->
-                    if (user.role == Role.CHILD && user.familyId.isEmpty()) {
-                        currentScreen = AppScreen.JoinFamily(user)
-                    } else {
-                        currentScreen = AppScreen.MainApp(user)
-                    }
+                    currentScreen = AppScreen.MainApp(user)
                 },
-                onSignUpClick = {
-                    currentScreen = AppScreen.ChildSignUp
-                }
+                onSignUpClick = { currentScreen = AppScreen.ChildSignUp }
             )
         }
 
         is AppScreen.ChildSignUp -> {
             ChildSignUpScreen(
                 onSignUpSuccess = { user ->
-                    currentScreen = AppScreen.JoinFamily(user)
+                    currentScreen = AppScreen.MainApp(user)
                 },
-                onBackClick = {
-                    currentScreen = AppScreen.ChildLogin
-                }
+                onBackClick = { currentScreen = AppScreen.ChildLogin }
             )
         }
 
@@ -192,9 +147,8 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.FamilySetup).user
             FamilySetupScreen(
                 currentUser = user,
-                onFamilyCreated = { family ->
-                    val updatedUser = user.copy(familyId = family.familyId)
-                    currentScreen = AppScreen.ParentDashboard(updatedUser)
+                onFamilyCreated = { _ ->  // Change: ignore the return value or handle FamilyModel
+                    currentScreen = AppScreen.MainApp(user.copy(familyId = "created"))  // Assume family was created
                 }
             )
         }
@@ -203,91 +157,28 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.JoinFamily).user
             JoinFamilyScreen(
                 currentUser = user,
-                onJoinSuccess = { familyId ->
-                    val updatedUser = user.copy(familyId = familyId)
-                    currentScreen = AppScreen.MainApp(updatedUser)
+                onJoinSuccess = { familyId ->  // Change: familyId is String, not UserModel
+                    currentScreen = AppScreen.MainApp(user.copy(familyId = familyId))  // Update user's familyId
                 },
-                onBackClick = {
-                    currentScreen = AppScreen.ChildLogin
-                }
+                onBackClick = { currentScreen = AppScreen.RoleSelection }
             )
-        }
-
-        is AppScreen.ParentDashboard -> {
-            val user = (currentScreen as AppScreen.ParentDashboard).user
-            var showInviteScreen by remember { mutableStateOf(false) }
-            var showTaskListScreen by remember { mutableStateOf(false) }
-            var showCreateTaskScreen by remember { mutableStateOf(false) }
-            var showPendingTasksScreen by remember { mutableStateOf(false) }
-
-            when {
-                showCreateTaskScreen -> {
-                    CreateTaskScreen(
-                        currentUser = user,
-                        onTaskCreated = {
-                            showCreateTaskScreen = false
-                            showTaskListScreen = true
-                        },
-                        onBackClick = {
-                            showCreateTaskScreen = false
-                            showTaskListScreen = true
-                        }
-                    )
-                }
-                showTaskListScreen -> {
-                    TaskListScreen(
-                        currentUser = user,
-                        onCreateTaskClick = {
-                            showCreateTaskScreen = true
-                        },
-                        onBackClick = {
-                            showTaskListScreen = false
-                        }
-                    )
-                }
-                showPendingTasksScreen -> {
-                    ParentPendingTasksScreen(
-                        currentUser = user,
-                        onBackClick = {
-                            showPendingTasksScreen = false
-                        }
-                    )
-                }
-                showInviteScreen -> {
-                    InviteChildrenScreen(
-                        currentUser = user,
-                        onBackClick = { showInviteScreen = false }
-                    )
-                }
-                else -> {
-                    ParentDashboardScreen(
-                        currentUser = user,
-                        onInviteClick = { showInviteScreen = true },
-                        onTasksClick = { showTaskListScreen = true },
-                        onPendingClick = { showPendingTasksScreen = true },
-                        onSettingsClick = {
-                            // TODO: Navigate to settings
-                        }
-                    )
-                }
-            }
         }
 
         is AppScreen.MainApp -> {
             val user = (currentScreen as AppScreen.MainApp).user
-            KidsRoutineNavGraph(currentUser = user)
+            KidsRoutineNavGraph(user)
         }
 
         is AppScreen.Error -> {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(Color.White)
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Auth Error", style = MaterialTheme.typography.headlineMedium)
-                    Spacer(Modifier.height(16.dp))
+                    Text("⚠️", style = MaterialTheme.typography.displayLarge)
                     Text((currentScreen as AppScreen.Error).message)
                 }
             }

@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 private val YellowPrimary = Color(0xFFFFD93D)
@@ -38,6 +40,8 @@ private val BgLight       = Color(0xFFFFFBF0)
 fun DailyScreen(
     currentUser: UserModel,
     onTaskClick: (TaskInstance) -> Unit,
+    onChallengesClick: () -> Unit,
+    onStatsClick: () -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -56,8 +60,10 @@ fun DailyScreen(
             uiState.isLoading -> DailyLoadingScreen()
             uiState.dailyState.tasks.isEmpty() -> DailyEmptyScreen()
             else -> DailyContent(
-                uiState     = uiState,
-                onTaskClick = onTaskClick
+                uiState = uiState,
+                onTaskClick = onTaskClick,
+                onChallengesClick = onChallengesClick,
+                onStatsClick = onStatsClick
             )
         }
     }
@@ -66,30 +72,66 @@ fun DailyScreen(
 @Composable
 private fun DailyContent(
     uiState: DailyUiState,
-    onTaskClick: (TaskInstance) -> Unit
+    onTaskClick: (TaskInstance) -> Unit,
+    onChallengesClick: () -> Unit,
+    onStatsClick: () -> Unit
 ) {
-    LazyColumn(
-        modifier            = Modifier.fillMaxSize(),
-        contentPadding      = PaddingValues(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        item { DailyHeader(uiState) }
-        item { ProgressSection(uiState.dailyState, uiState.currentUser) }
-        item {
-            Text(
-                text     = "Today's Tasks",
-                style    = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-            )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .paddingFromBaseline(bottom = 80.dp),
+            contentPadding = PaddingValues(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item { DailyHeader(uiState) }
+            item { ProgressSection(uiState.dailyState, uiState.currentUser) }
+            item {
+                Text(
+                    text = "Today's Tasks",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+            }
+            items(
+                items = uiState.dailyState.tasks,
+                key = { it.instanceId }
+            ) { instance ->
+                TaskCard(
+                    instance = instance,
+                    onClick = { onTaskClick(instance) }
+                )
+            }
         }
-        items(
-            items = uiState.dailyState.tasks,
-            key   = { it.instanceId }
-        ) { instance ->
-            TaskCard(
-                instance    = instance,
-                onClick     = { onTaskClick(instance) }
+
+        // Bottom Navigation
+        NavigationBar(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            containerColor = Color.White,
+            tonalElevation = 8.dp
+        ) {
+            NavigationBarItem(
+                icon = { Icon(Icons.Default.Home, contentDescription = "Daily") },
+                label = { Text("Daily") },
+                selected = true,
+                onClick = { /* Already on daily */ }
+            )
+            NavigationBarItem(
+                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = "Challenges") },
+                label = { Text("Challenges") },
+                selected = false,
+                onClick = onChallengesClick
+            )
+            NavigationBarItem(
+                icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
+                label = { Text("Stats") },
+                selected = false,
+                onClick = onStatsClick
             )
         }
     }
@@ -106,19 +148,19 @@ private fun DailyHeader(uiState: DailyUiState) {
             .padding(horizontal = 20.dp, vertical = 28.dp)
     ) {
         Row(
-            modifier       = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
                 Text(
-                    text  = "Hey, ${uiState.currentUser.displayName}! 👋",
+                    text = "Hey, ${uiState.currentUser.displayName}! 👋",
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color.White,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text  = "Ready for today?",
+                    text = "Ready for today?",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.85f)
                 )
@@ -145,7 +187,7 @@ private fun StreakBadge(streak: Int) {
     ) {
         Text(text = "🔥", fontSize = 28.sp)
         Text(
-            text  = "$streak",
+            text = "$streak",
             style = MaterialTheme.typography.titleLarge,
             color = Color.White,
             fontWeight = FontWeight.ExtraBold
@@ -155,18 +197,18 @@ private fun StreakBadge(streak: Int) {
 }
 
 @Composable
-private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {  // ← ADD currentUser parameter
+private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {
     val animatedProgress by animateFloatAsState(
-        targetValue    = state.completionPercent,
-        animationSpec  = tween(durationMillis = 800, easing = EaseOutCubic),
-        label          = "progress"
+        targetValue = state.completionPercent,
+        animationSpec = tween(durationMillis = 800, easing = EaseOutCubic),
+        label = "progress"
     )
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
-        shape   = RoundedCornerShape(20.dp),
-        colors  = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -175,13 +217,16 @@ private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {  /
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("${state.completedCount}/${state.tasks.size} done", fontWeight = FontWeight.SemiBold)
-                Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)  // ← CHANGED: Use currentUser.xp
+                Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
             }
             LinearProgressIndicator(
-                progress       = { animatedProgress },
-                modifier       = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
-                color          = OrangePrimary,
-                trackColor     = OrangePrimary.copy(alpha = 0.15f)
+                progress = { animatedProgress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(CircleShape),
+                color = OrangePrimary,
+                trackColor = OrangePrimary.copy(alpha = 0.15f)
             )
         }
     }
@@ -194,17 +239,17 @@ fun TaskCard(
 ) {
     val task = instance.task
     val cardColor = taskTypeColor(task.type)
-    val icon      = taskTypeIcon(task.type)
+    val icon = taskTypeIcon(task.type)
 
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue   = if (pressed) 0.97f else 1f,
+        targetValue = if (pressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label         = "card_press"
+        label = "card_press"
     )
 
     Card(
-        modifier  = Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .scale(scale)
@@ -212,8 +257,8 @@ fun TaskCard(
                 pressed = true
                 onClick()
             },
-        shape   = RoundedCornerShape(20.dp),
-        colors  = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
         Row(
@@ -285,21 +330,21 @@ private fun DailyEmptyScreen() {
 
 // ── Visual helpers ─────────────────────────────────────────────────────────────
 fun taskTypeColor(type: TaskType): Color = when (type) {
-    TaskType.LOGIC    -> LogicBlue
+    TaskType.LOGIC -> LogicBlue
     TaskType.REAL_LIFE -> RealLifeGreen
-    TaskType.CO_OP    -> CoopPurple
+    TaskType.CO_OP -> CoopPurple
     TaskType.CREATIVE -> Color(0xFFFF9F1C)
     TaskType.LEARNING -> Color(0xFF4361EE)
     TaskType.EMOTIONAL -> Color(0xFFEF476F)
-    TaskType.SOCIAL   -> TealSecondary
+    TaskType.SOCIAL -> TealSecondary
 }
 
 fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
-    TaskType.LOGIC    -> Icons.Default.Psychology
+    TaskType.LOGIC -> Icons.Default.Psychology
     TaskType.REAL_LIFE -> Icons.Default.Home
-    TaskType.CO_OP    -> Icons.Default.People
+    TaskType.CO_OP -> Icons.Default.People
     TaskType.CREATIVE -> Icons.Default.Brush
     TaskType.LEARNING -> Icons.Default.MenuBook
     TaskType.EMOTIONAL -> Icons.Default.Favorite
-    TaskType.SOCIAL   -> Icons.Default.EmojiPeople
+    TaskType.SOCIAL -> Icons.Default.EmojiPeople
 }

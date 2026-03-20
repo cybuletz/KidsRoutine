@@ -1,54 +1,24 @@
 package com.kidsroutine.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavType
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.kidsroutine.core.model.TaskModel
+import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.UserModel
-import com.kidsroutine.feature.daily.ui.DailyScreen
-import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
-
-// Shared in-memory task store (replaced by proper nav args / shared VM in MVP2)
-object TaskPassthrough {
-    var pendingTask: TaskModel? = null
-}
 
 @Composable
 fun KidsRoutineNavGraph(currentUser: UserModel) {
     val navController = rememberNavController()
 
     NavHost(
-        navController   = navController,
-        startDestination = Routes.DAILY
+        navController = navController,
+        startDestination = if (currentUser.role == Role.PARENT) "parent_graph" else "child_graph"
     ) {
-        composable(Routes.DAILY) {
-            DailyScreen(
-                currentUser = currentUser,
-                onTaskClick = { instance ->
-                    TaskPassthrough.pendingTask = instance.task
-                    navController.navigate(Routes.execution(instance.instanceId))
-                }
-            )
-        }
+        // Child routes
+        childNavGraph(currentUser, navController)
 
-        composable(
-            route     = Routes.EXECUTION,
-            arguments = listOf(navArgument("taskId") { type = NavType.StringType })
-        ) {
-            val task = TaskPassthrough.pendingTask
-            if (task != null) {
-                TaskExecutionScreen(
-                    task      = task,
-                    onBack    = { navController.popBackStack() },
-                    onCompleted = { _ ->
-                        TaskPassthrough.pendingTask = null
-                        navController.popBackStack()
-                    }
-                )
-            }
-        }
+        // Parent routes
+        parentNavGraph(currentUser, navController)
     }
 }
