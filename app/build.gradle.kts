@@ -111,5 +111,6 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 
 }
