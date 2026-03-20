@@ -25,6 +25,14 @@ import com.kidsroutine.feature.auth.ui.ParentSignUpScreen
 import com.kidsroutine.feature.family.ui.FamilySetupScreen
 import com.kidsroutine.navigation.KidsRoutineNavGraph
 import dagger.hilt.android.AndroidEntryPoint
+import com.kidsroutine.feature.family.ui.ParentDashboardScreen
+import com.kidsroutine.feature.family.ui.InviteChildrenScreen
+import com.kidsroutine.feature.auth.ui.ChildLoginScreen
+import com.kidsroutine.feature.auth.ui.ChildSignUpScreen
+import com.kidsroutine.feature.family.ui.JoinFamilyScreen
+import com.kidsroutine.feature.auth.ui.RoleSelectionScreen
+import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
+import com.kidsroutine.feature.tasks.ui.TaskListScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -41,9 +49,14 @@ class MainActivity : ComponentActivity() {
 
 sealed class AppScreen {
     object Loading : AppScreen()
-    object Login : AppScreen()
-    object SignUp : AppScreen()
+    object ParentLogin : AppScreen()
+    object ParentSignUp : AppScreen()
+    object ChildLogin : AppScreen()
+    object ChildSignUp : AppScreen()
+    object RoleSelection : AppScreen()
     data class FamilySetup(val user: UserModel) : AppScreen()
+    data class JoinFamily(val user: UserModel) : AppScreen()
+    data class ParentDashboard(val user: UserModel) : AppScreen()
     data class MainApp(val user: UserModel) : AppScreen()
     data class Error(val message: String) : AppScreen()
 }
@@ -52,22 +65,28 @@ sealed class AppScreen {
 fun MainContent() {
     val authViewModel: AuthViewModel = hiltViewModel()
     val authState by authViewModel.authState.collectAsState()
-    var isSignUp by remember { mutableStateOf(false) }
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Loading) }
 
     // Update screen based on auth state
     LaunchedEffect(authState) {
         currentScreen = when (authState) {
             is AuthState.Loading -> AppScreen.Loading
-            is AuthState.Unauthenticated -> {
-                if (isSignUp) AppScreen.SignUp else AppScreen.Login
-            }
+            is AuthState.Unauthenticated -> AppScreen.RoleSelection
             is AuthState.Authenticated -> {
                 val user = (authState as AuthState.Authenticated).user
-                if (user.role == Role.PARENT && user.familyId.isEmpty()) {
-                    AppScreen.FamilySetup(user)
-                } else {
-                    AppScreen.MainApp(user)
+                when {
+                    user.role == Role.PARENT && user.familyId.isEmpty() -> {
+                        AppScreen.FamilySetup(user)
+                    }
+                    user.role == Role.CHILD && user.familyId.isEmpty() -> {
+                        AppScreen.JoinFamily(user)
+                    }
+                    user.role == Role.PARENT -> {
+                        AppScreen.ParentDashboard(user)
+                    }
+                    else -> {
+                        AppScreen.MainApp(user)
+                    }
                 }
             }
             is AuthState.Error -> {
@@ -89,30 +108,65 @@ fun MainContent() {
             }
         }
 
-        is AppScreen.Login -> {
+        is AppScreen.RoleSelection -> {
+            RoleSelectionScreen(
+                onParentSelected = {
+                    currentScreen = AppScreen.ParentLogin
+                },
+                onChildSelected = {
+                    currentScreen = AppScreen.ChildLogin
+                }
+            )
+        }
+
+        is AppScreen.ParentLogin -> {
             ParentLoginScreen(
                 onLoginSuccess = { user ->
                     if (user.role == Role.PARENT && user.familyId.isEmpty()) {
                         currentScreen = AppScreen.FamilySetup(user)
                     } else {
-                        currentScreen = AppScreen.MainApp(user)
+                        currentScreen = AppScreen.ParentDashboard(user)
                     }
                 },
                 onSignUpClick = {
-                    isSignUp = true
-                    currentScreen = AppScreen.SignUp
+                    currentScreen = AppScreen.ParentSignUp
                 }
             )
         }
 
-        is AppScreen.SignUp -> {
+        is AppScreen.ParentSignUp -> {
             ParentSignUpScreen(
                 onSignUpSuccess = { user ->
                     currentScreen = AppScreen.FamilySetup(user)
                 },
                 onBackClick = {
-                    isSignUp = false
-                    currentScreen = AppScreen.Login
+                    currentScreen = AppScreen.ParentLogin
+                }
+            )
+        }
+
+        is AppScreen.ChildLogin -> {
+            ChildLoginScreen(
+                onLoginSuccess = { user ->
+                    if (user.role == Role.CHILD && user.familyId.isEmpty()) {
+                        currentScreen = AppScreen.JoinFamily(user)
+                    } else {
+                        currentScreen = AppScreen.MainApp(user)
+                    }
+                },
+                onSignUpClick = {
+                    currentScreen = AppScreen.ChildSignUp
+                }
+            )
+        }
+
+        is AppScreen.ChildSignUp -> {
+            ChildSignUpScreen(
+                onSignUpSuccess = { user ->
+                    currentScreen = AppScreen.JoinFamily(user)
+                },
+                onBackClick = {
+                    currentScreen = AppScreen.ChildLogin
                 }
             )
         }
@@ -122,11 +176,74 @@ fun MainContent() {
             FamilySetupScreen(
                 currentUser = user,
                 onFamilyCreated = { family ->
-                    // Update user's familyId and navigate to main app
                     val updatedUser = user.copy(familyId = family.familyId)
-                    currentScreen = AppScreen.MainApp(updatedUser)
+                    currentScreen = AppScreen.ParentDashboard(updatedUser)
                 }
             )
+        }
+
+        is AppScreen.JoinFamily -> {
+            val user = (currentScreen as AppScreen.JoinFamily).user
+            JoinFamilyScreen(
+                currentUser = user,
+                onJoinSuccess = { familyId ->
+                    val updatedUser = user.copy(familyId = familyId)
+                    currentScreen = AppScreen.MainApp(updatedUser)
+                },
+                onBackClick = {
+                    currentScreen = AppScreen.ChildLogin
+                }
+            )
+        }
+
+        is AppScreen.ParentDashboard -> {
+            val user = (currentScreen as AppScreen.ParentDashboard).user
+            var showInviteScreen by remember { mutableStateOf(false) }
+            var showTaskListScreen by remember { mutableStateOf(false) }
+            var showCreateTaskScreen by remember { mutableStateOf(false) }
+
+            when {
+                showCreateTaskScreen -> {
+                    CreateTaskScreen(
+                        currentUser = user,
+                        onTaskCreated = {
+                            showCreateTaskScreen = false
+                            showTaskListScreen = true
+                        },
+                        onBackClick = {
+                            showCreateTaskScreen = false
+                            showTaskListScreen = true
+                        }
+                    )
+                }
+                showTaskListScreen -> {
+                    TaskListScreen(
+                        currentUser = user,
+                        onCreateTaskClick = {
+                            showCreateTaskScreen = true
+                        },
+                        onBackClick = {
+                            showTaskListScreen = false
+                        }
+                    )
+                }
+                showInviteScreen -> {
+                    InviteChildrenScreen(
+                        currentUser = user,
+                        onBackClick = { showInviteScreen = false }
+                    )
+                }
+                else -> {
+                    ParentDashboardScreen(
+                        currentUser = user,
+                        onInviteClick = { showInviteScreen = true },
+                        onTasksClick = { showTaskListScreen = true },
+                        onSettingsClick = {
+                            // TODO: Navigate to settings
+                        }
+                    )
+                }
+            }
         }
 
         is AppScreen.MainApp -> {
