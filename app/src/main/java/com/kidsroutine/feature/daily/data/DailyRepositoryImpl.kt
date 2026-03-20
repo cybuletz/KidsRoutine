@@ -97,15 +97,29 @@ class DailyRepositoryImpl @Inject constructor(
         taskInstanceDao.countTasksForDate(userId, date) > 0
 
     override suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate> {
-        Log.d("DailyRepository", "fetchTaskTemplatesFromFirestore(familyId=$familyId)")
+        Log.d("DailyRepository", "fetchTaskTemplatesFromFirestore called with familyId=$familyId")
         return try {
             val systemTemplates = firestore.collection("task_templates")
                 .whereEqualTo("isActive", true)
                 .get().await()
-                .documents.mapNotNull { doc ->
+
+            Log.d("DailyRepository", "Found ${systemTemplates.documents.size} documents")
+
+            systemTemplates.documents.forEach { doc ->
+                Log.d("DailyRepository", "Document ID: ${doc.id}, Data: ${doc.data}")
+            }
+
+            systemTemplates.documents.mapNotNull { doc ->
+                try {
                     doc.toObject(TaskTemplate::class.java)
+                } catch (e: Exception) {
+                    Log.e("DailyRepository", "Failed to deserialize doc ${doc.id}", e)
+                    null
                 }
-            systemTemplates
-        } catch (e: Exception) { emptyList() }
+            }
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "Exception in fetchTaskTemplatesFromFirestore", e)
+            emptyList()
+        }
     }
 }

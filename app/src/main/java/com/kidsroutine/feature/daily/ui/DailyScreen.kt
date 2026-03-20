@@ -82,14 +82,6 @@ private fun DailyContent(
         item { DailyHeader(uiState) }
         item { ProgressSection(uiState.dailyState) }
         item {
-            Button(
-                onClick = { /* the code above */ },
-                modifier = Modifier.padding(horizontal = 20.dp)
-            ) {
-                Text("🔄 Force Generate Today's Tasks")
-            }
-        }
-        item {
             Text(
                 text     = "Today's Tasks",
                 style    = MaterialTheme.typography.titleLarge,
