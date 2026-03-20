@@ -3,6 +3,8 @@ package com.kidsroutine.core.di
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import com.kidsroutine.feature.challenges.data.ChallengeRepositoryImpl
+import com.kidsroutine.feature.community.data.CommunityRepository
+import com.kidsroutine.feature.community.data.CommunityRepositoryImpl
 import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
@@ -34,4 +36,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChallengeRepository(impl: ChallengeRepositoryImpl): ChallengeRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCommunityRepository(impl: CommunityRepositoryImpl): CommunityRepository
 }

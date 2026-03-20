@@ -128,8 +128,8 @@ private fun DailyContent(
                 onClick = onChallengesClick
             )
             NavigationBarItem(
-                icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
-                label = { Text("Stats") },
+                icon = { Icon(Icons.Default.BarChart, contentDescription = "Leaderboard") },
+                label = { Text("Leaderboard") },
                 selected = false,
                 onClick = onStatsClick
             )

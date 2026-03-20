@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.UserModel
+import androidx.compose.material.icons.filled.ShoppingCart
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -38,6 +39,7 @@ fun ParentDashboardScreen(
     onTasksClick: () -> Unit,
     onPendingClick: () -> Unit,
     onChallengesClick: () -> Unit,
+    onMarketplaceClick: () -> Unit,  // ADD THIS
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -210,7 +212,8 @@ fun ParentDashboardScreen(
                     onInviteClick = onInviteClick,
                     onTasksClick = onTasksClick,
                     onPendingClick = onPendingClick,
-                    onChallengesClick = onChallengesClick
+                    onChallengesClick = onChallengesClick,
+                    onMarketplaceClick = onMarketplaceClick
                 )
 
                 Spacer(Modifier.height(32.dp))
@@ -433,7 +436,8 @@ private fun ActionButtonsSection(
     onInviteClick: () -> Unit,
     onTasksClick: () -> Unit,
     onPendingClick: () -> Unit,
-    onChallengesClick: () -> Unit
+    onChallengesClick: () -> Unit,
+    onMarketplaceClick: () -> Unit  // ADD THIS
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -537,6 +541,32 @@ private fun ActionButtonsSection(
             )
             Text(
                 "Challenges",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Button(
+            onClick = onMarketplaceClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF667EEA)
+            )
+        ) {
+            Icon(
+                Icons.Default.ShoppingCart,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                "Community Library",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

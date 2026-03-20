@@ -18,6 +18,7 @@ import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.StartChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
+import com.kidsroutine.feature.community.ui.MarketplaceScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -35,6 +36,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onTasksClick = { navController.navigate(Routes.TASK_LIST) },
                 onPendingClick = { navController.navigate(Routes.PENDING_TASKS) },
                 onChallengesClick = { navController.navigate(Routes.PARENT_CHALLENGES) },
+                onMarketplaceClick = { navController.navigate(Routes.MARKETPLACE) },  // ADD THIS
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -109,6 +111,14 @@ fun NavGraphBuilder.parentNavGraph(
             ChallengeDetailScreen(
                 currentUser = currentUser,
                 challengeId = challengeId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Marketplace (add button to parent dashboard)
+        composable(Routes.MARKETPLACE) {
+            MarketplaceScreen(
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )
         }

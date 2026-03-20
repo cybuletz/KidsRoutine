@@ -27,6 +27,15 @@ object Routes {
     const val PARENT_CHALLENGE_DETAIL = "parent_challenge_detail/{challengeId}"
 
     // ═══════════════════════════════════════════════════════════════════════
+    // COMMUNITY ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const val LEADERBOARD = "leaderboard"
+    const val MARKETPLACE = "marketplace"
+    const val MARKETPLACE_TASKS = "marketplace_tasks"
+    const val MARKETPLACE_CHALLENGES = "marketplace_challenges"
+
+    // ═══════════════════════════════════════════════════════════════════════
     // Helper functions for navigation with arguments
     // ═══════════════════════════════════════════════════════════════════════
 
