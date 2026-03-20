@@ -69,10 +69,13 @@ class ExecutionViewModel @Inject constructor(
         val state = _uiState.value
         _uiState.update { it.copy(isCompleting = true) }
         viewModelScope.launch {
-            // TODO MVP2: pass real userId + streak from AuthViewModel
+            // Get the real userId from somewhere - you need to pass it to ViewModel
+            // For now, get it from current Firebase user
+            val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "demo_user"
+
             val result = completeTaskUseCase(
                 task     = state.task,
-                userId   = "demo_user",
+                userId   = userId,  // ← Use real userId, not "demo_user"
                 photoUrl = state.photoUrl
             )
             _uiState.update {

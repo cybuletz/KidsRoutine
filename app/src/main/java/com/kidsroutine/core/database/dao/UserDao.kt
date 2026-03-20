@@ -9,6 +9,9 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE userId = :userId")
     fun getUser(userId: String): Flow<UserEntity?>
 
+    @Query("SELECT * FROM users WHERE userId = :userId LIMIT 1")
+    suspend fun getUserSync(userId: String): UserEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(user: UserEntity)
 }

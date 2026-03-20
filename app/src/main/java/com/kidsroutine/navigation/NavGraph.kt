@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.kidsroutine.core.model.TaskModel
+import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.daily.ui.DailyScreen
 import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 
@@ -16,7 +17,7 @@ object TaskPassthrough {
 }
 
 @Composable
-fun KidsRoutineNavGraph() {
+fun KidsRoutineNavGraph(currentUser: UserModel) {
     val navController = rememberNavController()
 
     NavHost(
@@ -25,6 +26,7 @@ fun KidsRoutineNavGraph() {
     ) {
         composable(Routes.DAILY) {
             DailyScreen(
+                currentUser = currentUser,
                 onTaskClick = { instance ->
                     TaskPassthrough.pendingTask = instance.task
                     navController.navigate(Routes.execution(instance.instanceId))

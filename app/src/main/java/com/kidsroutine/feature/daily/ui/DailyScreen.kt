@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.daily.ui
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -35,23 +36,16 @@ private val BgLight       = Color(0xFFFFFBF0)
 
 @Composable
 fun DailyScreen(
+    currentUser: UserModel,
     onTaskClick: (TaskInstance) -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // TODO MVP2: Replace with real user from AuthViewModel
-    LaunchedEffect(Unit) {
-        viewModel.init(
-            UserModel(
-                userId = "demo_user",
-                role = Role.CHILD,
-                familyId = "demo_family",    // ← ADD THIS LINE
-                displayName = "Alex"
-            )
-        )
+    LaunchedEffect(currentUser.userId) {
+        Log.d("DailyScreen", "Initializing with user: ${currentUser.userId}")
+        viewModel.init(currentUser)
     }
-
 
     Box(
         modifier = Modifier
@@ -80,7 +74,7 @@ private fun DailyContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { DailyHeader(uiState) }
-        item { ProgressSection(uiState.dailyState) }
+        item { ProgressSection(uiState.dailyState, uiState.currentUser) }
         item {
             Text(
                 text     = "Today's Tasks",
@@ -161,7 +155,7 @@ private fun StreakBadge(streak: Int) {
 }
 
 @Composable
-private fun ProgressSection(state: DailyStateModel) {
+private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {  // ← ADD currentUser parameter
     val animatedProgress by animateFloatAsState(
         targetValue    = state.completionPercent,
         animationSpec  = tween(durationMillis = 800, easing = EaseOutCubic),
@@ -181,7 +175,7 @@ private fun ProgressSection(state: DailyStateModel) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("${state.completedCount}/${state.tasks.size} done", fontWeight = FontWeight.SemiBold)
-                Text("⭐ ${state.totalXpEarned} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
+                Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)  // ← CHANGED: Use currentUser.xp
             }
             LinearProgressIndicator(
                 progress       = { animatedProgress },
