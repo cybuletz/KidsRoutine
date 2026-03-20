@@ -173,11 +173,11 @@ class AuthRepositoryImpl @Inject constructor(
             Log.d("AuthRepository", "Google sign in - existing user: $uid")
             user
         } else {
-            val familyId = "family_$uid"
+            // New user - create as PARENT with EMPTY familyId (parent must create family first)
             val userEntity = UserEntity(
                 userId = uid,
                 role = Role.PARENT.name,
-                familyId = familyId,
+                familyId = "",  // ← EMPTY! Parent must create family
                 displayName = displayName,
                 xp = 0,
                 level = 1,
@@ -189,7 +189,7 @@ class AuthRepositoryImpl @Inject constructor(
                 .set(mapOf(
                     "userId" to uid,
                     "role" to Role.PARENT.name,
-                    "familyId" to familyId,
+                    "familyId" to "",  // ← EMPTY! Parent must create family
                     "displayName" to displayName,
                     "xp" to 0,
                     "level" to 1,

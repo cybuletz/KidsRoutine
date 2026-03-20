@@ -1,9 +1,11 @@
-package com.kidsroutine.di
+package com.kidsroutine.core.di
 
 import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.execution.data.TaskProgressRepositoryImpl
+import com.kidsroutine.feature.family.data.FamilyRepository
+import com.kidsroutine.feature.family.data.FamilyRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -14,9 +16,15 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
 
-    @Binds @Singleton
+    @Binds
+    @Singleton
+    abstract fun bindFamilyRepository(impl: FamilyRepositoryImpl): FamilyRepository
+
+    @Binds
+    @Singleton
     abstract fun bindDailyRepository(impl: DailyRepositoryImpl): DailyRepository
 
-    @Binds @Singleton
+    @Binds
+    @Singleton
     abstract fun bindTaskProgressRepository(impl: TaskProgressRepositoryImpl): TaskProgressRepository
 }
