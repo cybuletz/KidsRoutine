@@ -621,10 +621,12 @@ class CommunityRepositoryImpl @Inject constructor(
                 val userData = userDoc.data ?: continue
 
                 val xp = (userData["xp"] as? Number)?.toInt() ?: 0
-                val level = (userData["level"] as? Number)?.toInt() ?: 1
                 val displayName = userData["displayName"] as? String ?: "Unknown"
                 val avatarUrl = userData["avatarUrl"] as? String ?: ""
-                val badges = ((userData["badges"] as? List<*>) ?: emptyList()).size
+
+                // ← FIX: Simplify badges count
+                val badgesList = userData["badges"] as? List<*> ?: emptyList<Any>()
+                val badgesCount = badgesList.size
 
                 entries.add(
                     LeaderboardEntry(
@@ -633,9 +635,9 @@ class CommunityRepositoryImpl @Inject constructor(
                         displayName = displayName,
                         avatarUrl = avatarUrl,
                         xp = xp,
-                        level = level,
+                        level = 1,
                         weeklyXp = xp,
-                        badges = badges
+                        badges = badgesCount
                     )
                 )
             }

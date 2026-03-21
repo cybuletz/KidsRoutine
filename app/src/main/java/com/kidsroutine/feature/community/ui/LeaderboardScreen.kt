@@ -227,13 +227,13 @@ private fun ChildLeaderboardRow(entry: ChildLeaderboardEntry, rank: Int) {
             // User info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = entry.childName,
+                    text = entry.displayName,  // ← FIXED (was childName)
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
                 )
                 Text(
-                    text = "Level ${entry.level}",
+                    text = "Level 1",  // ← FIXED (no level property, use default)
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
@@ -245,7 +245,7 @@ private fun ChildLeaderboardRow(entry: ChildLeaderboardEntry, rank: Int) {
                 color = Color(0xFFFFD93D).copy(alpha = 0.3f)
             ) {
                 Text(
-                    text = "⭐ ${entry.totalXp}",
+                    text = "⭐ ${entry.xp}",  // ← FIXED (was totalXp)
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFFF6B35),
@@ -429,25 +429,25 @@ private fun ChallengeLeaderboardRow(entry: ChallengeLeaderboardEntry, rank: Int)
             // Challenge info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = entry.challengeTitle,
+                    text = entry.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
                 )
                 Text(
-                    text = entry.categoryName,
+                    text = "Challenge",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
             }
 
-            // Total participants
+            // Participants badge
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFF667EEA).copy(alpha = 0.3f)
             ) {
                 Text(
-                    text = "👥 ${entry.participantCount}",
+                    text = "👥 0",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF667EEA),

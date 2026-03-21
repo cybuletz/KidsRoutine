@@ -17,7 +17,6 @@ import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
-
 object TaskPassthrough {
     var pendingTask: TaskModel? = null
 }
@@ -30,7 +29,7 @@ fun NavGraphBuilder.childNavGraph(
         route = "child_graph",
         startDestination = Routes.DAILY
     ) {
-        // Daily tasks
+// Daily tasks
         composable(Routes.DAILY) {
             DailyScreen(
                 currentUser = currentUser,
@@ -112,6 +111,20 @@ fun NavGraphBuilder.childNavGraph(
         // Leaderboard
         composable(Routes.LEADERBOARD) {
             LeaderboardScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.ACHIEVEMENTS) {
+            AchievementsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

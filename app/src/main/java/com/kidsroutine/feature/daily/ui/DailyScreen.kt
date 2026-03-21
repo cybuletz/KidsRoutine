@@ -41,7 +41,7 @@ fun DailyScreen(
     currentUser: UserModel,
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
-    onAchievementsClick: () -> Unit,  // ← ADD THIS
+    onAchievementsClick: () -> Unit,
     onStatsClick: () -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
@@ -64,6 +64,7 @@ fun DailyScreen(
                 uiState = uiState,
                 onTaskClick = onTaskClick,
                 onChallengesClick = onChallengesClick,
+                onAchievementsClick = onAchievementsClick,
                 onStatsClick = onStatsClick
             )
         }
@@ -75,7 +76,7 @@ private fun DailyContent(
     uiState: DailyUiState,
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
-    onAchievementsClick: () -> Unit,  // ← ADD THIS
+    onAchievementsClick: () -> Unit,
     onStatsClick: () -> Unit
 ) {
     Box(
