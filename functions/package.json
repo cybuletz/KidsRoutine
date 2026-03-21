@@ -1,0 +1,22 @@
+{
+  "name": "kidsroutine-functions",
+  "description": "Cloud Functions for KidsRoutine notifications",
+  "type": "commonjs",
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.0",
+    "firebase-functions": "^4.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
