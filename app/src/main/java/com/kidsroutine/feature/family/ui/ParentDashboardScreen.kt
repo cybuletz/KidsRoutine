@@ -46,6 +46,7 @@ fun ParentDashboardScreen(
     onPublishClick: () -> Unit,
     onModerationClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
+    onFamilyMessagingClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -225,6 +226,7 @@ fun ParentDashboardScreen(
                     onPublishClick = onPublishClick,
                     onModerationClick = onModerationClick,
                     onLeaderboardClick = onLeaderboardClick,
+                    onFamilyMessagingClick = onFamilyMessagingClick,
                     currentUser = currentUser
                 )
 
@@ -453,6 +455,7 @@ private fun ActionButtonsSection(
     onPublishClick: () -> Unit,
     onModerationClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
+    onFamilyMessagingClick: () -> Unit,
     currentUser: UserModel
 ) {
     Column(
@@ -634,7 +637,7 @@ private fun ActionButtonsSection(
         }
 
         Button(
-            onClick = { /* Navigate to family messaging */ },
+            onClick = onFamilyMessagingClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

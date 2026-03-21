@@ -30,7 +30,7 @@ fun NavGraphBuilder.childNavGraph(
         route = "child_graph",
         startDestination = Routes.DAILY
     ) {
-// Daily tasks
+        // Daily tasks
         composable(Routes.DAILY) {
             DailyScreen(
                 currentUser = currentUser,
@@ -41,8 +41,11 @@ fun NavGraphBuilder.childNavGraph(
                 onChallengesClick = {
                     navController.navigate(Routes.CHALLENGES)
                 },
-                onAchievementsClick = {  // ← ADD THIS
+                onAchievementsClick = {
                     navController.navigate(Routes.ACHIEVEMENTS)
+                },
+                onFamilyMessagingClick = {  // ← ADD THIS
+                    navController.navigate(Routes.FAMILY_MESSAGING)
                 },
                 onStatsClick = {
                     navController.navigate(Routes.LEADERBOARD)

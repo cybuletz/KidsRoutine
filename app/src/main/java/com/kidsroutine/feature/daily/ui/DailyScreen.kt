@@ -42,6 +42,7 @@ fun DailyScreen(
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
     onAchievementsClick: () -> Unit,
+    onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
@@ -65,6 +66,7 @@ fun DailyScreen(
                 onTaskClick = onTaskClick,
                 onChallengesClick = onChallengesClick,
                 onAchievementsClick = onAchievementsClick,
+                onFamilyMessagingClick = onFamilyMessagingClick,
                 onStatsClick = onStatsClick
             )
         }
@@ -77,6 +79,7 @@ private fun DailyContent(
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
     onAchievementsClick: () -> Unit,
+    onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit
 ) {
     Box(
@@ -155,6 +158,32 @@ private fun DailyContent(
                 selected = false,
                 onClick = onAchievementsClick  // ← ADD THIS
             )
+
+            Button(
+                onClick = onFamilyMessagingClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEC407A)
+                )
+            ) {
+                Icon(
+                    Icons.Default.Message,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 8.dp)
+                )
+                Text(
+                    "Family Chat",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }

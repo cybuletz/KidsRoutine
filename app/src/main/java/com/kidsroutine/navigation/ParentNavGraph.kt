@@ -22,6 +22,7 @@ import com.kidsroutine.feature.community.ui.MarketplaceScreen
 import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.community.ui.ModerationScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -43,6 +44,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onPublishClick = { navController.navigate(Routes.PUBLISH) },
                 onModerationClick = { navController.navigate(Routes.MODERATION) },
                 onLeaderboardClick = { navController.navigate(Routes.LEADERBOARD) },
+                onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -117,6 +119,14 @@ fun NavGraphBuilder.parentNavGraph(
             ChallengeDetailScreen(
                 currentUser = currentUser,
                 challengeId = challengeId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Family messaging
+        composable(Routes.FAMILY_MESSAGING) {
+            FamilyMessagingScreen(
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )
         }

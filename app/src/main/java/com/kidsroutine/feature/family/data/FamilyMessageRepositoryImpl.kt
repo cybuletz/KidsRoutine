@@ -3,6 +3,7 @@ package com.kidsroutine.feature.family.data
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.FamilyMessage
+import com.kidsroutine.core.model.MessageType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
@@ -50,48 +51,49 @@ class FamilyMessageRepositoryImpl @Inject constructor(
         try {
             Log.d("FamilyMessageRepository", "Observing messages for family: $familyId")
 
-            firestore.collection("familyMessages")
+            val messages = mutableListOf<FamilyMessage>()
+
+            // Get initial data
+            val snapshot = firestore.collection("familyMessages")
                 .whereEqualTo("familyId", familyId)
                 .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .limit(100)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("FamilyMessageRepository", "Error observing messages", error)
-                        return@addSnapshotListener
-                    }
+                .get()
+                .await()
 
-                    val messages = snapshot?.documents?.mapNotNull { doc ->
-                        try {
-                            val data = doc.data ?: return@mapNotNull null
-                            FamilyMessage(
-                                id = data["id"] as? String ?: "",
-                                familyId = data["familyId"] as? String ?: "",
-                                senderId = data["senderId"] as? String ?: "",
-                                senderName = data["senderName"] as? String ?: "",
-                                senderAvatar = data["senderAvatar"] as? String ?: "",
-                                content = data["content"] as? String ?: "",
-                                type = try {
-                                    com.kidsroutine.core.model.MessageType.valueOf(
-                                        data["type"] as? String ?: "TEXT"
-                                    )
-                                } catch (e: Exception) {
-                                    com.kidsroutine.core.model.MessageType.TEXT
-                                },
-                                relatedTaskId = data["relatedTaskId"] as? String,
-                                relatedTaskTitle = data["relatedTaskTitle"] as? String,
-                                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
-                                isRead = data["isRead"] as? Boolean ?: false
-                            )
+            messages.addAll(snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    FamilyMessage(
+                        id = data["id"] as? String ?: "",
+                        familyId = data["familyId"] as? String ?: "",
+                        senderId = data["senderId"] as? String ?: "",
+                        senderName = data["senderName"] as? String ?: "",
+                        senderAvatar = data["senderAvatar"] as? String ?: "",
+                        content = data["content"] as? String ?: "",
+                        type = try {
+                            MessageType.valueOf(data["type"] as? String ?: "TEXT")
                         } catch (e: Exception) {
-                            Log.e("FamilyMessageRepository", "Error parsing message", e)
-                            null
-                        }
-                    }?.reversed() ?: emptyList()
-
-                    Log.d("FamilyMessageRepository", "Loaded ${messages.size} messages")
+                            MessageType.TEXT
+                        },
+                        relatedTaskId = data["relatedTaskId"] as? String,
+                        relatedTaskTitle = data["relatedTaskTitle"] as? String,
+                        createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
+                        isRead = data["isRead"] as? Boolean ?: false
+                    )
+                } catch (e: Exception) {
+                    Log.e("FamilyMessageRepository", "Error parsing message", e)
+                    null
                 }
+            })
+
+            messages.reverse()
+            Log.d("FamilyMessageRepository", "Loaded ${messages.size} messages")
+            emit(messages)
+
         } catch (e: Exception) {
             Log.e("FamilyMessageRepository", "Error observing messages", e)
+            emit(emptyList())
         }
     }
 
