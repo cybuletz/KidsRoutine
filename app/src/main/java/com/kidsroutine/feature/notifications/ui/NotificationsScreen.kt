@@ -2,6 +2,8 @@ package com.kidsroutine.feature.notifications.ui
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,8 +27,8 @@ import com.kidsroutine.core.model.AppNotification
 import com.kidsroutine.core.model.NotificationType
 import com.kidsroutine.core.model.UserModel
 
-private val GradientStart = Color(0xFFFF6B35)
-private val GradientEnd = Color(0xFFFF9800)
+private val GradientStart = Color(0xFF667EEA)
+private val GradientEnd = Color(0xFF764BA2)
 private val BgLight = Color(0xFFFFFBF0)
 private val TextDark = Color(0xFF2D3436)
 
@@ -85,18 +88,20 @@ fun NotificationsScreen(
                 )
                 if (uiState.unreadCount > 0) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Red
+                        shape = RoundedCornerShape(50),
+                        color = Color(0xFFFF6B35),
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
                         Text(
-                            text = uiState.unreadCount.toString(),
-                            style = MaterialTheme.typography.labelSmall,
+                            text = "${uiState.unreadCount}",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(4.dp, 2.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontSize = 12.sp
                         )
                     }
                 }
+                Spacer(Modifier.width(8.dp))
             }
 
             Spacer(Modifier.height(16.dp))
@@ -120,7 +125,7 @@ fun NotificationsScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("✨", fontSize = 48.sp)
+                        Text("🎉", fontSize = 48.sp)
                         Spacer(Modifier.height(16.dp))
                         Text(
                             "All Caught Up!",
@@ -130,7 +135,7 @@ fun NotificationsScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "No notifications yet",
+                            "You don't have any notifications",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
@@ -147,8 +152,8 @@ fun NotificationsScreen(
                     items(uiState.notifications) { notification ->
                         NotificationCard(
                             notification = notification,
-                            onDismiss = { viewModel.deleteNotification(notification.id) },
-                            onMarkRead = { viewModel.markAsRead(notification.id) }
+                            onMarkAsRead = { viewModel.markAsRead(notification.id) },
+                            onDelete = { viewModel.deleteNotification(notification.id) }
                         )
                     }
                 }
@@ -160,138 +165,176 @@ fun NotificationsScreen(
 @Composable
 private fun NotificationCard(
     notification: AppNotification,
-    onDismiss: () -> Unit,
-    onMarkRead: () -> Unit
+    onMarkAsRead: () -> Unit,
+    onDelete: () -> Unit
 ) {
+    val (icon, backgroundColor) = when (notification.type) {
+        NotificationType.TASK_REMINDER -> "📋" to Color(0xFFE3F2FD)
+        NotificationType.ACHIEVEMENT_UNLOCKED -> "🏆" to Color(0xFFFFF8E1)
+        NotificationType.CHALLENGE_STARTED -> "🎯" to Color(0xFFF3E5F5)
+        NotificationType.PARENT_APPROVAL_NEEDED -> "👨‍👩‍👧" to Color(0xFFE8F5E9)
+        NotificationType.FAMILY_MESSAGE -> "💬" to Color(0xFFFCE4EC)
+        NotificationType.LEADERBOARD_CHANGED -> "🏅" to Color(0xFFFFF3E0)
+        else -> "📬" to Color(0xFFF5F5F5)
+    }
+
+    var isExpanded by remember { mutableStateOf(!notification.isRead) }
+
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (!notification.isRead) {
-                    Modifier.background(Color(0xFFFFF8E1), RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                }
-            ),
-        shape = RoundedCornerShape(12.dp),
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) Color(0xFFFFF8E1) else Color.White
+            containerColor = if (notification.isRead) Color.White else backgroundColor
         ),
-        elevation = if (!notification.isRead) CardDefaults.cardElevation(2.dp) else CardDefaults.cardElevation(0.dp)
+        elevation = if (notification.isRead) CardDefaults.cardElevation(2.dp) else CardDefaults.cardElevation(4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    verticalAlignment = Alignment.Top
                 ) {
                     // Icon
                     Surface(
                         modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = getIconBackgroundColor(notification.type)
+                        shape = RoundedCornerShape(12.dp),
+                        color = GradientStart.copy(alpha = 0.2f)
                     ) {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            Text(
-                                text = notification.icon,
-                                fontSize = 20.sp
-                            )
+                            Text(icon, fontSize = 20.sp)
                         }
                     }
 
-                    // Title and time
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
+                    // Content
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = notification.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (!notification.isRead) {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = GradientStart
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(GradientStart, RoundedCornerShape(50))
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(4.dp))
+
                         Text(
-                            text = notification.title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2D3436)
+                            text = notification.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 2
                         )
+
+                        Spacer(Modifier.height(8.dp))
+
                         Text(
-                            text = getTimeAgo(notification.createdAt),
+                            text = formatTimestamp(notification.createdAt),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.Gray
                         )
                     }
                 }
 
-                // Close button
+                // Actions
                 IconButton(
-                    onClick = onDismiss,
+                    onClick = onDelete,
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Delete",
                         tint = Color.Gray,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            // Body
-            Text(
-                text = notification.body,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                modifier = Modifier.padding(start = 52.dp)
-            )
-
-            // Mark as read button (only if unread)
-            if (!notification.isRead) {
-                Button(
-                    onClick = onMarkRead,
+            // Action buttons (if unread)
+            AnimatedVisibility(
+                visible = !notification.isRead,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(32.dp),
-                    shape = RoundedCornerShape(6.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF667EEA)
-                    )
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Mark as Read", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = {
+                            onMarkAsRead()
+                            isExpanded = false
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(36.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GradientStart
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Done,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .padding(end = 4.dp)
+                        )
+                        Text(
+                            "Mark Read",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun getIconBackgroundColor(type: NotificationType): Color = when (type) {
-    NotificationType.TASK_REMINDER -> Color(0xFFE3F2FD)
-    NotificationType.ACHIEVEMENT_UNLOCKED -> Color(0xFFFFF8E1)
-    NotificationType.PARENT_APPROVAL_NEEDED -> Color(0xFFFFEBEE)
-    NotificationType.CHALLENGE_STARTED -> Color(0xFFF3E5F5)
-    NotificationType.LEADERBOARD_CHANGED -> Color(0xFFE8F5E9)
-}
-
-private fun getTimeAgo(timestamp: Long): String {
+private fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
-    val seconds = diff / 1000
-    val minutes = seconds / 60
-    val hours = minutes / 60
-    val days = hours / 24
 
     return when {
-        seconds < 60 -> "Just now"
-        minutes < 60 -> "$minutes min ago"
-        hours < 24 -> "$hours h ago"
-        days < 7 -> "$days d ago"
-        else -> "A week ago"
+        diff < 60_000 -> "Just now"
+        diff < 3_600_000 -> "${diff / 60_000}m ago"
+        diff < 86_400_000 -> "${diff / 3_600_000}h ago"
+        diff < 604_800_000 -> "${diff / 86_400_000}d ago"
+        else -> {
+            val sdf = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(timestamp))
+        }
     }
 }

@@ -11,6 +11,8 @@ import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.execution.data.TaskProgressRepositoryImpl
+import com.kidsroutine.feature.family.data.FamilyMessageRepository
+import com.kidsroutine.feature.family.data.FamilyMessageRepositoryImpl
 import com.kidsroutine.feature.family.data.FamilyRepository
 import com.kidsroutine.feature.family.data.FamilyRepositoryImpl
 import com.kidsroutine.feature.notifications.data.NotificationRepository
@@ -52,4 +54,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindNotificationRepository(impl: NotificationRepositoryImpl): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFamilyMessageRepository(impl: FamilyMessageRepositoryImpl): FamilyMessageRepository
 }

@@ -15,6 +15,7 @@ import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
 object TaskPassthrough {
@@ -92,6 +93,14 @@ fun NavGraphBuilder.childNavGraph(
                 onChallengeClick = { challenge ->
                     navController.navigate(Routes.challengeDetail(challenge.challengeId))
                 }
+            )
+        }
+
+        // Family messaging
+        composable(Routes.FAMILY_MESSAGING) {
+            FamilyMessagingScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
             )
         }
 

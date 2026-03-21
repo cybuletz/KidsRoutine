@@ -36,6 +36,9 @@ object Routes {
     const val PUBLISH = "publish"
     const val MODERATION = "moderation"
 
+
+    const val FAMILY_MESSAGING = "family_messaging"
+
     // ═══════════════════════════════════════════════════════════════════════
     // Helper functions for navigation with arguments
     // ═══════════════════════════════════════════════════════════════════════

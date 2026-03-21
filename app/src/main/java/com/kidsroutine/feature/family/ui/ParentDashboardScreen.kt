@@ -27,6 +27,7 @@ import com.kidsroutine.core.model.UserModel
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Message
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -626,6 +627,32 @@ private fun ActionButtonsSection(
         ) {
             Text(
                 "🏅 Leaderboard",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Button(
+            onClick = { /* Navigate to family messaging */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFEC407A)
+            )
+        ) {
+            Icon(
+                Icons.Default.Message,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                "Family Chat",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

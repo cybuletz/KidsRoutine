@@ -5,7 +5,8 @@ enum class NotificationType {
     ACHIEVEMENT_UNLOCKED,
     PARENT_APPROVAL_NEEDED,
     CHALLENGE_STARTED,
-    LEADERBOARD_CHANGED
+    LEADERBOARD_CHANGED,
+    FAMILY_MESSAGE
 }
 
 data class AppNotification(
