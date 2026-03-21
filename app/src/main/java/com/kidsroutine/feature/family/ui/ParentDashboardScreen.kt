@@ -3,6 +3,7 @@ package com.kidsroutine.feature.family.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Person
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -49,6 +51,7 @@ fun ParentDashboardScreen(
     onModerationClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -110,13 +113,36 @@ fun ParentDashboardScreen(
                         color = Color.White.copy(alpha = 0.8f)
                     )
                 }
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
+
+                // Profile and Settings buttons
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Profile Button
+                    IconButton(
+                        onClick = onProfileClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Settings Button
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 

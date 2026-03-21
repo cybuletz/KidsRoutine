@@ -1,6 +1,5 @@
 package com.kidsroutine.navigation
 
-import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -10,14 +9,15 @@ import androidx.navigation.navigation
 import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
-import com.kidsroutine.feature.daily.ui.DailyScreen
-import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
+import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import com.kidsroutine.feature.daily.ui.ChildMainScreen
+import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
+import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 
 object TaskPassthrough {
     var pendingTask: TaskModel? = null
@@ -31,7 +31,7 @@ fun NavGraphBuilder.childNavGraph(
         route = "child_graph",
         startDestination = Routes.DAILY
     ) {
-        // Daily tasks
+        // Daily tasks with persistent nav bar
         composable(Routes.DAILY) {
             ChildMainScreen(
                 currentUser = currentUser,
@@ -46,6 +46,25 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
+        // Child Profile Screen
+        composable(Routes.CHILD_PROFILE) {
+            ChildProfileScreen(
+                user = currentUser,
+                onBackClick = { navController.popBackStack() },
+                onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
+                onSettingsClick = { /* TODO: Navigate to settings */ }
+            )
+        }
+
+        // Avatar Customization Screen
+        composable(Routes.AVATAR_CUSTOMIZATION) {
+            AvatarCustomizationScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Achievements Screen
         composable(Routes.ACHIEVEMENTS) {
             AchievementsScreen(
                 currentUser = currentUser,
@@ -53,6 +72,7 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
+        // Notifications Screen
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(
                 currentUser = currentUser,
@@ -60,7 +80,7 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Task execution
+        // Task Execution
         composable(
             route = Routes.EXECUTION,
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
@@ -78,13 +98,13 @@ fun NavGraphBuilder.childNavGraph(
             }
         }
 
-        // Active challenges
+        // Active Challenges
         composable(Routes.CHALLENGES) {
             ActiveChallengesScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onStartChallengeClick = {
-                    navController.navigate(Routes.CHALLENGES) // TODO: StartChallengesScreen
+                    navController.navigate(Routes.CHALLENGES)
                 },
                 onChallengeClick = { challenge ->
                     navController.navigate(Routes.challengeDetail(challenge.challengeId))
@@ -92,7 +112,7 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Family messaging
+        // Family Messaging
         composable(Routes.FAMILY_MESSAGING) {
             FamilyMessagingScreen(
                 currentUser = currentUser,
@@ -100,7 +120,7 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Challenge detail
+        // Challenge Detail
         composable(
             route = Routes.CHALLENGE_DETAIL,
             arguments = listOf(navArgument("challengeId") { type = NavType.StringType })
@@ -119,26 +139,6 @@ fun NavGraphBuilder.childNavGraph(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )
-        }
-
-        composable(Routes.ACHIEVEMENTS) {
-            AchievementsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        composable(Routes.NOTIFICATIONS) {
-            NotificationsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        // Stats/Progress (TODO: Create StatsScreen)
-        composable(Routes.STATS) {
-            // TODO: Implement StatsScreen
-            androidx.compose.material3.Text("Stats Screen - Coming Soon")
         }
     }
 }

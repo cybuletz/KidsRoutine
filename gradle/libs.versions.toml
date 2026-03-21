@@ -23,6 +23,7 @@ espressoCore            = "3.7.0"
 camerax                 = "1.5.3"
 runtime = "1.10.5"
 foundationLayout = "1.10.5"
+foundation = "1.10.5"
 
 [libraries]
 androidx-core-ktx                   = { group = "androidx.core",              name = "core-ktx",                          version.ref = "coreKtx" }
@@ -66,6 +67,7 @@ camerax-lifecycle                   = { group = "androidx.camera",            na
 camerax-view                        = { group = "androidx.camera",            name = "camera-view",                       version.ref = "camerax" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 
 [plugins]
 android-application      = { id = "com.android.application",                        version.ref = "agp" }

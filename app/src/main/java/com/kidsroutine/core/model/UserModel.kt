@@ -20,6 +20,7 @@ data class UserModel(
     val activeChallengeIds: List<String> = emptyList(),
     val preferences: UserPreferences = UserPreferences(),
     val badges: List<Badge> = emptyList(),
+    val avatarCustomization: AvatarCustomization = AvatarCustomization(),
     val createdAt: Long = 0L,
     val lastActiveAt: Long = 0L
 )

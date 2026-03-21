@@ -10,22 +10,26 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.kidsroutine.core.model.UserModel
-import com.kidsroutine.feature.family.ui.ParentDashboardScreen
-import com.kidsroutine.feature.family.ui.InviteChildrenScreen
-import com.kidsroutine.feature.tasks.ui.TaskListScreen
-import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
-import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
+import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
-import com.kidsroutine.feature.challenges.ui.StartChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
-import com.kidsroutine.feature.community.ui.MarketplaceScreen
-import com.kidsroutine.feature.community.ui.PublishScreen
-import com.kidsroutine.feature.community.ui.ModerationScreen
+import com.kidsroutine.feature.challenges.ui.StartChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import com.kidsroutine.feature.community.ui.MarketplaceScreen
+import com.kidsroutine.feature.community.ui.ModerationScreen
+import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
+import com.kidsroutine.feature.family.ui.InviteChildrenScreen
+import com.kidsroutine.feature.family.ui.ParentDashboardScreen
+import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
+import com.kidsroutine.feature.profile.ui.ChildProfileScreen
+import com.kidsroutine.feature.profile.ui.ParentProfileScreen
+import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
+import com.kidsroutine.feature.tasks.ui.TaskListScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
+    familyMembers: List<UserModel>,
     navController: NavController
 ) {
     navigation(
@@ -45,8 +49,49 @@ fun NavGraphBuilder.parentNavGraph(
                 onModerationClick = { navController.navigate(Routes.MODERATION) },
                 onLeaderboardClick = { navController.navigate(Routes.LEADERBOARD) },
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
+                onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },  // ← ADD THIS
                 onSettingsClick = { /* TODO */ }
             )
+        }
+
+        // Parent Profile Screen (NEW)
+        composable(Routes.PARENT_PROFILE) {
+            ParentProfileScreen(
+                user = currentUser,
+                familyMembers = familyMembers,
+                onBackClick = { navController.popBackStack() },
+                onAddChildClick = { navController.navigate(Routes.INVITE_CHILDREN) },
+                onSettingsClick = { /* TODO: Navigate to settings */ },
+                onChildClick = { child ->
+                    navController.navigate(Routes.CHILD_PROFILE)
+                }
+            )
+        }
+
+        // Child Profile Screen - Accessible from Parent Profile (NEW)
+        composable(Routes.CHILD_PROFILE) {
+            val selectedChild = remember { mutableStateOf<UserModel?>(null) }
+            val childToDisplay = selectedChild.value ?: familyMembers.firstOrNull()
+
+            if (childToDisplay != null) {
+                ChildProfileScreen(
+                    user = childToDisplay,
+                    onBackClick = { navController.popBackStack() },
+                    onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
+                    onSettingsClick = { /* TODO: Navigate to child settings */ }
+                )
+            }
+        }
+
+        // Avatar Customization Screen (NEW - for viewing child's avatar)
+        composable(Routes.AVATAR_CUSTOMIZATION) {
+            val childToDisplay = familyMembers.firstOrNull()
+            if (childToDisplay != null) {
+                AvatarCustomizationScreen(
+                    currentUser = childToDisplay,
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
         }
 
         // Invite children
@@ -131,7 +176,7 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Marketplace (add button to parent dashboard)
+        // Marketplace
         composable(Routes.MARKETPLACE) {
             MarketplaceScreen(
                 currentUser = currentUser,

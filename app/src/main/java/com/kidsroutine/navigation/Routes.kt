@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/kidsroutine/navigation/Routes.kt
 object Routes {
     // ═══════════════════════════════════════════════════════════════════════
     // CHILD ROUTES
@@ -8,15 +9,18 @@ object Routes {
     const val CHALLENGES = "challenges"
     const val CHALLENGE_DETAIL = "challenge_detail/{challengeId}"
     const val LEADERBOARD = "leaderboard"
-    const val ACHIEVEMENTS = "achievements"  // ← ADD THIS
-    const val NOTIFICATIONS = "notifications"  // ← ADD THIS
+    const val ACHIEVEMENTS = "achievements"
+    const val NOTIFICATIONS = "notifications"
     const val STATS = "stats"
+    const val CHILD_PROFILE = "child_profile"
+    const val AVATAR_CUSTOMIZATION = "avatar_customization"
 
-    // ═══════════════��═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
     // PARENT ROUTES
     // ═══════════════════════════════════════════════════════════════════════
 
     const val PARENT_DASHBOARD = "parent_dashboard"
+    const val PARENT_PROFILE = "parent_profile"
     const val INVITE_CHILDREN = "invite_children"
     const val MANAGE_TASKS = "manage_tasks"
     const val CREATE_TASK = "create_task"
@@ -35,8 +39,6 @@ object Routes {
     const val MARKETPLACE_CHALLENGES = "marketplace_challenges"
     const val PUBLISH = "publish"
     const val MODERATION = "moderation"
-
-
     const val FAMILY_MESSAGING = "family_messaging"
 
     // ═══════════════════════════════════════════════════════════════════════
