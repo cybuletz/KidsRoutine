@@ -45,7 +45,7 @@ fun FamilyMessagingScreen(
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(0)
+            listState.animateScrollToItem(uiState.messages.size - 1)  // ← SCROLL TO BOTTOM
         }
     }
 
@@ -53,7 +53,7 @@ fun FamilyMessagingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BgLight)
-            .imePadding()  // ← ADD THIS - moves everything above keyboard
+            .imePadding()
     ) {
         // Gradient background
         Box(
@@ -135,7 +135,7 @@ fun FamilyMessagingScreen(
                     contentPadding = PaddingValues(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(uiState.messages) { message ->
+                    items(uiState.messages.asReversed()) { message ->
                         MessageBubble(
                             message = message,
                             isCurrentUser = message.senderId == currentUser.userId,
@@ -145,9 +145,10 @@ fun FamilyMessagingScreen(
                 }
             }
 
-            // Message input - moved outside main column to avoid imePadding issues
+            // Message input
             MessageInputBar(
                 messageInput = uiState.messageInput,
+                isSending = uiState.isSending,
                 onMessageChange = { viewModel.updateMessageInput(it) },
                 onSendClick = {
                     viewModel.sendMessage(
@@ -160,6 +161,70 @@ fun FamilyMessagingScreen(
                     )
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun MessageInputBar(
+    messageInput: String,
+    isSending: Boolean,
+    onMessageChange: (String) -> Unit,
+    onSendClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .imePadding()
+            .navigationBarsPadding(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextField(
+            value = messageInput,
+            onValueChange = onMessageChange,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 40.dp, max = 120.dp),
+            placeholder = { Text("Type a message...") },
+            shape = RoundedCornerShape(24.dp),
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Color.White,
+                focusedContainerColor = Color.White,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent
+            ),
+            textStyle = MaterialTheme.typography.bodySmall,
+            enabled = !isSending
+        )
+
+        Button(
+            onClick = onSendClick,
+            modifier = Modifier
+                .size(40.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = GradientStart,
+                disabledContainerColor = GradientStart.copy(alpha = 0.6f)
+            ),
+            contentPadding = PaddingValues(0.dp),
+            enabled = !isSending
+        ) {
+            if (isSending) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    Icons.Default.Send,
+                    contentDescription = "Send",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -235,58 +300,6 @@ private fun MessageBubble(
                     fontSize = 8.sp
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun MessageInputBar(
-    messageInput: String,
-    onMessageChange: (String) -> Unit,
-    onSendClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .imePadding()  // ← ADD THIS
-            .navigationBarsPadding(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = messageInput,
-            onValueChange = onMessageChange,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 40.dp, max = 120.dp),
-            placeholder = { Text("Type a message...") },
-            shape = RoundedCornerShape(24.dp),
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent
-            ),
-            textStyle = MaterialTheme.typography.bodySmall
-        )
-
-        Button(
-            onClick = onSendClick,
-            modifier = Modifier
-                .size(40.dp),
-            shape = RoundedCornerShape(50),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = GradientStart
-            ),
-            contentPadding = PaddingValues(0.dp)
-        ) {
-            Icon(
-                Icons.Default.Send,
-                contentDescription = "Send",
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 }

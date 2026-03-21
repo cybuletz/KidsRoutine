@@ -10,11 +10,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class FamilyMessagingUiState(
     val isLoading: Boolean = false,
+    val isSending: Boolean = false,
     val messages: List<FamilyMessage> = emptyList(),
     val messageInput: String = "",
     val error: String? = null
@@ -64,6 +66,7 @@ class FamilyMessagingViewModel @Inject constructor(
         if (content.isBlank()) return
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isSending = true) }  // ← START LOADING
             try {
                 Log.d("FamilyMessagingVM", "Sending message from $senderName")
                 val message = FamilyMessage(
@@ -85,6 +88,8 @@ class FamilyMessagingViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     error = e.message ?: "Failed to send message"
                 )
+            } finally {
+                _uiState.update { it.copy(isSending = false) }  // ← STOP LOADING
             }
         }
     }
@@ -99,16 +104,6 @@ class FamilyMessagingViewModel @Inject constructor(
                 messageRepository.deleteMessage(messageId)
             } catch (e: Exception) {
                 Log.e("FamilyMessagingVM", "Error deleting message", e)
-            }
-        }
-    }
-
-    fun markAsRead(messageId: String) {
-        viewModelScope.launch {
-            try {
-                messageRepository.markAsRead(messageId)
-            } catch (e: Exception) {
-                Log.e("FamilyMessagingVM", "Error marking as read", e)
             }
         }
     }
