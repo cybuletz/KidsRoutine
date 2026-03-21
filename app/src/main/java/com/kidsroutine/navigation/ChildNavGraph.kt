@@ -15,6 +15,7 @@ import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import com.kidsroutine.feature.daily.ui.ChildMainScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
@@ -32,24 +33,16 @@ fun NavGraphBuilder.childNavGraph(
     ) {
         // Daily tasks
         composable(Routes.DAILY) {
-            DailyScreen(
+            ChildMainScreen(
                 currentUser = currentUser,
                 onTaskClick = { instance ->
                     TaskPassthrough.pendingTask = instance.task
                     navController.navigate(Routes.execution(instance.instanceId))
                 },
-                onChallengesClick = {
-                    navController.navigate(Routes.CHALLENGES)
-                },
-                onAchievementsClick = {
-                    navController.navigate(Routes.ACHIEVEMENTS)
-                },
-                onFamilyMessagingClick = {  // ← ADD THIS
+                onFamilyMessagingClick = {
                     navController.navigate(Routes.FAMILY_MESSAGING)
                 },
-                onStatsClick = {
-                    navController.navigate(Routes.LEADERBOARD)
-                }
+                parentNavController = navController
             )
         }
 
