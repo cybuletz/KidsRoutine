@@ -1,11 +1,11 @@
 package com.kidsroutine.feature.family.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,24 +19,33 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.UserModel
 
-
 private val GradientStart = Color(0xFF667EEA)
 private val GradientEnd = Color(0xFF764BA2)
-
-data class JoinFamilyUiState(
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-)
 
 @Composable
 fun JoinFamilyScreen(
     currentUser: UserModel,
     onJoinSuccess: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: JoinFamilyViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     var inviteCode by remember { mutableStateOf("") }
-    var uiState by remember { mutableStateOf(JoinFamilyUiState()) }
+    var localError by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.success) {
+        if (uiState.success) {
+            Log.d("JoinFamilyScreen", "Join successful, calling onJoinSuccess with familyId")
+            onJoinSuccess(uiState.family?.familyId ?: "")
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null) {
+            localError = uiState.error!!
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -127,6 +136,7 @@ fun JoinFamilyScreen(
                         value = inviteCode,
                         onValueChange = { newValue ->
                             inviteCode = newValue.take(6).uppercase()
+                            localError = ""
                         },
                         placeholder = { Text("e.g., ABC123") },
                         modifier = Modifier
@@ -139,17 +149,18 @@ fun JoinFamilyScreen(
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Text
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !uiState.isLoading
                     )
 
                     // Error message
-                    if (uiState.error != null) {
+                    if (localError.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = Color(0xFFFFEBEE)
                         ) {
                             Text(
-                                text = uiState.error!!,
+                                text = localError,
                                 color = Color(0xFFC62828),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(12.dp)
@@ -160,15 +171,17 @@ fun JoinFamilyScreen(
                     // Join button
                     Button(
                         onClick = {
-                            if (inviteCode.isEmpty()) {
-                                uiState = uiState.copy(error = "Please enter the invite code")
-                            } else if (inviteCode.length < 6) {
-                                uiState = uiState.copy(error = "Invite code must be 6 characters")
-                            } else {
-                                uiState = uiState.copy(isLoading = true, error = null)
-                                // TODO: Call join family API
-                                // For now, simulate success
-                                onJoinSuccess(inviteCode)
+                            when {
+                                inviteCode.isEmpty() -> {
+                                    localError = "Please enter the invite code"
+                                }
+                                inviteCode.length < 6 -> {
+                                    localError = "Invite code must be 6 characters"
+                                }
+                                else -> {
+                                    Log.d("JoinFamilyScreen", "Joining family with code: $inviteCode, userId: ${currentUser.userId}")
+                                    viewModel.joinFamily(currentUser.userId, inviteCode)
+                                }
                             }
                         },
                         modifier = Modifier
@@ -194,31 +207,10 @@ fun JoinFamilyScreen(
                             )
                         }
                     }
-
-                    Divider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        color = Color(0xFFEEEEEE)
-                    )
-
-                    Text(
-                        text = "Don't have a code?",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Text(
-                        text = "Ask your parent to share the family invite code with you",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
                 }
             }
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

@@ -57,6 +57,41 @@ class FamilyRepositoryImpl @Inject constructor(
         return family
     }
 
+    override suspend fun getFamiliesByInviteCode(inviteCode: String): List<FamilyModel> {
+        return try {
+            Log.d("FamilyRepository", "Searching for family with code: $inviteCode")
+            val snapshot = firestore.collection("families")
+                .whereEqualTo("inviteCode", inviteCode)
+                .limit(1)
+                .get()
+                .await()
+
+            val families = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    FamilyModel(
+                        familyId = data["familyId"] as? String ?: "",
+                        familyName = data["familyName"] as? String ?: "",
+                        memberIds = (data["memberIds"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                        familyXp = (data["familyXp"] as? Number)?.toInt() ?: 0,
+                        familyStreak = (data["familyStreak"] as? Number)?.toInt() ?: 0,
+                        sharedChallengeIds = (data["sharedChallengeIds"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                        inviteCode = data["inviteCode"] as? String ?: ""
+                    )
+                } catch (e: Exception) {
+                    Log.e("FamilyRepository", "Error parsing family", e)
+                    null
+                }
+            }
+
+            Log.d("FamilyRepository", "Found ${families.size} families with code: $inviteCode")
+            families
+        } catch (e: Exception) {
+            Log.e("FamilyRepository", "Error searching for family", e)
+            emptyList()
+        }
+    }
+
     override suspend fun getFamily(familyId: String): FamilyModel? {
         try {
             val doc = firestore.collection("families").document(familyId).get().await()

@@ -10,6 +10,7 @@ interface FamilyRepository {
     suspend fun updateFamily(family: FamilyModel)
     suspend fun addMemberToFamily(familyId: String, memberId: String)
     suspend fun getInviteCode(familyId: String): String
+    suspend fun getFamiliesByInviteCode(inviteCode: String): List<FamilyModel>
     fun observeFamily(familyId: String): Flow<FamilyModel?>
 
     // Child → Parent task methods
