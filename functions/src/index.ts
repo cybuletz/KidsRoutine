@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
+
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -10,17 +11,16 @@ const messaging = admin.messaging();
 
 export const notifyTaskCompletion = functions.firestore
   .document("taskProgress/{taskId}")
-  .onWrite(async (change: any, context: any) => {
-    const newData = change.after.data();
-    const oldData = change.before.data();
+  .onCreate(async (snap: any, context: any) => {  // ✅ Changed from .onWrite to .onCreate
+    const newData = snap.data();
 
-    // Only trigger when task becomes completed
     if (!newData || !newData.userId || !newData.status) {
+      console.log("[Task Completion] Missing required fields");
       return;
     }
 
-    // Check if task just became COMPLETED
-    if (oldData?.status === "COMPLETED" || newData.status !== "COMPLETED") {
+    if (newData.status !== "COMPLETED") {
+      console.log("[Task Completion] Task not completed, status:", newData.status);
       return;
     }
 
@@ -28,74 +28,85 @@ export const notifyTaskCompletion = functions.firestore
     const taskTitle = newData.taskTitle || "Task";
     const xpGained = newData.xpGained || 0;
     const validationStatus = newData.validationStatus || "";
-    const familyId = newData.familyId;
+    const taskInstanceId = newData.taskInstanceId || "";
 
     console.log(`[Task Completion] Task completed by user: ${userId}`);
-    console.log(`[Task Completion] Family ID: ${familyId}`);
+    console.log(`[Task Completion] Task ID: ${taskInstanceId}`);
     console.log(`[Task Completion] Validation status: ${validationStatus}`);
 
     try {
-      // Get user's FCM token
+      // Get user document to find family and FCM token
       const userDoc = await db.collection("users").doc(userId).get();
-      const userFcmToken = userDoc.data()?.fcmToken;
-      const childFamilyId = userDoc.data()?.familyId || familyId;
-      const childDisplayName = userDoc.data()?.displayName || "Your child";
+      if (!userDoc.exists) {
+        console.log(`[Task Completion] User document not found: ${userId}`);
+        return;
+      }
 
-      console.log(`[Task Completion] User FCM token: ${userFcmToken ? "found" : "NOT FOUND"}`);
-      console.log(`[Task Completion] Child family ID from user doc: ${childFamilyId}`);
+      const userData = userDoc.data();
+      const userFcmToken = userData?.fcmToken;
+      const familyId = userData?.familyId;
+      const childDisplayName = userData?.displayName || "Your child";
+
+      console.log(`[Task Completion] User FCM token exists: ${!!userFcmToken}`);
+      console.log(`[Task Completion] Family ID: ${familyId}`);
 
       if (!userFcmToken) {
         console.log(`[Task Completion] No FCM token for user: ${userId}`);
         return;
       }
 
-      // Send notification to child
-      await messaging.send({
-        token: userFcmToken,
-        notification: {
-          title: "Task Completed! 🎉",
-          body: `${taskTitle} - You earned ${xpGained} XP!`,
-        },
-        data: {
-          type: "TASK_COMPLETION",
-          userId: userId,
-        },
-        android: {
-          priority: "high",
-        },
-      });
-
-      console.log(`[Task Completion] Notification sent to child: ${userId}`);
-
-      // Check if task needs parent approval
-      const needsParent = validationStatus === "PENDING";
-      console.log(`[Task Completion] Needs parent approval: ${needsParent}`);
-
-      if (!needsParent) {
-        console.log(`[Task Completion] Task approved automatically, no parent notification needed`);
+      // Notify child
+      try {
+        await messaging.send({
+          token: userFcmToken,
+          notification: {
+            title: "Task Completed! 🎉",
+            body: `${taskTitle} - You earned ${xpGained} XP!`,
+          },
+          data: {
+            type: "TASK_COMPLETION",
+            userId: userId,
+          },
+          android: {
+            priority: "high",
+          },
+        });
+        console.log(`[Task Completion] Notification sent to child: ${userId}`);
+      } catch (error: any) {
+        if (error?.code === "messaging/registration-token-not-registered") {
+          console.log(`[Task Completion] Child token invalid, deleting: ${userId}`);
+          await db.collection("users").doc(userId).update({ fcmToken: "" });
+        } else {
+          console.error(`[Task Completion] Error sending to child:`, error);
+        }
         return;
       }
 
-      // Find parents in the same family
-      if (!childFamilyId) {
-        console.log(`[Task Completion] Child has no family ID: ${userId}`);
+      // Check if needs parent approval
+      if (validationStatus !== "PENDING") {
+        console.log(`[Task Completion] Task auto-approved, no parent notification needed`);
         return;
       }
+
+      // Notify parents
+      if (!familyId) {
+        console.log(`[Task Completion] No family ID for user: ${userId}`);
+        return;
+      }
+
+      console.log(`[Task Completion] Looking for parents in family: ${familyId}`);
 
       const parentsSnapshot = await db
         .collection("users")
-        .where("familyId", "==", childFamilyId)
+        .where("familyId", "==", familyId)
         .where("role", "==", "PARENT")
         .get();
 
-      console.log(`[Task Completion] Searching for parents in family: ${childFamilyId}`);
-      console.log(`[Task Completion] Found ${parentsSnapshot.size} parents to notify`);
+      console.log(`[Task Completion] Found ${parentsSnapshot.size} parents`);
 
       for (const parentDoc of parentsSnapshot.docs) {
         const parentData = parentDoc.data();
         const parentFcmToken = parentData.fcmToken;
-
-        console.log(`[Task Completion] Parent ${parentDoc.id} FCM token: ${parentFcmToken ? "found" : "NOT FOUND"}`);
 
         if (!parentFcmToken) {
           console.log(`[Task Completion] Parent has no FCM token: ${parentDoc.id}`);
@@ -119,13 +130,13 @@ export const notifyTaskCompletion = functions.firestore
             },
           });
 
-          console.log(`[Task Completion] Approval notification sent to parent: ${parentDoc.id}`);
+          console.log(`[Task Completion] Parent approval notification sent: ${parentDoc.id}`);
         } catch (parentError: any) {
           if (parentError?.code === "messaging/registration-token-not-registered") {
-            console.log(`[Task Completion] Parent token invalid, deleting it: ${parentDoc.id}`);
+            console.log(`[Task Completion] Parent token invalid, deleting: ${parentDoc.id}`);
             await db.collection("users").doc(parentDoc.id).update({ fcmToken: "" });
           } else {
-            console.error(`[Task Completion] Error sending to parent ${parentDoc.id}:`, parentError);
+            console.error(`[Task Completion] Error sending to parent:`, parentError);
           }
         }
       }
@@ -159,37 +170,49 @@ export const notifyFamilyMessage = functions.firestore
 
       // Send notification to all members except sender
       for (const memberDoc of membersSnapshot.docs) {
-        if (memberDoc.id === senderId) {
-          continue; // Don't notify sender
+          if (memberDoc.id === senderId) {
+            continue;
+          }
+
+          const memberData = memberDoc.data();
+          const fcmToken = memberData.fcmToken;
+
+          if (!fcmToken) {
+            console.log(`[Family Chat] Member has no FCM token: ${memberDoc.id}`);
+            continue;
+          }
+
+          try {
+            await messaging.send({
+              token: fcmToken,
+              notification: {
+                title: `💬 ${senderName}`,
+                body: messageBody.substring(0, 100),
+              },
+              data: {
+                type: "FAMILY_MESSAGE",
+                senderId: senderId,
+                messageId: snap.id,
+                familyId: familyId,
+              },
+              android: {
+                priority: "high",
+                notification: {
+                  channelId: "family_chat"
+                }
+              },
+            });
+
+            console.log(`[Family Chat] Message notification sent to: ${memberDoc.id}`);
+          } catch (error: any) {
+            if (error?.code === "messaging/registration-token-not-registered") {
+              console.log(`[Family Chat] Invalid token for ${memberDoc.id}, deleting...`);
+              await db.collection("users").doc(memberDoc.id).update({ fcmToken: "" });
+            } else {
+              console.error(`[Family Chat] Error sending to ${memberDoc.id}:`, error);
+            }
+          }
         }
-
-        const memberData = memberDoc.data();
-        const fcmToken = memberData.fcmToken;
-
-        if (!fcmToken) {
-          console.log(`[Family Chat] Member has no FCM token: ${memberDoc.id}`);
-          continue;
-        }
-
-        await messaging.send({
-          token: fcmToken,
-          notification: {
-            title: `💬 ${senderName}`,
-            body: messageBody.substring(0, 100),
-          },
-          data: {
-            type: "FAMILY_MESSAGE",
-            senderId: senderId,
-            messageId: snap.id,
-            familyId: familyId,
-          },
-          android: {
-            priority: "high",
-          },
-        });
-
-        console.log(`[Family Chat] Message notification sent to: ${memberDoc.id}`);
-      }
     } catch (error) {
       console.error("[Family Chat] Error:", error);
     }
