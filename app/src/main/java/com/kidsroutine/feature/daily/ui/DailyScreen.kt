@@ -243,6 +243,7 @@ private fun NavItemButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
+            .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(0.dp)
