@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,8 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
 
@@ -141,110 +145,74 @@ fun ModerationScreen(
                     Text(uiState.error!!, color = Color.Red)
                 }
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // List panel
-                    when (uiState.activeTab) {
-                        ModerationTab.PENDING_TASKS -> {
-                            PendingTasksList(
-                                tasks = uiState.pendingTasks,
-                                selected = uiState.selectedTask,
-                                onSelect = { viewModel.selectTask(it) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        ModerationTab.PENDING_CHALLENGES -> {
-                            PendingChallengesList(
-                                challenges = uiState.pendingChallenges,
-                                selected = uiState.selectedChallenge,
-                                onSelect = { viewModel.selectChallenge(it) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        ModerationTab.REPORTS -> {
-                            ReportsList(
-                                reports = uiState.reports,
-                                selected = uiState.selectedReport,
-                                onSelect = { viewModel.selectReport(it) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                when (uiState.activeTab) {
+                    ModerationTab.PENDING_TASKS -> {
+                        PendingTasksList(
+                            tasks = uiState.pendingTasks,
+                            selected = uiState.selectedTask,
+                            onSelect = { viewModel.selectTask(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(16.dp)
+                        )
                     }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    // Detail panel
-                    when (uiState.activeTab) {
-                        ModerationTab.PENDING_TASKS -> {
-                            if (uiState.selectedTask != null) {
-                                TaskDetailPanel(
-                                    task = uiState.selectedTask!!,
-                                    onApprove = { viewModel.approveTask(uiState.selectedTask!!.taskId) },
-                                    onReject = { reason -> viewModel.rejectTask(uiState.selectedTask!!.taskId, reason) },
-                                    isProcessing = uiState.isProcessing,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(Color.White, RoundedCornerShape(16.dp))
-                                        .padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Select a task to review", color = Color.Gray)
-                                }
-                            }
-                        }
-                        ModerationTab.PENDING_CHALLENGES -> {
-                            if (uiState.selectedChallenge != null) {
-                                ChallengeDetailPanel(
-                                    challenge = uiState.selectedChallenge!!,
-                                    onApprove = { viewModel.approveChallenge(uiState.selectedChallenge!!.challengeId) },
-                                    onReject = { reason -> viewModel.rejectChallenge(uiState.selectedChallenge!!.challengeId, reason) },
-                                    isProcessing = uiState.isProcessing,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(Color.White, RoundedCornerShape(16.dp))
-                                        .padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Select a challenge to review", color = Color.Gray)
-                                }
-                            }
-                        }
-                        ModerationTab.REPORTS -> {
-                            if (uiState.selectedReport != null) {
-                                ReportDetailPanel(
-                                    report = uiState.selectedReport!!,
-                                    onResolve = { action -> viewModel.resolveReport(uiState.selectedReport!!.reportId, action) },
-                                    isProcessing = uiState.isProcessing,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .background(Color.White, RoundedCornerShape(16.dp))
-                                        .padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("Select a report to review", color = Color.Gray)
-                                }
-                            }
-                        }
+                    ModerationTab.PENDING_CHALLENGES -> {
+                        PendingChallengesList(
+                            challenges = uiState.pendingChallenges,
+                            selected = uiState.selectedChallenge,
+                            onSelect = { viewModel.selectChallenge(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(16.dp)
+                        )
+                    }
+                    ModerationTab.REPORTS -> {
+                        ReportsList(
+                            reports = uiState.reports,
+                            selected = uiState.selectedReport,
+                            onSelect = { viewModel.selectReport(it) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(16.dp)
+                        )
                     }
                 }
             }
+        }
+
+        // Task Detail Modal
+        if (uiState.selectedTask != null) {
+            TaskDetailModal(
+                task = uiState.selectedTask!!,
+                onApprove = { viewModel.approveTask(uiState.selectedTask!!.taskId) },
+                onReject = { reason -> viewModel.rejectTask(uiState.selectedTask!!.taskId, reason) },
+                onDismiss = { viewModel.clearSelection() },
+                isProcessing = uiState.isProcessing
+            )
+        }
+
+        // Challenge Detail Modal
+        if (uiState.selectedChallenge != null) {
+            ChallengeDetailModal(
+                challenge = uiState.selectedChallenge!!,
+                onApprove = { viewModel.approveChallenge(uiState.selectedChallenge!!.challengeId) },
+                onReject = { reason -> viewModel.rejectChallenge(uiState.selectedChallenge!!.challengeId, reason) },
+                onDismiss = { viewModel.clearSelection() },
+                isProcessing = uiState.isProcessing
+            )
+        }
+
+        // Report Detail Modal
+        if (uiState.selectedReport != null) {
+            ReportDetailModal(
+                report = uiState.selectedReport!!,
+                onResolve = { action -> viewModel.resolveReport(uiState.selectedReport!!.reportId, action) },
+                onDismiss = { viewModel.clearSelection() },
+                isProcessing = uiState.isProcessing
+            )
         }
 
         // Success message
@@ -364,7 +332,7 @@ private fun PendingTasksList(
                             )
                         ) {
                             Text(
-                                if (selected?.taskId == task.taskId) "Review" else "Select",
+                                "Review",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White
                             )
@@ -472,7 +440,7 @@ private fun PendingChallengesList(
                             )
                         ) {
                             Text(
-                                if (selected?.challengeId == challenge.challengeId) "Review" else "Select",
+                                "Review",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White
                             )
@@ -572,168 +540,185 @@ private fun ReportsList(
     }
 }
 
+// ===== MODAL DIALOGS =====
+
 @Composable
-private fun TaskDetailPanel(
+private fun TaskDetailModal(
     task: SharedTask,
     onApprove: () -> Unit,
     onReject: (String) -> Unit,
-    isProcessing: Boolean,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit,
+    isProcessing: Boolean
 ) {
     var rejectReason by remember { mutableStateOf("") }
     var showRejectInput by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth(0.9f)
+                .heightIn(max = 600.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            Text(
-                text = "Task Review",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            LazyColumn(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Title",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Task Review",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodyMedium,
                         color = TextDark
                     )
-                }
-
-                item {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = task.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextDark
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE3F2FD)
-                        ) {
-                            Text(
-                                text = "📊 ${task.difficulty.name}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF1565C0),
-                                modifier = Modifier.padding(8.dp, 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE8F5E9)
-                        ) {
-                            Text(
-                                text = "⭐ ${task.reward.xp} XP",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF2E7D32),
-                                modifier = Modifier.padding(8.dp, 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFF3E5F5)
-                        ) {
-                            Text(
-                                text = "⏱️ ${task.estimatedDurationSec}s",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF6A1B9A),
-                                modifier = Modifier.padding(8.dp, 4.dp)
-                            )
-                        }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
-                item {
-                    Text(
-                        text = "Creator: ${task.creatorName}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                // Content
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Title",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextDark
+                            )
+                        }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Description",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = task.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextDark,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE3F2FD)
+                            ) {
+                                Text(
+                                    text = "📊 ${task.difficulty.name}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF1565C0),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE8F5E9)
+                            ) {
+                                Text(
+                                    text = "⭐ ${task.reward.xp} XP",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF2E7D32),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Creator: ${task.creatorName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                if (showRejectInput) {
+                    OutlinedTextField(
+                        value = rejectReason,
+                        onValueChange = { rejectReason = it },
+                        label = { Text("Rejection reason...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        maxLines = 2
                     )
                 }
-            }
 
-            if (showRejectInput) {
-                OutlinedTextField(
-                    value = rejectReason,
-                    onValueChange = { rejectReason = it },
-                    label = { Text("Rejection reason...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onApprove,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                    enabled = !isProcessing
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("✅ Approve", fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                    Button(
+                        onClick = onApprove,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        enabled = !isProcessing
+                    ) {
+                        Text("✅ Approve", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
 
-                Button(
-                    onClick = {
-                        if (showRejectInput) {
-                            onReject(rejectReason)
-                            showRejectInput = false
-                            rejectReason = ""
-                        } else {
-                            showRejectInput = true
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                    enabled = !isProcessing
-                ) {
-                    Text(if (showRejectInput) "Reject" else "❌ Reject", fontWeight = FontWeight.Bold, color = Color.White)
+                    Button(
+                        onClick = {
+                            if (showRejectInput) {
+                                onReject(rejectReason)
+                                showRejectInput = false
+                                rejectReason = ""
+                            } else {
+                                showRejectInput = true
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                        enabled = !isProcessing
+                    ) {
+                        Text(if (showRejectInput) "Reject" else "❌ Reject", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -741,167 +726,194 @@ private fun TaskDetailPanel(
 }
 
 @Composable
-private fun ChallengeDetailPanel(
+private fun ChallengeDetailModal(
     challenge: SharedChallenge,
     onApprove: () -> Unit,
     onReject: (String) -> Unit,
-    isProcessing: Boolean,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit,
+    isProcessing: Boolean
 ) {
     var rejectReason by remember { mutableStateOf("") }
     var showRejectInput by remember { mutableStateOf(false) }
 
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth(0.9f)
+                .heightIn(max = 600.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            Text(
-                text = "Challenge Review",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            LazyColumn(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Title",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Challenge Review",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = challenge.title,
-                        style = MaterialTheme.typography.bodyMedium,
                         color = TextDark
                     )
-                }
-
-                item {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = challenge.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextDark
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE3F2FD)
-                        ) {
-                            Text(
-                                text = "📅 ${challenge.duration}d",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF1565C0),
-                                modifier = Modifier.padding(6.dp, 3.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE8F5E9)
-                        ) {
-                            Text(
-                                text = "⭐ ${challenge.dailyXpReward}/d",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF2E7D32),
-                                modifier = Modifier.padding(6.dp, 3.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFF3E5F5)
-                        ) {
-                            Text(
-                                text = "🎁 +${challenge.completionBonusXp}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF6A1B9A),
-                                modifier = Modifier.padding(6.dp, 3.dp)
-                            )
-                        }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
-                item {
-                    Text(
-                        text = "Creator: ${challenge.creatorName}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+                // Content
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Title",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = challenge.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextDark
+                            )
+                        }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Description",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = challenge.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextDark,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE3F2FD)
+                            ) {
+                                Text(
+                                    text = "📅 ${challenge.duration}d",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF1565C0),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE8F5E9)
+                            ) {
+                                Text(
+                                    text = "⭐ ${challenge.dailyXpReward}/d",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF2E7D32),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF3E5F5)
+                            ) {
+                                Text(
+                                    text = "🎁 +${challenge.completionBonusXp}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF6A1B9A),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Creator: ${challenge.creatorName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                if (showRejectInput) {
+                    OutlinedTextField(
+                        value = rejectReason,
+                        onValueChange = { rejectReason = it },
+                        label = { Text("Rejection reason...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        maxLines = 2
                     )
                 }
-            }
 
-            if (showRejectInput) {
-                OutlinedTextField(
-                    value = rejectReason,
-                    onValueChange = { rejectReason = it },
-                    label = { Text("Rejection reason...") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp),
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onApprove,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                    enabled = !isProcessing
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("✅ Approve", fontWeight = FontWeight.Bold, color = Color.White)
-                }
+                    Button(
+                        onClick = onApprove,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        enabled = !isProcessing
+                    ) {
+                        Text("✅ Approve", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
 
-                Button(
-                    onClick = {
-                        if (showRejectInput) {
-                            onReject(rejectReason)
-                            showRejectInput = false
-                            rejectReason = ""
-                        } else {
-                            showRejectInput = true
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                    enabled = !isProcessing
-                ) {
-                    Text(if (showRejectInput) "Reject" else "❌ Reject", fontWeight = FontWeight.Bold, color = Color.White)
+                    Button(
+                        onClick = {
+                            if (showRejectInput) {
+                                onReject(rejectReason)
+                                showRejectInput = false
+                                rejectReason = ""
+                            } else {
+                                showRejectInput = true
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                        enabled = !isProcessing
+                    ) {
+                        Text(if (showRejectInput) "Reject" else "❌ Reject", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -909,132 +921,157 @@ private fun ChallengeDetailPanel(
 }
 
 @Composable
-private fun ReportDetailPanel(
+private fun ReportDetailModal(
     report: ContentReport,
     onResolve: (String) -> Unit,
-    isProcessing: Boolean,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit,
+    isProcessing: Boolean
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Column(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .fillMaxWidth(0.9f)
+                .heightIn(max = 500.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            Text(
-                text = "Report Details",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
-
-            LazyColumn(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Reason",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Report Details",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = "🚩 ${report.reason.name}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFC62828),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                item {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = report.description,
-                        style = MaterialTheme.typography.bodySmall,
                         color = TextDark
                     )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFE3F2FD)
-                        ) {
-                            Text(
-                                text = "Content: ${report.contentType}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF1565C0),
-                                modifier = Modifier.padding(8.dp, 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFFFEBEE)
-                        ) {
-                            Text(
-                                text = "Status: ${report.status}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFC62828),
-                                modifier = Modifier.padding(8.dp, 4.dp)
-                            )
-                        }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
-                item {
-                    Text(
-                        text = "Reported by: ${report.reportedBy.take(8)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { onResolve("APPROVED") },
+                // Content
+                LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                    enabled = !isProcessing
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("✅ Not a Violation", fontWeight = FontWeight.Bold, color = Color.White)
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Reason",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = "🚩 ${report.reason.name}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFC62828),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Description",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Gray
+                            )
+                            Text(
+                                text = report.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextDark,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE3F2FD)
+                            ) {
+                                Text(
+                                    text = "Content: ${report.contentType}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF1565C0),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFFFEBEE)
+                            ) {
+                                Text(
+                                    text = "Status: ${report.status}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFC62828),
+                                    modifier = Modifier.padding(6.dp, 3.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text(
+                            text = "Reported by: ${report.reportedBy.take(8)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
                 }
 
-                Button(
-                    onClick = { onResolve("REMOVED") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                    enabled = !isProcessing
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("❌ Delete Content", fontWeight = FontWeight.Bold, color = Color.White)
+                    Button(
+                        onClick = { onResolve("APPROVED") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        enabled = !isProcessing
+                    ) {
+                        Text("✅ Valid", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = { onResolve("REMOVED") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                        enabled = !isProcessing
+                    ) {
+                        Text("❌ Delete", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                    }
                 }
             }
         }

@@ -257,6 +257,14 @@ class ModerationViewModel @Inject constructor(
         }
     }
 
+    fun clearSelection() {
+        _uiState.value = _uiState.value.copy(
+            selectedTask = null,
+            selectedChallenge = null,
+            selectedReport = null
+        )
+    }
+
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(
             successMessage = null,

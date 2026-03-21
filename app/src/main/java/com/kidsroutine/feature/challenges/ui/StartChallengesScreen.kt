@@ -141,8 +141,9 @@ fun StartChallengesScreen(
                     LazyRow(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(end = 16.dp)
                     ) {
                         val categories = listOf("ALL") + TaskCategory.entries.map { it.name }
                         items(categories) { category ->
@@ -152,13 +153,15 @@ fun StartChallengesScreen(
                                 label = {
                                     Text(
                                         if (category == "ALL") "All" else getCategoryEmoji(TaskCategory.valueOf(category)),
-                                        style = MaterialTheme.typography.labelSmall
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1
                                     )
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = GradientStart,
                                     selectedLabelColor = Color.White
-                                )
+                                ),
+                                modifier = Modifier.height(32.dp)
                             )
                         }
                     }
@@ -167,7 +170,8 @@ fun StartChallengesScreen(
                     if (uiState.filteredChallenges.isEmpty()) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize(),
+                                .fillMaxWidth()
+                                .weight(1f),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
