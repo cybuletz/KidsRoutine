@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.auth.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kidsroutine.core.model.AuthState
+import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.UserModel
 
 private val GradientStart = Color(0xFF667EEA)
@@ -32,6 +35,8 @@ fun ChildSignUpScreen(
     onBackClick: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authState by viewModel.authState.collectAsState()
+
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -39,6 +44,30 @@ fun ChildSignUpScreen(
     var showPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+
+    // Handle auth state changes
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Authenticated -> {
+                Log.d("ChildSignUp", "Sign up success!")
+                val user = (authState as AuthState.Authenticated).user
+                onSignUpSuccess(user)
+            }
+            is AuthState.Error -> {
+                val error = (authState as AuthState.Error).message
+                Log.e("ChildSignUp", "Sign up error: $error")
+                errorMessage = error
+                isLoading = false
+            }
+            AuthState.Loading -> {
+                isLoading = true
+                Log.d("ChildSignUp", "Sign up loading...")
+            }
+            else -> {
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -202,8 +231,14 @@ fun ChildSignUpScreen(
                                     errorMessage = "Passwords do not match"
                                 }
                                 else -> {
-                                    isLoading = true
-                                    // TODO: Call sign up
+                                    Log.d("ChildSignUp", "Calling signUpWithEmail: email=$email, displayName=$displayName")
+                                    errorMessage = ""
+                                    viewModel.signUpWithEmail(
+                                        email = email,
+                                        password = password,
+                                        displayName = displayName,
+                                        role = Role.CHILD
+                                    )
                                 }
                             }
                         },

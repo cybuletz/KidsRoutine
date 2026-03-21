@@ -1016,7 +1016,7 @@ private fun ReportDetailPanel(
                 ) {
                     Text("✅ Not a Violation", fontWeight = FontWeight.Bold, color = Color.White)
                 }
-            }2
+            }
         }
     }
 }
