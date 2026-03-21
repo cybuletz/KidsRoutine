@@ -53,6 +53,7 @@ fun FamilyMessagingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BgLight)
+            .imePadding()  // ← ADD THIS - moves everything above keyboard
     ) {
         // Gradient background
         Box(
@@ -144,7 +145,7 @@ fun FamilyMessagingScreen(
                 }
             }
 
-            // Message input
+            // Message input - moved outside main column to avoid imePadding issues
             MessageInputBar(
                 messageInput = uiState.messageInput,
                 onMessageChange = { viewModel.updateMessageInput(it) },
@@ -248,6 +249,7 @@ private fun MessageInputBar(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
+            .imePadding()  // ← ADD THIS
             .navigationBarsPadding(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
