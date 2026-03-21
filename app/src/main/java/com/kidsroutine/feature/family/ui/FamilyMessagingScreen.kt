@@ -45,7 +45,13 @@ fun FamilyMessagingScreen(
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)  // ← SCROLL TO BOTTOM
+            listState.animateScrollToItem(0)  // ← Scroll to newest (item 0 with reverseLayout)
+        }
+    }
+
+    LaunchedEffect(uiState.isSending) {
+        if (uiState.isSending && uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(0)
         }
     }
 
@@ -135,7 +141,10 @@ fun FamilyMessagingScreen(
                     contentPadding = PaddingValues(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(uiState.messages.asReversed()) { message ->
+                    items(
+                        items = uiState.messages.reversed(),  // ← REVERSE THE LIST
+                        key = { it.id }
+                    ) { message ->
                         MessageBubble(
                             message = message,
                             isCurrentUser = message.senderId == currentUser.userId,
