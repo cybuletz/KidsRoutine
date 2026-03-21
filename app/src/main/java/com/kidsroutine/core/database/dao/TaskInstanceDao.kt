@@ -18,4 +18,7 @@ interface TaskInstanceDao {
 
     @Query("DELETE FROM task_instances WHERE assignedDate < :cutoffDate")
     suspend fun deleteOlderThan(cutoffDate: String)
+
+    @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    suspend fun deleteTasksForDate(userId: String, date: String)
 }

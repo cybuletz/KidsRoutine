@@ -90,13 +90,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun saveFCMToken() {
-        // Force refresh token
-        FirebaseMessaging.getInstance().deleteToken()
-
+        // Don't delete, just get/refresh
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val token = task.result
-                Log.d("FCM_TOKEN", "New Token: $token")
+                Log.d("FCM_TOKEN", "Token: $token")
 
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
@@ -106,9 +104,6 @@ class MainActivity : ComponentActivity() {
                         .update("fcmToken", token)
                         .addOnSuccessListener {
                             Log.d("FCM", "Token saved to Firestore ✓")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("FCM", "Error saving token", e)
                         }
                 }
             }

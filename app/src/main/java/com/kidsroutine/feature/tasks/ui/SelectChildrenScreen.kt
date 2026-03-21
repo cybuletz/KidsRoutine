@@ -278,8 +278,12 @@ fun SelectChildrenScreen(
                                         "difficulty" to task.difficulty.name,
                                         "estimatedDurationSec" to task.estimatedDurationSec,
                                         "reward" to mapOf("xp" to task.reward.xp),
-                                        "requiresParent" to requiresParent,
+                                        "validationType" to task.validationType.name,
+                                        "requiresParent" to requiresParent,  // ← Uses the toggle, good
                                         "requiresCoop" to task.requiresCoop,
+                                        "validationType" to task.validationType.name,  // ← DUPLICATE - remove
+                                        "tags" to task.tags,
+                                        "createdBy" to task.createdBy.name,
                                         "interactionBlocks" to emptyList<Map<String, Any>>(),
                                         "isActive" to task.isActive,
                                         "familyId" to currentUser.familyId

@@ -11,7 +11,7 @@ const messaging = admin.messaging();
 
 export const notifyTaskCompletion = functions.firestore
   .document("taskProgress/{taskId}")
-  .onCreate(async (snap: any, context: any) => {  // ✅ Changed from .onWrite to .onCreate
+  .onCreate(async (snap: any, context: any) => {
     const newData = snap.data();
 
     if (!newData || !newData.userId || !newData.status) {
@@ -82,13 +82,7 @@ export const notifyTaskCompletion = functions.firestore
         return;
       }
 
-      // Check if needs parent approval
-      if (validationStatus !== "PENDING") {
-        console.log(`[Task Completion] Task auto-approved, no parent notification needed`);
-        return;
-      }
-
-      // Notify parents
+      // Always notify parents (regardless of validation status)
       if (!familyId) {
         console.log(`[Task Completion] No family ID for user: ${userId}`);
         return;
@@ -114,23 +108,32 @@ export const notifyTaskCompletion = functions.firestore
         }
 
         try {
+          const title = validationStatus === "PENDING"
+            ? "Task Needs Approval ⏳"
+            : "Task Completed ✅";
+
+          const body = validationStatus === "PENDING"
+            ? `${childDisplayName} completed: ${taskTitle}`
+            : `${childDisplayName} completed: ${taskTitle} (Auto-approved)`;
+
           await messaging.send({
             token: parentFcmToken,
             notification: {
-              title: "Task Needs Approval ⏳",
-              body: `${childDisplayName} completed: ${taskTitle}`,
+              title: title,
+              body: body,
             },
             data: {
-              type: "PARENT_APPROVAL_NEEDED",
+              type: validationStatus === "PENDING" ? "PARENT_APPROVAL_NEEDED" : "TASK_COMPLETION",
               childId: userId,
               taskTitle: taskTitle,
+              status: validationStatus,
             },
             android: {
               priority: "high",
             },
           });
 
-          console.log(`[Task Completion] Parent approval notification sent: ${parentDoc.id}`);
+          console.log(`[Task Completion] Parent notification sent: ${parentDoc.id}`);
         } catch (parentError: any) {
           if (parentError?.code === "messaging/registration-token-not-registered") {
             console.log(`[Task Completion] Parent token invalid, deleting: ${parentDoc.id}`);

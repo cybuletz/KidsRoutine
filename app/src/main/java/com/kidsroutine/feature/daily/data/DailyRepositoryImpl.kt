@@ -59,6 +59,9 @@ class DailyRepositoryImpl @Inject constructor(
     }
 
     override suspend fun saveDailyTasks(userId: String, date: String, tasks: List<TaskInstance>) {
+        // DELETE existing tasks for this date first
+        taskInstanceDao.deleteTasksForDate(userId, date)  // ← ADD THIS
+
         val entities = tasks.map { instance ->
             TaskInstanceEntity(
                 instanceId   = instance.instanceId,
