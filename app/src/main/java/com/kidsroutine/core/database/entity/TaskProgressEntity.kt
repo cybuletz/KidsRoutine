@@ -8,9 +8,11 @@ data class TaskProgressEntity(
     @PrimaryKey val taskInstanceId: String,
     val userId: String,
     val date: String,
-    val status: String,             // PENDING | COMPLETED | FAILED
+    val status: String,
     val completionTime: Long?,
-    val validationStatus: String,   // PENDING | APPROVED | REJECTED
+    val validationStatus: String,
     val photoUrl: String?,
+    val taskTitle: String = "",      // ← ADD THIS
+    val familyId: String = "",       // ← ADD THIS
     val syncedToFirestore: Boolean = false
 )

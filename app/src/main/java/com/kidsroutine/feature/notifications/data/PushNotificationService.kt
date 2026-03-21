@@ -6,6 +6,8 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -30,12 +32,24 @@ class PushNotificationService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d(TAG, "Refreshed token: $token")
 
-        // Subscribe to topics so Firebase Console can send to all devices
+        // Subscribe to topic
         FirebaseMessaging.getInstance().subscribeToTopic("all_users")
         Log.d(TAG, "Subscribed to all_users topic")
 
-        // TODO: Send token to your server if needed
-        // sendRegistrationToServer(token)
+        // Save token to Firestore
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(userId)
+                .update("fcmToken", token)
+                .addOnSuccessListener {
+                    Log.d(TAG, "FCM token saved to Firestore ✓")
+                }
+                .addOnFailureListener { error ->
+                    Log.e(TAG, "Failed to save FCM token", error)
+                }
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {

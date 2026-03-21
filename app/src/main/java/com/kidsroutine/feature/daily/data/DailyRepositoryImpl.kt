@@ -93,8 +93,11 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun hasTasksForDate(userId: String, date: String): Boolean =
-        taskInstanceDao.countTasksForDate(userId, date) > 0
+    override suspend fun hasTasksForDate(userId: String, date: String): Boolean {
+        // Always return false to allow regeneration
+        // This ensures parent-assigned tasks are picked up
+        return false
+    }
 
     override suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate> {
         Log.d("DailyRepository", "fetchTaskTemplatesFromFirestore called with familyId=$familyId")
@@ -119,6 +122,32 @@ class DailyRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("DailyRepository", "Exception in fetchTaskTemplatesFromFirestore", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel> {
+        return try {
+            val assignmentsSnapshot = firestore
+                .collection("taskAssignments")
+                .whereEqualTo("childId", userId)
+                .whereEqualTo("status", "ASSIGNED")
+                .get()
+                .await()
+
+            val taskIds = assignmentsSnapshot.documents.mapNotNull {
+                it.getString("taskId")
+            }
+
+            taskIds.mapNotNull { taskId ->
+                firestore
+                    .collection("tasks")
+                    .document(taskId)
+                    .get()
+                    .await()
+                    .toObject(TaskModel::class.java)
+            }
+        } catch (e: Exception) {
             emptyList()
         }
     }

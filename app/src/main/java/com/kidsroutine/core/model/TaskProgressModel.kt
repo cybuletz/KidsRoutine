@@ -11,5 +11,7 @@ data class TaskProgressModel(
     val completionTime: Long? = null,
     val validationStatus: ValidationStatus = ValidationStatus.PENDING,
     val photoUrl: String? = null,
-    val syncedToFirestore: Boolean = false   // offline-first flag
+    val taskTitle: String = "",
+    val familyId: String = "",
+    val syncedToFirestore: Boolean = false
 )

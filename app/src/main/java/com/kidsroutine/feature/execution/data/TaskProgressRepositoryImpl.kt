@@ -31,7 +31,7 @@ class TaskProgressRepositoryImpl @Inject constructor(
         val unsynced = dao.getUnsynced()
         unsynced.forEach { entity ->
             safeFirestoreCall {
-                firestore.collection("task_progress")
+                firestore.collection("taskProgress")  // ✅ Changed from "task_progress"
                     .document(entity.taskInstanceId)
                     .set(entity.toMap())
                     .await()
@@ -48,6 +48,8 @@ class TaskProgressRepositoryImpl @Inject constructor(
         completionTime   = completionTime,
         validationStatus = validationStatus.name,
         photoUrl         = photoUrl,
+        taskTitle        = "",  // Will be set from CompleteTaskUseCase
+        familyId         = "",  // Will be set from CompleteTaskUseCase
         syncedToFirestore = syncedToFirestore
     )
 
@@ -69,6 +71,9 @@ class TaskProgressRepositoryImpl @Inject constructor(
         "status"           to status,
         "completionTime"   to completionTime,
         "validationStatus" to validationStatus,
-        "photoUrl"         to photoUrl
+        "photoUrl"         to photoUrl,
+        "taskTitle"        to taskTitle,
+        "familyId"         to familyId,
+        "syncedToFirestore" to syncedToFirestore
     )
 }

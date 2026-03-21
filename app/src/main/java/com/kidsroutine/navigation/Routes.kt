@@ -30,6 +30,7 @@ object Routes {
     const val START_CHALLENGE = "start_challenge"
     const val PARENT_CHALLENGE_DETAIL = "parent_challenge_detail/{challengeId}"
 
+
     // ═══════════════════════════════════════════════════════════════════════
     // COMMUNITY ROUTES
     // ═══════════════════════════════════════════════════════════════════════
@@ -48,4 +49,6 @@ object Routes {
     fun execution(taskId: String) = "execution/$taskId"
     fun challengeDetail(challengeId: String) = "challenge_detail/$challengeId"
     fun parentChallengeDetail(challengeId: String) = "parent_challenge_detail/$challengeId"
+
+    fun selectChildren(taskId: String) = "select_children/$taskId"
 }

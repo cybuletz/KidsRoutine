@@ -9,12 +9,15 @@ import com.kidsroutine.core.common.util.DateUtils
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.daily.data.UserRepository
 import javax.inject.Inject
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class CompleteTaskUseCase @Inject constructor(
     private val taskEngine: TaskEngine,
     private val progressionEngine: ProgressionEngine,
     private val repository: TaskProgressRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val firestore: FirebaseFirestore
 ) {
     suspend operator fun invoke(
         task: TaskModel,
@@ -41,21 +44,43 @@ class CompleteTaskUseCase @Inject constructor(
             }
         }
 
-        // 1. Save task progress
+        // 1. Save task progress locally
         Log.d("CompleteTaskUseCase", "Saving task progress...")
-        repository.saveProgress(
-            TaskProgressModel(
-                taskInstanceId   = task.id,
-                userId           = userId,
-                date             = today,
-                status           = status,
-                completionTime   = System.currentTimeMillis(),
-                validationStatus = validationStatus,
-                photoUrl         = photoUrl,
-                syncedToFirestore = false
-            )
+        val progressModel = TaskProgressModel(
+            taskInstanceId   = task.id,
+            userId           = userId,
+            date             = today,
+            status           = status,
+            completionTime   = System.currentTimeMillis(),
+            validationStatus = validationStatus,
+            photoUrl         = photoUrl,
+            syncedToFirestore = false
         )
+        repository.saveProgress(progressModel)
         Log.d("CompleteTaskUseCase", "Task progress saved ✓")
+
+        // 1.5 SYNC TO FIRESTORE IMMEDIATELY WITH ALL FIELDS
+        Log.d("CompleteTaskUseCase", "Syncing to Firestore...")
+        try {
+            firestore.collection("taskProgress")
+                .document("${task.id}_${userId}_${System.currentTimeMillis()}")
+                .set(mapOf(
+                    "taskInstanceId" to task.id,
+                    "userId" to userId,
+                    "date" to today,
+                    "status" to status.name,
+                    "completionTime" to System.currentTimeMillis(),
+                    "validationStatus" to validationStatus.name,
+                    "photoUrl" to photoUrl,
+                    "taskTitle" to task.title,
+                    "familyId" to task.familyId,
+                    "xpGained" to 0
+                ))
+                .await()
+            Log.d("CompleteTaskUseCase", "Firestore sync successful ✓")
+        } catch (e: Exception) {
+            Log.e("CompleteTaskUseCase", "Firestore sync failed", e)
+        }
 
         // 2. Calculate XP
         val newStreak = progressionEngine.streakCalculator.computeStreak(currentStreak, lastActiveDate, today)

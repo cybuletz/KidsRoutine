@@ -26,6 +26,11 @@ import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.profile.ui.ParentProfileScreen
 import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
+import com.kidsroutine.feature.tasks.ui.SelectChildrenScreen
+import com.kidsroutine.core.model.TaskModel
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -104,24 +109,45 @@ fun NavGraphBuilder.parentNavGraph(
 
         // Task management
         composable(Routes.TASK_LIST) {
-            val showCreateTaskScreen = remember { mutableStateOf(false) }
+            var showCreateTaskScreen by remember { mutableStateOf(false) }
+            var createdTask by remember { mutableStateOf<TaskModel?>(null) }
 
-            if (showCreateTaskScreen.value) {
-                CreateTaskScreen(
-                    currentUser = currentUser,
-                    onTaskCreated = {
-                        showCreateTaskScreen.value = false
-                    },
-                    onBackClick = {
-                        showCreateTaskScreen.value = false
-                    }
-                )
-            } else {
-                TaskListScreen(
-                    currentUser = currentUser,
-                    onCreateTaskClick = { showCreateTaskScreen.value = true },
-                    onBackClick = { navController.popBackStack() }
-                )
+            when {
+                createdTask != null -> {
+                    // Show child selection screen after task creation
+                    SelectChildrenScreen(
+                        task = createdTask!!,
+                        currentUser = currentUser,
+                        onBackClick = {
+                            createdTask = null
+                            showCreateTaskScreen = false
+                        },
+                        onAssignmentComplete = {
+                            createdTask = null
+                            showCreateTaskScreen = false
+                        }
+                    )
+                }
+                showCreateTaskScreen -> {
+                    // Show task creation screen
+                    CreateTaskScreen(
+                        currentUser = currentUser,
+                        onTaskCreated = { task ->
+                            createdTask = task
+                        },
+                        onBackClick = {
+                            showCreateTaskScreen = false
+                        }
+                    )
+                }
+                else -> {
+                    // Show task list
+                    TaskListScreen(
+                        currentUser = currentUser,
+                        onCreateTaskClick = { showCreateTaskScreen = true },
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
             }
         }
 

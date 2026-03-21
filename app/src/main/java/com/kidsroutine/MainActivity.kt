@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.kidsroutine.core.common.designsystem.theme.KidsRoutineTheme
 import com.kidsroutine.core.model.AuthState
@@ -31,27 +33,84 @@ import com.kidsroutine.feature.auth.ui.ChildLoginScreen
 import com.kidsroutine.feature.auth.ui.ChildSignUpScreen
 import com.kidsroutine.feature.family.ui.JoinFamilyScreen
 import com.kidsroutine.feature.auth.ui.RoleSelectionScreen
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val NOTIFICATION_PERMISSION_CODE = 101
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Get FCM token
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                Log.w("FCM", "Fetching FCM token failed", task.exception)
-                return@addOnCompleteListener
+        // Request notification permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE
+                )
             }
-
-            val token = task.result
-            Log.d("FCM_TOKEN", "Your token: $token")
         }
+
+        // Save FCM token when app starts
+        saveFCMToken()
 
         enableEdgeToEdge()
         setContent {
             KidsRoutineTheme {
                 MainContent()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("PERMISSIONS", "Notification permission granted ✓")
+            } else {
+                Log.d("PERMISSIONS", "Notification permission denied ❌")
+            }
+        }
+    }
+
+    private fun saveFCMToken() {
+        // Force refresh token
+        FirebaseMessaging.getInstance().deleteToken()
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                Log.d("FCM_TOKEN", "New Token: $token")
+
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (userId != null) {
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(userId)
+                        .update("fcmToken", token)
+                        .addOnSuccessListener {
+                            Log.d("FCM", "Token saved to Firestore ✓")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("FCM", "Error saving token", e)
+                        }
+                }
             }
         }
     }
@@ -162,8 +221,8 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.FamilySetup).user
             FamilySetupScreen(
                 currentUser = user,
-                onFamilyCreated = { _ ->  // Change: ignore the return value or handle FamilyModel
-                    currentScreen = AppScreen.MainApp(user.copy(familyId = "created"))  // Assume family was created
+                onFamilyCreated = { _ ->
+                    currentScreen = AppScreen.MainApp(user.copy(familyId = "created"))
                 }
             )
         }
@@ -172,8 +231,8 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.JoinFamily).user
             JoinFamilyScreen(
                 currentUser = user,
-                onJoinSuccess = { familyId ->  // Change: familyId is String, not UserModel
-                    currentScreen = AppScreen.MainApp(user.copy(familyId = familyId))  // Update user's familyId
+                onJoinSuccess = { familyId ->
+                    currentScreen = AppScreen.MainApp(user.copy(familyId = familyId))
                 },
                 onBackClick = { currentScreen = AppScreen.RoleSelection }
             )
