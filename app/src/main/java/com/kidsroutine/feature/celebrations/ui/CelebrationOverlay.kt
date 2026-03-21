@@ -1,6 +1,6 @@
-// File: app/src/main/java/com/kidsroutine/feature/celebrations/ui/CelebrationOverlay.kt
 package com.kidsroutine.feature.celebrations.ui
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,16 +22,20 @@ import com.kidsroutine.core.model.Badge
  */
 @Composable
 fun CelebrationOverlay(
-    viewModel: CelebrationViewModel = hiltViewModel()
+    viewModel: CelebrationViewModel = hiltViewModel()  // Keep this - hilt will inject singleton now
 ) {
     val celebrationEvent by viewModel.celebrationEvent.collectAsState()
     val isVisible = celebrationEvent != null
+
+    Log.d("CelebrationOverlay", "Event: $celebrationEvent, isVisible: $isVisible")
 
     AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(),
         exit = fadeOut()
     ) {
+        Log.d("CelebrationOverlay", "Rendering celebration: ${celebrationEvent?.type}")
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -39,13 +43,16 @@ fun CelebrationOverlay(
         ) {
             when (celebrationEvent?.type) {
                 CelebrationType.TASK_COMPLETION -> {
+                    Log.d("CelebrationOverlay", "Showing TaskCompletionCelebration")
                     TaskCompletionCelebration(
-                        onAnimationComplete = { viewModel.dismissCelebration() }
+                        onAnimationComplete = {
+                            Log.d("CelebrationOverlay", "Animation complete, dismissing")
+                            viewModel.dismissCelebration()
+                        }
                     )
                 }
 
                 CelebrationType.ACHIEVEMENT_UNLOCK -> {
-                    // Create a placeholder badge with correct properties
                     val badge = Badge(
                         id = "",
                         type = AchievementType.TASKS_COMPLETED_10,
@@ -76,7 +83,9 @@ fun CelebrationOverlay(
                     )
                 }
 
-                null -> {}
+                null -> {
+                    Log.d("CelebrationOverlay", "No celebration event")
+                }
             }
         }
     }

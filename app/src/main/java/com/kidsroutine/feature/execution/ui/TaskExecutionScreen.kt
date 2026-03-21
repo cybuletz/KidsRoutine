@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.execution.ui
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -47,9 +48,11 @@ fun TaskExecutionScreen(
     // Handle completion navigation
     LaunchedEffect(uiState.result) {
         val result = uiState.result
-        if (result is CompletionResult.Success && !uiState.showSuccessAnim) {
-            // ← ADD THIS: Trigger celebration when task completes
+        if (result is CompletionResult.Success) {
+            Log.d("TaskExecutionScreen", "Task completed! Result: $result")
             celebrationViewModel.showTaskCompletion()
+            // Add small delay to ensure celebration shows
+            kotlinx.coroutines.delay(500)
             onCompleted(result.xpGained)
         }
     }
@@ -124,23 +127,7 @@ fun TaskExecutionScreen(
             Spacer(Modifier.height(40.dp))
         }
 
-        // ── Success Overlay ─────────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = uiState.showSuccessAnim,
-            enter   = fadeIn() + scaleIn(initialScale = 0.7f, animationSpec = spring(Spring.DampingRatioMediumBouncy)),
-            exit    = fadeOut()
-        ) {
-            val result = uiState.result as? CompletionResult.Success
-            SuccessOverlay(
-                xpGained    = result?.xpGained ?: 0,
-                needsParent = result?.needsParent ?: false,
-                taskColor   = taskColor,
-                onDismiss   = {
-                    viewModel.onEvent(ExecutionEvent.DismissResult)
-                    onCompleted(result?.xpGained ?: 0)
-                }
-            )
-        }
+
     }
 }
 

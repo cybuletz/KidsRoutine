@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/kidsroutine/navigation/NavGraph.kt
 package com.kidsroutine.navigation
 
 import androidx.compose.runtime.Composable
@@ -11,6 +12,10 @@ import androidx.navigation.compose.rememberNavController
 import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.family.ui.ParentDashboardViewModel
+import com.kidsroutine.feature.celebrations.ui.CelebrationOverlay
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 
 @Composable
 fun KidsRoutineNavGraph(currentUser: UserModel) {
@@ -34,14 +39,19 @@ fun KidsRoutineNavGraph(currentUser: UserModel) {
         currentUser.copy(userId = memberId)  // Placeholder
     } ?: emptyList()
 
-    NavHost(
-        navController = navController,
-        startDestination = if (currentUser.role == Role.PARENT) "parent_graph" else "child_graph"
-    ) {
-        // Child routes
-        childNavGraph(currentUser, navController)
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = if (currentUser.role == Role.PARENT) "parent_graph" else "child_graph"
+        ) {
+            // Child routes
+            childNavGraph(currentUser, navController)
 
-        // Parent routes - with family members from ParentDashboardViewModel
-        parentNavGraph(currentUser, familyMembers, navController)
+            // Parent routes - with family members from ParentDashboardViewModel
+            parentNavGraph(currentUser, familyMembers, navController)
+        }
+
+        // Celebration overlay - on TOP of everything
+        CelebrationOverlay()
     }
 }

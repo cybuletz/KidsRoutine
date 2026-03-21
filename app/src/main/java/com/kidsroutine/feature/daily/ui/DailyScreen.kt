@@ -61,9 +61,6 @@ fun DailyScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // Celebration overlay - shows on top of everything
-        CelebrationOverlay()
-
         when {
             uiState.isLoading -> DailyLoadingScreen()
             uiState.dailyState.tasks.isEmpty() -> DailyEmptyScreen()

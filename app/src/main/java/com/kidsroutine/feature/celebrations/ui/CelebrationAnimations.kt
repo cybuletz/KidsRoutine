@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/kidsroutine/feature/celebrations/ui/CelebrationAnimations.kt
 package com.kidsroutine.feature.celebrations.ui
 
 import androidx.compose.animation.core.*
@@ -45,8 +46,7 @@ fun TaskCompletionCelebration(
     if (!isVisible) return
 
     Box(
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // Animated particles
@@ -80,51 +80,44 @@ fun TaskCompletionCelebration(
 
 @Composable
 private fun ConfettiParticleAnimation(particle: ConfettiParticle) {
-    val transition = rememberInfiniteTransition(label = "confetti_${particle.id}")
+    val angle = particle.angle * (PI / 180.0)
+    val offsetX = cos(angle) * 500f
+    val offsetY = sin(angle) * 500f
 
-    val offsetX by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = cos(Math.toRadians(particle.angle.toDouble())).toFloat() * 500f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    // Use animateFloatAsState instead of rememberInfiniteTransition
+    var animationTrigger by remember { mutableStateOf(0f) }
+
+    val animOffsetX by animateFloatAsState(
+        targetValue = if (animationTrigger > 0) offsetX.toFloat() else 0f,
+        animationSpec = tween(2500, easing = LinearEasing),
         label = "offsetX_${particle.id}"
     )
 
-    val offsetY by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = sin(Math.toRadians(particle.angle.toDouble())).toFloat() * 500f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val animOffsetY by animateFloatAsState(
+        targetValue = if (animationTrigger > 0) offsetY.toFloat() else 0f,
+        animationSpec = tween(2500, easing = LinearEasing),
         label = "offsetY_${particle.id}"
     )
 
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val rotation by animateFloatAsState(
+        targetValue = if (animationTrigger > 0) 360f else 0f,
+        animationSpec = tween(2500, easing = LinearEasing),
         label = "rotation_${particle.id}"
     )
 
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val alpha by animateFloatAsState(
+        targetValue = if (animationTrigger > 0) 0f else 1f,
+        animationSpec = tween(2500, easing = LinearEasing),
         label = "alpha_${particle.id}"
     )
 
+    LaunchedEffect(Unit) {
+        animationTrigger = 1f
+    }
+
     Box(
         modifier = Modifier
-            .offset(x = offsetX.dp, y = offsetY.dp)
+            .offset(x = animOffsetX.dp, y = animOffsetY.dp)
             .alpha(alpha)
             .rotate(rotation),
         contentAlignment = Alignment.Center
@@ -159,8 +152,7 @@ fun AchievementUnlockCelebration(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // Glow effect circles
@@ -179,21 +171,18 @@ fun AchievementUnlockCelebration(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.scale(scale)
         ) {
-            // Badge emoji
             Text(
                 text = badge.icon,
                 fontSize = 120.sp,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Badge name
             Text(
                 text = "Achievement Unlocked!",
                 style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Badge description
             Text(
                 text = badge.description,
                 style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
@@ -219,8 +208,6 @@ private fun FloatingEmoji(
     scale: Float,
     modifier: Modifier = Modifier
 ) {
-    val transition = rememberInfiniteTransition(label = "float_$delay")
-
     var startAnimation by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -228,33 +215,21 @@ private fun FloatingEmoji(
         startAnimation = true
     }
 
-    val offsetY by transition.animateFloat(
-        initialValue = if (startAnimation) 0f else 200f,
-        targetValue = if (startAnimation) -300f else 200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val offsetY by animateFloatAsState(
+        targetValue = if (startAnimation) -300f else 0f,
+        animationSpec = tween(2000, easing = LinearEasing),
         label = "float_y_$delay"
     )
 
-    val offsetX by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = if (scale > 0.5f) sin(delay.toFloat() / 1000f) * 100f else 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val offsetX by animateFloatAsState(
+        targetValue = if (startAnimation) sin(delay.toFloat() / 1000f) * 100f else 0f,
+        animationSpec = tween(2000, easing = LinearEasing),
         label = "float_x_$delay"
     )
 
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
+    val alpha by animateFloatAsState(
+        targetValue = if (startAnimation) 0f else 1f,
+        animationSpec = tween(2000, easing = LinearEasing),
         label = "float_alpha_$delay"
     )
 
@@ -298,8 +273,7 @@ fun LevelUpCelebration(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         // Background burst
@@ -328,19 +302,13 @@ fun LevelUpCelebration(
                 .scale(scale)
                 .rotate(rotation * 0.2f)
         ) {
-            Text(
-                text = "🎊",
-                fontSize = 80.sp
-            )
-
+            Text(text = "🎊", fontSize = 80.sp)
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = "Level Up!",
                 style = androidx.compose.material3.MaterialTheme.typography.displaySmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
             Text(
                 text = "You reached Level $newLevel",
                 style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
@@ -361,6 +329,8 @@ fun MilestoneCelebration(
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(true) }
+    var animationTrigger by remember { mutableStateOf(0f) }
+
     val scale by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
         animationSpec = spring(dampingRatio = 0.6f),
@@ -368,20 +338,20 @@ fun MilestoneCelebration(
     )
 
     val rotation by animateFloatAsState(
-        targetValue = if (isVisible) 0f else 360f,
+        targetValue = if (animationTrigger > 0) 360f else 0f,
         animationSpec = tween(2000),
         label = "milestone_rotation"
     )
 
     LaunchedEffect(Unit) {
+        animationTrigger = 1f
         kotlinx.coroutines.delay(3000)
         isVisible = false
         onAnimationComplete()
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -391,18 +361,12 @@ fun MilestoneCelebration(
                 .scale(scale)
                 .rotate(rotation)
         ) {
-            Text(
-                text = icon,
-                fontSize = 100.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
+            Text(text = icon, fontSize = 100.sp, modifier = Modifier.padding(bottom = 16.dp))
             Text(
                 text = "Milestone Reached!",
                 style = androidx.compose.material3.MaterialTheme.typography.displaySmall,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
             Text(
                 text = milestone,
                 style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
