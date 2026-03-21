@@ -146,30 +146,37 @@ class AchievementRepositoryImpl @Inject constructor(
     override fun observeUserAchievements(userId: String): Flow<UserAchievements> = flow {
         try {
             Log.d("AchievementRepository", "Observing achievements for user: $userId")
-            firestore.collection("users").document(userId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("AchievementRepository", "Error observing achievements", error)
-                        return@addSnapshotListener
-                    }
+            val doc = firestore.collection("users").document(userId).get().await()
+            val data = doc.data ?: run {
+                emit(UserAchievements(userId = userId))
+                return@flow
+            }
 
-                    val data = snapshot?.data ?: return@addSnapshotListener
-                    val badges = (data["badges"] as? List<*>)?.mapNotNull {
-                        (it as? Map<*, *>)?.let { badge ->
-                            Badge(
-                                id = badge["id"] as? String ?: "",
-                                type = AchievementType.valueOf(badge["type"] as? String ?: "TASKS_COMPLETED_10"),
-                                title = badge["title"] as? String ?: "",
-                                description = badge["description"] as? String ?: "",
-                                icon = badge["icon"] as? String ?: "",
-                                unlockedAt = (badge["unlockedAt"] as? Number)?.toLong() ?: 0L,
-                                isUnlocked = badge["isUnlocked"] as? Boolean ?: false
-                            )
-                        }
-                    } ?: emptyList()
+            val badges = (data["badges"] as? List<*>)?.mapNotNull {
+                (it as? Map<*, *>)?.let { badge ->
+                    Badge(
+                        id = badge["id"] as? String ?: "",
+                        type = AchievementType.valueOf(badge["type"] as? String ?: "TASKS_COMPLETED_10"),
+                        title = badge["title"] as? String ?: "",
+                        description = badge["description"] as? String ?: "",
+                        icon = badge["icon"] as? String ?: "",
+                        unlockedAt = (badge["unlockedAt"] as? Number)?.toLong() ?: 0L,
+                        isUnlocked = badge["isUnlocked"] as? Boolean ?: false
+                    )
                 }
+            } ?: emptyList()
+
+            emit(UserAchievements(
+                userId = userId,
+                badges = badges,
+                totalBadgesUnlocked = badges.count { it.isUnlocked },
+                lastUnlockedAt = badges.maxOfOrNull { it.unlockedAt } ?: 0L
+            ))
+
+            Log.d("AchievementRepository", "Emitted achievements: ${badges.size} badges")
         } catch (e: Exception) {
             Log.e("AchievementRepository", "Error observing achievements", e)
+            emit(UserAchievements(userId = userId))
         }
     }
 

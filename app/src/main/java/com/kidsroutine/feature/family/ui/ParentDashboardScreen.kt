@@ -44,6 +44,7 @@ fun ParentDashboardScreen(
     onMarketplaceClick: () -> Unit,
     onPublishClick: () -> Unit,
     onModerationClick: () -> Unit,
+    onLeaderboardClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -222,6 +223,7 @@ fun ParentDashboardScreen(
                     onMarketplaceClick = onMarketplaceClick,
                     onPublishClick = onPublishClick,
                     onModerationClick = onModerationClick,
+                    onLeaderboardClick = onLeaderboardClick,
                     currentUser = currentUser
                 )
 
@@ -449,6 +451,7 @@ private fun ActionButtonsSection(
     onMarketplaceClick: () -> Unit,
     onPublishClick: () -> Unit,
     onModerationClick: () -> Unit,
+    onLeaderboardClick: () -> Unit,
     currentUser: UserModel
 ) {
     Column(
@@ -605,6 +608,24 @@ private fun ActionButtonsSection(
             )
             Text(
                 "Publish Content",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Button(
+            onClick = onLeaderboardClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF4ECDC4)
+            )
+        ) {
+            Text(
+                "🏅 Leaderboard",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

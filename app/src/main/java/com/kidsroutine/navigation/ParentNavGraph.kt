@@ -41,7 +41,8 @@ fun NavGraphBuilder.parentNavGraph(
                 onChallengesClick = { navController.navigate(Routes.PARENT_CHALLENGES) },
                 onMarketplaceClick = { navController.navigate(Routes.MARKETPLACE) },
                 onPublishClick = { navController.navigate(Routes.PUBLISH) },
-                onModerationClick = { navController.navigate(Routes.MODERATION) },  // ADD THIS
+                onModerationClick = { navController.navigate(Routes.MODERATION) },
+                onLeaderboardClick = { navController.navigate(Routes.LEADERBOARD) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -136,7 +137,7 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Leaderboard (add to parent graph)
+        // Leaderboard
         composable(Routes.LEADERBOARD) {
             LeaderboardScreen(
                 currentUser = currentUser,
