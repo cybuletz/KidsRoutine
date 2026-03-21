@@ -61,6 +61,7 @@ fun InviteChildrenScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Top bar

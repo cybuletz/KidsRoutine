@@ -60,7 +60,9 @@ fun PublishScreen(
         )
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
             // Top bar
             Row(
@@ -124,6 +126,7 @@ fun PublishScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {

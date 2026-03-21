@@ -64,7 +64,10 @@ fun MarketplaceScreen(
         )
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()  // ← ADD THIS
+
         ) {
             // Top bar
             Row(
@@ -156,6 +159,7 @@ fun MarketplaceScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .weight(1f)
                         .padding(horizontal = 20.dp)
                 ) {
                     // Filters

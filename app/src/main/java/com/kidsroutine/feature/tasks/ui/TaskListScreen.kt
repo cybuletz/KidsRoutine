@@ -57,7 +57,10 @@ fun TaskListScreen(
         )
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+
         ) {
             // Top bar
             Row(

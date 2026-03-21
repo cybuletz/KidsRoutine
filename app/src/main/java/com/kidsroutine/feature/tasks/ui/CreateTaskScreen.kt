@@ -83,6 +83,7 @@ fun CreateTaskScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Top bar

@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.community.ui
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -57,7 +58,9 @@ fun ModerationScreen(
         )
 
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
             // Top bar
             Row(
@@ -140,7 +143,8 @@ fun ModerationScreen(
             } else {
                 Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .weight(1f)
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -256,7 +260,8 @@ fun ModerationScreen(
                     text = uiState.successMessage ?: "",
                     color = Color(0xFF2E7D32),
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(16.dp),
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -597,86 +602,91 @@ private fun TaskDetailPanel(
                 color = TextDark
             )
 
-            Column(
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Title",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray
-                )
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextDark
-                )
+                item {
+                    Text(
+                        text = "Title",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextDark
+                    )
+                }
 
-                Text(
-                    text = "Description",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
-                Text(
-                    text = task.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextDark
-                )
+                item {
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = task.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextDark
+                    )
+                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .paddingFromBaseline(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE3F2FD)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "📊 ${task.difficulty.name}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF1565C0),
-                            modifier = Modifier.padding(8.dp, 4.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE3F2FD)
+                        ) {
+                            Text(
+                                text = "📊 ${task.difficulty.name}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF1565C0),
+                                modifier = Modifier.padding(8.dp, 4.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE8F5E9)
-                    ) {
-                        Text(
-                            text = "⭐ ${task.reward.xp} XP",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF2E7D32),
-                            modifier = Modifier.padding(8.dp, 4.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE8F5E9)
+                        ) {
+                            Text(
+                                text = "⭐ ${task.reward.xp} XP",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF2E7D32),
+                                modifier = Modifier.padding(8.dp, 4.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF3E5F5)
-                    ) {
-                        Text(
-                            text = "⏱️ ${task.estimatedDurationSec}s",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF6A1B9A),
-                            modifier = Modifier.padding(8.dp, 4.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF3E5F5)
+                        ) {
+                            Text(
+                                text = "⏱️ ${task.estimatedDurationSec}s",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF6A1B9A),
+                                modifier = Modifier.padding(8.dp, 4.dp)
+                            )
+                        }
                     }
                 }
 
-                Text(
-                    text = "Creator: ${task.creatorName}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
+                item {
+                    Text(
+                        text = "Creator: ${task.creatorName}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
             }
-
-            Spacer(Modifier.weight(1f))
 
             if (showRejectInput) {
                 OutlinedTextField(
@@ -760,86 +770,91 @@ private fun ChallengeDetailPanel(
                 color = TextDark
             )
 
-            Column(
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Title",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray
-                )
-                Text(
-                    text = challenge.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextDark
-                )
+                item {
+                    Text(
+                        text = "Title",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = challenge.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextDark
+                    )
+                }
 
-                Text(
-                    text = "Description",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
-                Text(
-                    text = challenge.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextDark
-                )
+                item {
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = challenge.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextDark
+                    )
+                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .paddingFromBaseline(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE3F2FD)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "📅 ${challenge.duration}d",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF1565C0),
-                            modifier = Modifier.padding(6.dp, 3.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE3F2FD)
+                        ) {
+                            Text(
+                                text = "📅 ${challenge.duration}d",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF1565C0),
+                                modifier = Modifier.padding(6.dp, 3.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE8F5E9)
-                    ) {
-                        Text(
-                            text = "⭐ ${challenge.dailyXpReward}/d",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF2E7D32),
-                            modifier = Modifier.padding(6.dp, 3.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE8F5E9)
+                        ) {
+                            Text(
+                                text = "⭐ ${challenge.dailyXpReward}/d",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF2E7D32),
+                                modifier = Modifier.padding(6.dp, 3.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF3E5F5)
-                    ) {
-                        Text(
-                            text = "🎁 +${challenge.completionBonusXp}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF6A1B9A),
-                            modifier = Modifier.padding(6.dp, 3.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFF3E5F5)
+                        ) {
+                            Text(
+                                text = "🎁 +${challenge.completionBonusXp}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF6A1B9A),
+                                modifier = Modifier.padding(6.dp, 3.dp)
+                            )
+                        }
                     }
                 }
 
-                Text(
-                    text = "Creator: ${challenge.creatorName}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
+                item {
+                    Text(
+                        text = "Creator: ${challenge.creatorName}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
             }
-
-            Spacer(Modifier.weight(1f))
 
             if (showRejectInput) {
                 OutlinedTextField(
@@ -919,75 +934,80 @@ private fun ReportDetailPanel(
                 color = TextDark
             )
 
-            Column(
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Reason",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "🚩 ${report.reason.name}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFC62828),
-                    fontWeight = FontWeight.Bold
-                )
+                item {
+                    Text(
+                        text = "Reason",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "🚩 ${report.reason.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFC62828),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-                Text(
-                    text = "Description",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
-                Text(
-                    text = report.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextDark
-                )
+                item {
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = report.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextDark
+                    )
+                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .paddingFromBaseline(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFE3F2FD)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "Content: ${report.contentType}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF1565C0),
-                            modifier = Modifier.padding(8.dp, 4.dp)
-                        )
-                    }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE3F2FD)
+                        ) {
+                            Text(
+                                text = "Content: ${report.contentType}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF1565C0),
+                                modifier = Modifier.padding(8.dp, 4.dp)
+                            )
+                        }
 
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFFEBEE)
-                    ) {
-                        Text(
-                            text = "Status: ${report.status}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFC62828),
-                            modifier = Modifier.padding(8.dp, 4.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFEBEE)
+                        ) {
+                            Text(
+                                text = "Status: ${report.status}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFC62828),
+                                modifier = Modifier.padding(8.dp, 4.dp)
+                            )
+                        }
                     }
                 }
 
-                Text(
-                    text = "Reported by: ${report.reportedBy.take(8)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.paddingFromBaseline(top = 16.dp)
-                )
+                item {
+                    Text(
+                        text = "Reported by: ${report.reportedBy.take(8)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
             }
-
-            Spacer(Modifier.weight(1f))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -999,22 +1019,22 @@ private fun ReportDetailPanel(
                         .weight(1f)
                         .height(44.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                    enabled = !isProcessing
-                ) {
-                    Text("❌ Delete Content", fontWeight = FontWeight.Bold, color = Color.White)
-                }
-
-                Button(
-                    onClick = { onResolve("REJECTED") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                     enabled = !isProcessing
                 ) {
                     Text("✅ Not a Violation", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+
+                Button(
+                    onClick = { onResolve("REMOVED") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                    enabled = !isProcessing
+                ) {
+                    Text("❌ Delete Content", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
