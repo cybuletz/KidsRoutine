@@ -24,6 +24,8 @@ camerax                 = "1.5.3"
 runtime = "1.10.5"
 foundationLayout = "1.10.5"
 foundation = "1.10.5"
+firebase-messaging = "25.0.1"
+
 
 [libraries]
 androidx-core-ktx                   = { group = "androidx.core",              name = "core-ktx",                          version.ref = "coreKtx" }
@@ -50,6 +52,7 @@ firebase-auth                       = { group = "com.google.firebase",        na
 firebase-firestore                  = { group = "com.google.firebase",        name = "firebase-firestore" }
 firebase-functions                  = { group = "com.google.firebase",        name = "firebase-functions" }
 firebase-storage                    = { group = "com.google.firebase",        name = "firebase-storage" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebase-messaging" }
 coroutines-android                  = { group = "org.jetbrains.kotlinx",      name = "kotlinx-coroutines-android",        version.ref = "coroutines" }
 coroutines-play-services            = { group = "org.jetbrains.kotlinx",      name = "kotlinx-coroutines-play-services",  version.ref = "coroutines" }
 coil-compose                        = { group = "io.coil-kt.coil3",           name = "coil-compose",                      version.ref = "coil" }

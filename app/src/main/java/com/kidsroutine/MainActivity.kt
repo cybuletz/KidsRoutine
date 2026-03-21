@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.firebase.messaging.FirebaseMessaging
 import com.kidsroutine.core.common.designsystem.theme.KidsRoutineTheme
 import com.kidsroutine.core.model.AuthState
 import com.kidsroutine.core.model.Role
@@ -35,6 +36,18 @@ import com.kidsroutine.feature.auth.ui.RoleSelectionScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Get FCM token
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("FCM", "Fetching FCM token failed", task.exception)
+                return@addOnCompleteListener
+            }
+
+            val token = task.result
+            Log.d("FCM_TOKEN", "Your token: $token")
+        }
+
         enableEdgeToEdge()
         setContent {
             KidsRoutineTheme {

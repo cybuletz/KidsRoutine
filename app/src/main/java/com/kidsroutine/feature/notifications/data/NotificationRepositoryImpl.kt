@@ -1,3 +1,4 @@
+// File: app/src/main/java/com/kidsroutine/feature/notifications/data/NotificationRepositoryImpl.kt
 package com.kidsroutine.feature.notifications.data
 
 import android.util.Log
@@ -10,14 +11,24 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface NotificationRepository {
+    suspend fun saveNotification(notification: AppNotification)
+    suspend fun getUserNotifications(userId: String): List<AppNotification>
+    suspend fun markAsRead(notificationId: String)
+    suspend fun deleteNotification(notificationId: String)
+    fun observeUserNotifications(userId: String): Flow<List<AppNotification>>
+    suspend fun saveFCMToken(userId: String, token: String)
+    suspend fun getUnreadCount(userId: String): Int
+}
+
 @Singleton
 class NotificationRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : NotificationRepository {
 
-    override suspend fun sendNotification(notification: AppNotification) {
+    override suspend fun saveNotification(notification: AppNotification) {
         try {
-            Log.d("NotificationRepository", "Sending notification to user: ${notification.userId}")
+            Log.d("NotificationRepository", "Saving notification: ${notification.id}")
 
             val notifData = mapOf(
                 "id" to notification.id,
@@ -36,9 +47,79 @@ class NotificationRepositoryImpl @Inject constructor(
                 .set(notifData)
                 .await()
 
-            Log.d("NotificationRepository", "Notification sent successfully")
+            Log.d("NotificationRepository", "Notification saved ✓")
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Error sending notification", e)
+            Log.e("NotificationRepository", "Error saving notification", e)
+            throw e
+        }
+    }
+
+    override suspend fun getUserNotifications(userId: String): List<AppNotification> {
+        return try {
+            Log.d("NotificationRepository", "Fetching notifications for user: $userId")
+            val snapshot = firestore.collection("notifications")
+                .whereEqualTo("userId", userId)
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val notifications = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    AppNotification(
+                        id = data["id"] as? String ?: "",
+                        userId = data["userId"] as? String ?: "",
+                        type = try {
+                            NotificationType.valueOf(data["type"] as? String ?: "TASK_REMINDER")
+                        } catch (e: Exception) {
+                            NotificationType.TASK_REMINDER
+                        },
+                        title = data["title"] as? String ?: "",
+                        body = data["body"] as? String ?: "",
+                        icon = data["icon"] as? String ?: "🔔",
+                        actionUrl = data["actionUrl"] as? String ?: "",
+                        isRead = data["isRead"] as? Boolean ?: false,
+                        createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L
+                    )
+                } catch (e: Exception) {
+                    Log.w("NotificationRepository", "Error parsing notification", e)
+                    null
+                }
+            }
+
+            Log.d("NotificationRepository", "Loaded ${notifications.size} notifications")
+            notifications
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Error fetching notifications", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun markAsRead(notificationId: String) {
+        try {
+            Log.d("NotificationRepository", "Marking notification as read: $notificationId")
+            firestore.collection("notifications")
+                .document(notificationId)
+                .update("isRead", true)
+                .await()
+            Log.d("NotificationRepository", "Marked as read ✓")
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Error marking as read", e)
+            throw e
+        }
+    }
+
+    override suspend fun deleteNotification(notificationId: String) {
+        try {
+            Log.d("NotificationRepository", "Deleting notification: $notificationId")
+            firestore.collection("notifications")
+                .document(notificationId)
+                .delete()
+                .await()
+            Log.d("NotificationRepository", "Deleted ✓")
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Error deleting notification", e)
+            throw e
         }
     }
 
@@ -62,10 +143,14 @@ class NotificationRepositoryImpl @Inject constructor(
                             AppNotification(
                                 id = data["id"] as? String ?: "",
                                 userId = data["userId"] as? String ?: "",
-                                type = NotificationType.valueOf(data["type"] as? String ?: "TASK_REMINDER"),
+                                type = try {
+                                    NotificationType.valueOf(data["type"] as? String ?: "TASK_REMINDER")
+                                } catch (e: Exception) {
+                                    NotificationType.TASK_REMINDER
+                                },
                                 title = data["title"] as? String ?: "",
                                 body = data["body"] as? String ?: "",
-                                icon = data["icon"] as? String ?: "",
+                                icon = data["icon"] as? String ?: "🔔",
                                 actionUrl = data["actionUrl"] as? String ?: "",
                                 isRead = data["isRead"] as? Boolean ?: false,
                                 createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L
@@ -83,27 +168,31 @@ class NotificationRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun markAsRead(notificationId: String) {
+    override suspend fun saveFCMToken(userId: String, token: String) {
         try {
-            Log.d("NotificationRepository", "Marking notification as read: $notificationId")
-            firestore.collection("notifications").document(notificationId)
-                .update("isRead", true)
+            Log.d("NotificationRepository", "Saving FCM token for user: $userId")
+            firestore.collection("users")
+                .document(userId)
+                .update("fcmToken", token)
                 .await()
-            Log.d("NotificationRepository", "Notification marked as read")
+            Log.d("NotificationRepository", "FCM token saved ✓")
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Error marking as read", e)
+            Log.e("NotificationRepository", "Error saving FCM token", e)
+            throw e
         }
     }
 
-    override suspend fun deleteNotification(notificationId: String) {
-        try {
-            Log.d("NotificationRepository", "Deleting notification: $notificationId")
-            firestore.collection("notifications").document(notificationId)
-                .delete()
+    override suspend fun getUnreadCount(userId: String): Int {
+        return try {
+            val snapshot = firestore.collection("notifications")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isRead", false)
+                .get()
                 .await()
-            Log.d("NotificationRepository", "Notification deleted")
+            snapshot.size()
         } catch (e: Exception) {
-            Log.e("NotificationRepository", "Error deleting notification", e)
+            Log.e("NotificationRepository", "Error getting unread count", e)
+            0
         }
     }
 }
