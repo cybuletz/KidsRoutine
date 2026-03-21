@@ -81,8 +81,8 @@ private fun DailyContent(
     ) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
-                .paddingFromBaseline(bottom = 80.dp),
+                .fillMaxSize(),
+              //  .paddingFromBaseline(bottom = 80.dp),
             contentPadding = PaddingValues(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
