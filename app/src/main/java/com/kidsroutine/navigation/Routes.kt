@@ -35,6 +35,10 @@ object Routes {
     const val MARKETPLACE_TASKS = "marketplace_tasks"
     const val MARKETPLACE_CHALLENGES = "marketplace_challenges"
 
+
+    const val PUBLISH = "publish"
+    const val MODERATION = "moderation"
+
     // ═══════════════════════════════════════════════════════════════════════
     // Helper functions for navigation with arguments
     // ═══════════════════════════════════════════════════════════════════════

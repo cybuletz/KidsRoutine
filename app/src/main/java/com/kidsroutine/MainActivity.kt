@@ -1,6 +1,7 @@
 package com.kidsroutine
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -69,6 +70,7 @@ fun MainContent() {
             is AuthState.Unauthenticated -> AppScreen.RoleSelection
             is AuthState.Authenticated -> {
                 val user = (authState as AuthState.Authenticated).user
+
                 when {
                     user.role == Role.PARENT && user.familyId.isEmpty() -> {
                         AppScreen.FamilySetup(user)

@@ -135,6 +135,30 @@ class MarketplaceViewModel @Inject constructor(
         }
     }
 
+    fun reportContent(report: ContentReport) {
+        Log.d("MarketplaceVM", "Reporting content: ${report.contentId}")
+        _uiState.value = _uiState.value.copy(isImporting = true)
+
+        viewModelScope.launch {
+            try {
+                communityRepository.reportContent(report)
+
+                _uiState.value = _uiState.value.copy(
+                    isImporting = false,
+                    successMessage = "✅ Report submitted. Thank you for keeping our community safe!"
+                )
+
+                Log.d("MarketplaceVM", "Report submitted successfully")
+            } catch (e: Exception) {
+                Log.e("MarketplaceVM", "Error reporting content", e)
+                _uiState.value = _uiState.value.copy(
+                    isImporting = false,
+                    error = "Failed to submit report"
+                )
+            }
+        }
+    }
+
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(
             successMessage = null,

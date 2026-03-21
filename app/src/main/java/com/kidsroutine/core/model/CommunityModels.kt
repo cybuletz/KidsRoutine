@@ -75,7 +75,7 @@ data class UserRating(
 )
 
 data class ContentReport(
-    val reportId: String = "",
+    val reportId: String = "report_${System.currentTimeMillis()}_${kotlin.random.Random.nextInt(10000)}",
     val contentId: String = "",
     val contentType: String = "",         // "task" or "challenge"
     val reportedBy: String = "",          // userId

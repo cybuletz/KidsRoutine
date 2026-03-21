@@ -19,6 +19,8 @@ import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.StartChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.MarketplaceScreen
+import com.kidsroutine.feature.community.ui.PublishScreen
+import com.kidsroutine.feature.community.ui.ModerationScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -36,7 +38,9 @@ fun NavGraphBuilder.parentNavGraph(
                 onTasksClick = { navController.navigate(Routes.TASK_LIST) },
                 onPendingClick = { navController.navigate(Routes.PENDING_TASKS) },
                 onChallengesClick = { navController.navigate(Routes.PARENT_CHALLENGES) },
-                onMarketplaceClick = { navController.navigate(Routes.MARKETPLACE) },  // ADD THIS
+                onMarketplaceClick = { navController.navigate(Routes.MARKETPLACE) },
+                onPublishClick = { navController.navigate(Routes.PUBLISH) },
+                onModerationClick = { navController.navigate(Routes.MODERATION) },  // ADD THIS
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -119,6 +123,21 @@ fun NavGraphBuilder.parentNavGraph(
         composable(Routes.MARKETPLACE) {
             MarketplaceScreen(
                 currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Publish
+        composable(Routes.PUBLISH) {
+            PublishScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Moderation panel (admin only)
+        composable(Routes.MODERATION) {
+            ModerationScreen(
                 onBackClick = { navController.popBackStack() }
             )
         }

@@ -59,6 +59,66 @@ class CommunityRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getPendingTasks(limit: Int): List<SharedTask> {
+        return try {
+            Log.d("CommunityRepo", "Fetching pending tasks")
+
+            val snapshot = firestore.collection("marketplace")
+                .document("tasks")
+                .collection("shared")
+                .whereEqualTo("status", ContentStatus.PENDING.name)
+                .orderBy("publishedAt", Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+
+            val tasks = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toSharedTask()
+                } catch (e: Exception) {
+                    Log.e("CommunityRepo", "Error parsing task", e)
+                    null
+                }
+            }
+
+            Log.d("CommunityRepo", "Fetched ${tasks.size} pending tasks")
+            tasks
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error getting pending tasks", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun getPendingChallenges(limit: Int): List<SharedChallenge> {
+        return try {
+            Log.d("CommunityRepo", "Fetching pending challenges")
+
+            val snapshot = firestore.collection("marketplace")
+                .document("challenges")
+                .collection("shared")
+                .whereEqualTo("status", ContentStatus.PENDING.name)
+                .orderBy("publishedAt", Query.Direction.DESCENDING)
+                .limit(limit.toLong())
+                .get()
+                .await()
+
+            val challenges = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toSharedChallenge()
+                } catch (e: Exception) {
+                    Log.e("CommunityRepo", "Error parsing challenge", e)
+                    null
+                }
+            }
+
+            Log.d("CommunityRepo", "Fetched ${challenges.size} pending challenges")
+            challenges
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error getting pending challenges", e)
+            emptyList()
+        }
+    }
+
     override suspend fun getApprovedTasks(
         category: TaskCategory?,
         difficulty: DifficultyLevel?,
@@ -436,28 +496,24 @@ class CommunityRepositoryImpl @Inject constructor(
         return try {
             Log.d("CommunityRepo", "Reporting content: ${report.contentId}")
 
-            val reportId = firestore.collection("reports").document().id
-            val reportWithId = report.copy(
-                reportId = reportId,
-                createdAt = System.currentTimeMillis()
+            val reportData = mapOf(
+                "reportId" to report.reportId,
+                "contentId" to report.contentId,
+                "contentType" to report.contentType,
+                "reportedBy" to report.reportedBy,
+                "reason" to report.reason.name,
+                "description" to report.description,
+                "status" to report.status,
+                "createdAt" to System.currentTimeMillis()
             )
 
             firestore.collection("reports")
-                .document(reportId)
-                .set(mapOf(
-                    "reportId" to reportWithId.reportId,
-                    "contentId" to reportWithId.contentId,
-                    "contentType" to reportWithId.contentType,
-                    "reportedBy" to reportWithId.reportedBy,
-                    "reason" to reportWithId.reason.name,
-                    "description" to reportWithId.description,
-                    "status" to reportWithId.status,
-                    "createdAt" to reportWithId.createdAt
-                ))
+                .document(report.reportId)
+                .set(reportData)
                 .await()
 
-            Log.d("CommunityRepo", "Report submitted successfully")
-            reportWithId
+            Log.d("CommunityRepo", "Report saved: ${report.reportId}")
+            report
         } catch (e: Exception) {
             Log.e("CommunityRepo", "Error reporting content", e)
             throw e
@@ -466,20 +522,26 @@ class CommunityRepositoryImpl @Inject constructor(
 
     override suspend fun getPendingReports(limit: Int): List<ContentReport> {
         return try {
-            val snapshot = firestore.collection("reports")
+            Log.d("CommunityRepo", "Fetching pending reports")
+
+            val snapshot = firestore
+                .collection("reports")
                 .whereEqualTo("status", "PENDING")
-                .orderBy("createdAt", Query.Direction.ASCENDING)
                 .limit(limit.toLong())
                 .get()
                 .await()
 
-            snapshot.documents.mapNotNull { doc ->
+            val reports = snapshot.documents.mapNotNull { doc ->
                 try {
                     doc.toContentReport()
                 } catch (e: Exception) {
+                    Log.e("CommunityRepo", "Error parsing report", e)
                     null
                 }
-            }
+            }.sortedByDescending { it.createdAt }
+
+            Log.d("CommunityRepo", "Fetched ${reports.size} pending reports")
+            reports
         } catch (e: Exception) {
             Log.e("CommunityRepo", "Error getting pending reports", e)
             emptyList()
@@ -767,5 +829,91 @@ class CommunityRepositoryImpl @Inject constructor(
             status = data["status"] as? String ?: "PENDING",
             createdAt = data["createdAt"] as? Long ?: 0L
         )
+    }
+
+    override suspend fun approveTask(taskId: String) {
+        try {
+            firestore.collection("marketplace")
+                .document("tasks")
+                .collection("shared")
+                .document(taskId)
+                .update(mapOf(
+                    "status" to ContentStatus.APPROVED.name
+                ))
+                .await()
+            Log.d("CommunityRepo", "Task approved: $taskId")
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error approving task", e)
+            throw e
+        }
+    }
+
+    override suspend fun rejectTask(taskId: String) {
+        try {
+            firestore.collection("marketplace")
+                .document("tasks")
+                .collection("shared")
+                .document(taskId)
+                .update(mapOf(
+                    "status" to ContentStatus.REJECTED.name
+                ))
+                .await()
+            Log.d("CommunityRepo", "Task rejected: $taskId")
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error rejecting task", e)
+            throw e
+        }
+    }
+
+    override suspend fun approveChallenge(challengeId: String) {
+        try {
+            firestore.collection("marketplace")
+                .document("challenges")
+                .collection("shared")
+                .document(challengeId)
+                .update(mapOf(
+                    "status" to ContentStatus.APPROVED.name
+                ))
+                .await()
+            Log.d("CommunityRepo", "Challenge approved: $challengeId")
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error approving challenge", e)
+            throw e
+        }
+    }
+
+    override suspend fun rejectChallenge(challengeId: String) {
+        try {
+            firestore.collection("marketplace")
+                .document("challenges")
+                .collection("shared")
+                .document(challengeId)
+                .update(mapOf(
+                    "status" to ContentStatus.REJECTED.name
+                ))
+                .await()
+            Log.d("CommunityRepo", "Challenge rejected: $challengeId")
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "Error rejecting challenge", e)
+            throw e
+        }
+    }
+
+    override suspend fun resolveReport(reportId: String, status: String) {
+        try {
+            Log.d("CommunityRepo", "About to resolve report: $reportId with status: $status")
+
+            firestore.collection("reports")
+                .document(reportId)
+                .update(mapOf(
+                    "status" to status
+                ))
+                .await()
+
+            Log.d("CommunityRepo", "✅ Report resolved successfully: $reportId → $status")
+        } catch (e: Exception) {
+            Log.e("CommunityRepo", "❌ Error resolving report: ${e.message}", e)
+            throw e
+        }
     }
 }

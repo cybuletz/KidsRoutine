@@ -30,9 +30,13 @@ class AuthRepositoryImpl @Inject constructor(
             role = Role.CHILD.name,
             familyId = "family_$uid",
             displayName = "Child",
+            email = "",  // ADD THIS
+            avatarUrl = "",  // ADD THIS
+            isAdmin = false,  // ADD THIS
             xp = 0,
             level = 1,
             streak = 0,
+            createdAt = System.currentTimeMillis(),  // ADD THIS
             lastActiveAt = System.currentTimeMillis()
         )
 
@@ -44,9 +48,13 @@ class AuthRepositoryImpl @Inject constructor(
                 "role" to Role.CHILD.name,
                 "familyId" to "family_$uid",
                 "displayName" to "Child",
+                "email" to "",  // ADD THIS
+                "avatarUrl" to "",  // ADD THIS
+                "isAdmin" to false,  // ADD THIS
                 "xp" to 0,
                 "level" to 1,
                 "streak" to 0,
+                "createdAt" to System.currentTimeMillis(),  // ADD THIS
                 "lastActiveAt" to System.currentTimeMillis()
             ))
             .await()
@@ -72,9 +80,13 @@ class AuthRepositoryImpl @Inject constructor(
                 role = Role.valueOf(data["role"] as? String ?: Role.CHILD.name),
                 familyId = data["familyId"] as? String ?: "",
                 displayName = data["displayName"] as? String ?: "",
+                email = data["email"] as? String ?: email,  // ADD THIS
+                avatarUrl = data["avatarUrl"] as? String ?: "",  // ADD THIS
+                isAdmin = data["isAdmin"] as? Boolean ?: false,  // ADD THIS
                 xp = (data["xp"] as? Number)?.toInt() ?: 0,
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
+                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,  // ADD THIS
                 lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
             )
             userDao.upsert(UserEntity(
@@ -82,9 +94,13 @@ class AuthRepositoryImpl @Inject constructor(
                 role = user.role.name,
                 familyId = user.familyId,
                 displayName = user.displayName,
+                email = user.email,  // ADD THIS
+                avatarUrl = user.avatarUrl,  // ADD THIS
+                isAdmin = user.isAdmin,  // ADD THIS
                 xp = user.xp,
                 level = user.level,
                 streak = user.streak,
+                createdAt = user.createdAt,  // ADD THIS
                 lastActiveAt = user.lastActiveAt
             ))
             Log.d("AuthRepository", "Signed in existing user: $uid")
@@ -106,16 +122,21 @@ class AuthRepositoryImpl @Inject constructor(
         val uid = result.user?.uid ?: throw Exception("Auth failed")
 
         val familyId = if (role == Role.PARENT) "family_$uid" else ""
+        val now = System.currentTimeMillis()
 
         val userEntity = UserEntity(
             userId = uid,
             role = role.name,
             familyId = familyId,
             displayName = displayName,
+            email = email,  // ADD THIS
+            avatarUrl = "",  // ADD THIS
+            isAdmin = false,  // ADD THIS
             xp = 0,
             level = 1,
             streak = 0,
-            lastActiveAt = System.currentTimeMillis()
+            createdAt = now,  // ADD THIS
+            lastActiveAt = now
         )
 
         firestore.collection("users").document(uid)
@@ -124,11 +145,14 @@ class AuthRepositoryImpl @Inject constructor(
                 "role" to role.name,
                 "familyId" to familyId,
                 "displayName" to displayName,
+                "email" to email,  // ADD THIS
+                "avatarUrl" to "",  // ADD THIS
+                "isAdmin" to false,  // ADD THIS
                 "xp" to 0,
                 "level" to 1,
                 "streak" to 0,
-                "lastActiveAt" to System.currentTimeMillis(),
-                "createdAt" to System.currentTimeMillis()
+                "createdAt" to now,  // ADD THIS
+                "lastActiveAt" to now
             ))
             .await()
 
@@ -145,6 +169,7 @@ class AuthRepositoryImpl @Inject constructor(
         val result = firebaseAuth.signInWithCredential(credential).await()
         val uid = result.user?.uid ?: throw Exception("Auth failed")
         val displayName = result.user?.displayName ?: "User"
+        val googleEmail = result.user?.email ?: ""
 
         val userDoc = firestore.collection("users").document(uid).get().await()
 
@@ -155,9 +180,13 @@ class AuthRepositoryImpl @Inject constructor(
                 role = Role.valueOf(data["role"] as? String ?: Role.PARENT.name),
                 familyId = data["familyId"] as? String ?: "",
                 displayName = data["displayName"] as? String ?: displayName,
+                email = data["email"] as? String ?: googleEmail,  // ADD THIS
+                avatarUrl = data["avatarUrl"] as? String ?: "",  // ADD THIS
+                isAdmin = data["isAdmin"] as? Boolean ?: false,  // ADD THIS
                 xp = (data["xp"] as? Number)?.toInt() ?: 0,
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
+                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,  // ADD THIS
                 lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
             )
             userDao.upsert(UserEntity(
@@ -165,37 +194,49 @@ class AuthRepositoryImpl @Inject constructor(
                 role = user.role.name,
                 familyId = user.familyId,
                 displayName = user.displayName,
+                email = user.email,  // ADD THIS
+                avatarUrl = user.avatarUrl,  // ADD THIS
+                isAdmin = user.isAdmin,  // ADD THIS
                 xp = user.xp,
                 level = user.level,
                 streak = user.streak,
+                createdAt = user.createdAt,  // ADD THIS
                 lastActiveAt = user.lastActiveAt
             ))
             Log.d("AuthRepository", "Google sign in - existing user: $uid")
             user
         } else {
-            // New user - create as PARENT with EMPTY familyId (parent must create family first)
+            // New user - create as PARENT with EMPTY familyId
+            val now = System.currentTimeMillis()
             val userEntity = UserEntity(
                 userId = uid,
                 role = Role.PARENT.name,
-                familyId = "",  // ← EMPTY! Parent must create family
+                familyId = "",  // Parent must create family
                 displayName = displayName,
+                email = googleEmail,  // ADD THIS
+                avatarUrl = "",  // ADD THIS
+                isAdmin = false,  // ADD THIS
                 xp = 0,
                 level = 1,
                 streak = 0,
-                lastActiveAt = System.currentTimeMillis()
+                createdAt = now,  // ADD THIS
+                lastActiveAt = now
             )
 
             firestore.collection("users").document(uid)
                 .set(mapOf(
                     "userId" to uid,
                     "role" to Role.PARENT.name,
-                    "familyId" to "",  // ← EMPTY! Parent must create family
+                    "familyId" to "",
                     "displayName" to displayName,
+                    "email" to googleEmail,  // ADD THIS
+                    "avatarUrl" to "",  // ADD THIS
+                    "isAdmin" to false,  // ADD THIS
                     "xp" to 0,
                     "level" to 1,
                     "streak" to 0,
-                    "lastActiveAt" to System.currentTimeMillis(),
-                    "createdAt" to System.currentTimeMillis()
+                    "createdAt" to now,  // ADD THIS
+                    "lastActiveAt" to now
                 ))
                 .await()
 
@@ -219,9 +260,13 @@ class AuthRepositoryImpl @Inject constructor(
         role = Role.valueOf(role),
         familyId = familyId,
         displayName = displayName,
+        email = email,  // ADD THIS
+        avatarUrl = avatarUrl,  // ADD THIS
+        isAdmin = isAdmin,  // ADD THIS
         xp = xp,
         level = level,
         streak = streak,
+        createdAt = createdAt,  // ADD THIS
         lastActiveAt = lastActiveAt
     )
 }

@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.UserModel
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Security
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -39,7 +41,9 @@ fun ParentDashboardScreen(
     onTasksClick: () -> Unit,
     onPendingClick: () -> Unit,
     onChallengesClick: () -> Unit,
-    onMarketplaceClick: () -> Unit,  // ADD THIS
+    onMarketplaceClick: () -> Unit,
+    onPublishClick: () -> Unit,
+    onModerationClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -213,7 +217,10 @@ fun ParentDashboardScreen(
                     onTasksClick = onTasksClick,
                     onPendingClick = onPendingClick,
                     onChallengesClick = onChallengesClick,
-                    onMarketplaceClick = onMarketplaceClick
+                    onMarketplaceClick = onMarketplaceClick,
+                    onPublishClick = onPublishClick,
+                    onModerationClick = onModerationClick,
+                    currentUser = currentUser
                 )
 
                 Spacer(Modifier.height(32.dp))
@@ -437,7 +444,10 @@ private fun ActionButtonsSection(
     onTasksClick: () -> Unit,
     onPendingClick: () -> Unit,
     onChallengesClick: () -> Unit,
-    onMarketplaceClick: () -> Unit  // ADD THIS
+    onMarketplaceClick: () -> Unit,
+    onPublishClick: () -> Unit,
+    onModerationClick: () -> Unit,
+    currentUser: UserModel
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -571,6 +581,61 @@ private fun ActionButtonsSection(
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
+        }
+
+        Button(
+            onClick = onPublishClick,  // Add this callback
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF6B35)
+            )
+        ) {
+            Icon(
+                Icons.Default.CloudUpload,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                "Publish Content",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        // Moderation button (admin only)
+        if (currentUser.isAdmin) {
+            Button(
+                onClick = onModerationClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFD32F2F)  // Red for admin
+                )
+            ) {
+                Icon(
+                    Icons.Default.Security,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 8.dp)
+                )
+                Text(
+                    "🛡️ Moderation Panel",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }

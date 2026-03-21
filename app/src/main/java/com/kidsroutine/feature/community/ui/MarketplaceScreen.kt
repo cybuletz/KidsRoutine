@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.community.ui
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 
 private val GradientStart = Color(0xFF667EEA)
 private val GradientEnd = Color(0xFF764BA2)
@@ -187,18 +191,24 @@ fun MarketplaceScreen(
 
                     // Content based on tab
                     when (uiState.activeTab) {
-                        MarketplaceTab.TASKS -> TasksContent(
-                            tasks = uiState.tasks,
-                            currentUser = currentUser,
-                            onImport = { task -> viewModel.importTask(currentUser.userId, task.taskId) },
-                            isImporting = uiState.isImporting
-                        )
-                        MarketplaceTab.CHALLENGES -> ChallengesContent(
-                            challenges = uiState.challenges,
-                            currentUser = currentUser,
-                            onImport = { challenge -> viewModel.importChallenge(currentUser.userId, challenge.challengeId) },
-                            isImporting = uiState.isImporting
-                        )
+                        MarketplaceTab.TASKS -> {
+                            TasksContent(
+                                tasks = uiState.tasks,
+                                currentUser = currentUser,  // ADD THIS
+                                onImport = { task -> viewModel.importTask(currentUser.userId, task.taskId) },
+                                isImporting = uiState.isImporting,
+                                viewModel = viewModel  // ADD THIS
+                            )
+                        }
+                        MarketplaceTab.CHALLENGES -> {
+                            ChallengesContent(
+                                challenges = uiState.challenges,
+                                currentUser = currentUser,  // ADD THIS
+                                onImport = { challenge -> viewModel.importChallenge(currentUser.userId, challenge.challengeId) },
+                                isImporting = uiState.isImporting,
+                                viewModel = viewModel  // ADD THIS
+                            )
+                        }
                     }
                 }
             }
@@ -231,7 +241,8 @@ private fun TasksContent(
     tasks: List<SharedTask>,
     currentUser: UserModel,
     onImport: (SharedTask) -> Unit,
-    isImporting: Boolean
+    isImporting: Boolean,
+    viewModel: MarketplaceViewModel
 ) {
     if (tasks.isEmpty()) {
         Box(
@@ -261,8 +272,10 @@ private fun TasksContent(
             items(tasks) { task ->
                 TaskMarketplaceCard(
                     task = task,
+                    currentUser = currentUser,  // ADD THIS
                     onImport = { onImport(task) },
-                    isImporting = isImporting
+                    isImporting = isImporting,
+                    viewModel = viewModel  // ADD THIS
                 )
             }
         }
@@ -274,7 +287,8 @@ private fun ChallengesContent(
     challenges: List<SharedChallenge>,
     currentUser: UserModel,
     onImport: (SharedChallenge) -> Unit,
-    isImporting: Boolean
+    isImporting: Boolean,
+    viewModel: MarketplaceViewModel
 ) {
     if (challenges.isEmpty()) {
         Box(
@@ -315,9 +329,53 @@ private fun ChallengesContent(
 @Composable
 private fun TaskMarketplaceCard(
     task: SharedTask,
+    currentUser: UserModel,
     onImport: () -> Unit,
-    isImporting: Boolean
+    isImporting: Boolean,
+    viewModel: MarketplaceViewModel
 ) {
+    var showRatingDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+
+    if (showRatingDialog) {
+        RatingDialog(
+            contentId = task.taskId,
+            contentType = "task",
+            onRate = { rating, review ->
+                // Submit rating
+                val userRating = UserRating(
+                    userId = currentUser.userId,
+                    contentId = task.taskId,
+                    contentType = "task",
+                    rating = rating,
+                    review = review
+                )
+                // TODO: Call viewModel to submit rating
+                showRatingDialog = false
+            },
+            onDismiss = { showRatingDialog = false }
+        )
+    }
+
+    if (showReportDialog) {
+        ReportDialog(
+            contentId = task.taskId,
+            contentType = "task",
+            onReport = { reason, description ->
+                val report = ContentReport(
+                    contentId = task.taskId,
+                    contentType = "task",
+                    reportedBy = currentUser.userId,
+                    reason = reason,
+                    description = description
+                )
+                viewModel.reportContent(report)  // ADD THIS
+                showReportDialog = false
+            },
+            onDismiss = { showReportDialog = false }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -392,11 +450,29 @@ private fun TaskMarketplaceCard(
                         shape = RoundedCornerShape(6.dp),
                         color = Color(0xFFFFE082).copy(alpha = 0.3f)
                     ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(4.dp, 2.dp)
+                                .clickable { showRatingDialog = true },
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "⭐ ${String.format("%.1f", task.averageRating)} (${task.totalRatings})",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFF6F00)
+                            )
+                        }
+                    }
+                } else {
+                    TextButton(
+                        onClick = { showRatingDialog = true },
+                        modifier = Modifier.height(24.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
                         Text(
-                            text = "⭐ ${String.format("%.1f", task.averageRating)} (${task.totalRatings})",
+                            "⭐ Rate",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFFF6F00),
-                            modifier = Modifier.padding(4.dp, 2.dp)
+                            color = Color(0xFFFF6F00)
                         )
                     }
                 }
@@ -417,29 +493,45 @@ private fun TaskMarketplaceCard(
                 }
             }
 
-            // Import button
-            Button(
-                onClick = onImport,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = GradientStart),
-                enabled = !isImporting
+            // Buttons row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isImporting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        "Add to Library",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                Button(
+                    onClick = onImport,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GradientStart),
+                    enabled = !isImporting
+                ) {
+                    if (isImporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "Add to Library",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { showReportDialog = true },
+                    modifier = Modifier
+                        .width(44.dp)
+                        .height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    border = ButtonDefaults.outlinedButtonBorder
+                ) {
+                    Text("🚩", fontSize = 18.sp)
                 }
             }
         }
