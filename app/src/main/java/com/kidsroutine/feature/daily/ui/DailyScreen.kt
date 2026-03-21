@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -21,11 +22,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 private val YellowPrimary = Color(0xFFFFD93D)
@@ -88,8 +89,7 @@ private fun DailyContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize(),
-              //  .paddingFromBaseline(bottom = 80.dp),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { DailyHeader(uiState) }
@@ -113,78 +113,154 @@ private fun DailyContent(
             }
         }
 
-        // Bottom Navigation
-        NavigationBar(
+        // Chat Bubble - ABOVE nav bar
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = (-16).dp, y = (-78).dp)
+                .zIndex(10f)
+                .navigationBarsPadding()
+        ) {
+            ChatBubbleButton(
+                onClick = onFamilyMessagingClick
+            )
+        }
+
+        // Bottom Navigation Bar
+        Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
-            containerColor = Color.White,
-            tonalElevation = 8.dp
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+            color = Color.White,
+            shadowElevation = 12.dp
         ) {
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.Home, contentDescription = "Daily") },
-                label = { Text("Daily") },
-                selected = true,
-                onClick = { /* Already on daily */ }
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = "Challenges") },
-                label = { Text("Challenges") },
-                selected = false,
-                onClick = onChallengesClick
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Default.BarChart, contentDescription = "Leaderboard") },
-                label = { Text("Leaderboard") },
-                selected = false,
-                onClick = onStatsClick
-            )
-            NavigationBarItem(
-                icon = {
-                    Box {
-                        Icon(Icons.Default.EmojiEvents, contentDescription = "Achievements")
-                        if (uiState.currentUser.badges.isNotEmpty()) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.Red,
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .align(Alignment.TopEnd)
-                            ) { }
-                        }
-                    }
-                },
-                label = { Text("Achievements") },
-                selected = false,
-                onClick = onAchievementsClick  // ← ADD THIS
-            )
-
-            Button(
-                onClick = onFamilyMessagingClick,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEC407A)
-                )
+                    .height(60.dp)
+                    .padding(horizontal = 8.dp, vertical = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Default.Message,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .padding(end = 8.dp)
+                NavItemButton(
+                    icon = Icons.Default.Home,
+                    label = "Daily",
+                    isSelected = true,
+                    onClick = { },
+                    modifier = Modifier.weight(1f)
                 )
-                Text(
-                    "Family Chat",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+
+                NavItemButton(
+                    icon = Icons.Default.EmojiEvents,
+                    label = "Challenges",
+                    isSelected = false,
+                    onClick = onChallengesClick,
+                    modifier = Modifier.weight(1f)
                 )
+
+                NavItemButton(
+                    icon = Icons.Default.BarChart,
+                    label = "Leaderboard",
+                    isSelected = false,
+                    onClick = onStatsClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Box(modifier = Modifier.weight(1f)) {
+                    NavItemButton(
+                        icon = Icons.Default.EmojiEvents,
+                        label = "Achievements",
+                        isSelected = false,
+                        onClick = onAchievementsClick
+                    )
+                    if (uiState.currentUser.badges.isNotEmpty()) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFFF6B35),
+                            modifier = Modifier
+                                .size(18.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-4).dp, y = 4.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text = "${uiState.currentUser.badges.size}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ChatBubbleButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .size(width = 56.dp, height = 50.dp),
+        shape = RoundedCornerShape(
+            topStart = 16.dp,
+            topEnd = 16.dp,
+            bottomStart = 16.dp,
+            bottomEnd = 2.dp
+        ),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFEC407A)
+        ),
+        contentPadding = PaddingValues(0.dp),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+    ) {
+        Icon(
+            Icons.Default.Message,
+            contentDescription = "Chat",
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+
+@Composable
+private fun NavItemButton(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(0.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (isSelected) OrangePrimary else Color.Gray,
+            modifier = Modifier.size(24.dp)
+        )
+        Text(
+            text = label,
+            fontSize = 9.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) OrangePrimary else Color.Gray,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            lineHeight = 10.sp
+        )
     }
 }
 

@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Message
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -395,7 +397,31 @@ private fun MembersListCard(memberIds: List<String>) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // You'll need to fetch member data from Firestore
+            // For now, here's the structure:
+            LaunchedEffect(memberIds) {
+                // Fetch member details from Firestore
+            }
+
             memberIds.forEach { memberId ->
+                // This is a placeholder - you should fetch real names
+                var memberName by remember { mutableStateOf("Loading...") }
+                var memberAvatar by remember { mutableStateOf("") }
+
+                LaunchedEffect(memberId) {
+                    try {
+                        val userDoc = FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(memberId)
+                            .get()
+                            .await()
+                        memberName = userDoc.data?.get("displayName") as? String ?: "Family Member"
+                        memberAvatar = userDoc.data?.get("avatarUrl") as? String ?: ""
+                    } catch (e: Exception) {
+                        memberName = "Family Member"
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -421,7 +447,7 @@ private fun MembersListCard(memberIds: List<String>) {
                     // Member info
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Family Member",
+                            text = memberName,  // ← NOW SHOWS REAL NAME
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = TextDark
