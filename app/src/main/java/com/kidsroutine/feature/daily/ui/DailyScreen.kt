@@ -217,6 +217,7 @@ private fun ChatBubbleButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFFEC407A)
         ),
+
         contentPadding = PaddingValues(0.dp),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
     ) {
