@@ -19,6 +19,7 @@ data class UserModel(
     val streak: Int = 0,
     val activeChallengeIds: List<String> = emptyList(),
     val preferences: UserPreferences = UserPreferences(),
+    val badges: List<Badge> = emptyList(),
     val createdAt: Long = 0L,
     val lastActiveAt: Long = 0L
 )

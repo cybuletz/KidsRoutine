@@ -9,11 +9,13 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
+import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.daily.ui.DailyScreen
 import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
 
 object TaskPassthrough {
@@ -39,9 +41,26 @@ fun NavGraphBuilder.childNavGraph(
                 onChallengesClick = {
                     navController.navigate(Routes.CHALLENGES)
                 },
+                onAchievementsClick = {  // ← ADD THIS
+                    navController.navigate(Routes.ACHIEVEMENTS)
+                },
                 onStatsClick = {
                     navController.navigate(Routes.LEADERBOARD)
                 }
+            )
+        }
+
+        composable(Routes.ACHIEVEMENTS) {
+            AchievementsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
             )
         }
 

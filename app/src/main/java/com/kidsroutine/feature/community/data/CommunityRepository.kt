@@ -53,4 +53,6 @@ interface CommunityRepository {
     suspend fun getChallengeLeaderboard(limit: Int = 100): List<ChallengeLeaderboardEntry>
     fun observeChildLeaderboard(limit: Int = 100): Flow<List<ChildLeaderboardEntry>>
     fun observeFamilyLeaderboard(limit: Int = 100): Flow<List<FamilyLeaderboardEntry>>
+    suspend fun getWeeklyFamilyLeaderboard(familyId: String): FamilyLeaderboard
+    fun observeWeeklyFamilyLeaderboard(familyId: String): Flow<FamilyLeaderboard>
 }

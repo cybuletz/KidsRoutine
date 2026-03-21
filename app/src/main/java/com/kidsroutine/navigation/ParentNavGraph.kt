@@ -21,6 +21,7 @@ import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.MarketplaceScreen
 import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.community.ui.ModerationScreen
+import com.kidsroutine.feature.community.ui.LeaderboardScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -130,6 +131,14 @@ fun NavGraphBuilder.parentNavGraph(
         // Publish
         composable(Routes.PUBLISH) {
             PublishScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Leaderboard (add to parent graph)
+        composable(Routes.LEADERBOARD) {
+            LeaderboardScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

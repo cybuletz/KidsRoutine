@@ -41,6 +41,7 @@ fun DailyScreen(
     currentUser: UserModel,
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
+    onAchievementsClick: () -> Unit,  // ← ADD THIS
     onStatsClick: () -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
@@ -74,6 +75,7 @@ private fun DailyContent(
     uiState: DailyUiState,
     onTaskClick: (TaskInstance) -> Unit,
     onChallengesClick: () -> Unit,
+    onAchievementsClick: () -> Unit,  // ← ADD THIS
     onStatsClick: () -> Unit
 ) {
     Box(
@@ -132,6 +134,25 @@ private fun DailyContent(
                 label = { Text("Leaderboard") },
                 selected = false,
                 onClick = onStatsClick
+            )
+            NavigationBarItem(
+                icon = {
+                    Box {
+                        Icon(Icons.Default.EmojiEvents, contentDescription = "Achievements")
+                        if (uiState.currentUser.badges.isNotEmpty()) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Red,
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .align(Alignment.TopEnd)
+                            ) { }
+                        }
+                    }
+                },
+                label = { Text("Achievements") },
+                selected = false,
+                onClick = onAchievementsClick  // ← ADD THIS
             )
         }
     }
