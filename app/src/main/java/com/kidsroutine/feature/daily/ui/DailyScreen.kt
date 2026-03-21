@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
+import com.kidsroutine.feature.celebrations.ui.CelebrationOverlay
+
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 private val YellowPrimary = Color(0xFFFFD93D)
@@ -59,6 +61,9 @@ fun DailyScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
+        // Celebration overlay - shows on top of everything
+        CelebrationOverlay()
+
         when {
             uiState.isLoading -> DailyLoadingScreen()
             uiState.dailyState.tasks.isEmpty() -> DailyEmptyScreen()

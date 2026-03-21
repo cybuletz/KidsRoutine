@@ -28,13 +28,16 @@ import com.kidsroutine.feature.daily.ui.taskTypeColor
 import com.kidsroutine.feature.daily.ui.taskTypeIcon
 import com.kidsroutine.feature.execution.domain.CompletionResult
 import com.kidsroutine.feature.execution.ui.blocks.InteractionBlockRenderer
+import com.kidsroutine.feature.celebrations.ui.CelebrationViewModel
+
 
 @Composable
 fun TaskExecutionScreen(
     task: TaskModel,
     onBack: () -> Unit,
     onCompleted: (xpGained: Int) -> Unit,
-    viewModel: ExecutionViewModel = hiltViewModel()
+    viewModel: ExecutionViewModel = hiltViewModel(),
+    celebrationViewModel: CelebrationViewModel = hiltViewModel()  // ← ADD THIS
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val taskColor = taskTypeColor(task.type)
@@ -45,6 +48,8 @@ fun TaskExecutionScreen(
     LaunchedEffect(uiState.result) {
         val result = uiState.result
         if (result is CompletionResult.Success && !uiState.showSuccessAnim) {
+            // ← ADD THIS: Trigger celebration when task completes
+            celebrationViewModel.showTaskCompletion()
             onCompleted(result.xpGained)
         }
     }
@@ -93,7 +98,7 @@ fun TaskExecutionScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Interaction Blocks ──────────────────────────────────────────
+            // ── Interaction Blocks ─────────────��────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
