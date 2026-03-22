@@ -38,6 +38,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.DefaultLifecycleObserver
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -65,12 +68,69 @@ class MainActivity : ComponentActivity() {
         // Save FCM token when app starts
         saveFCMToken()
 
+        // Setup app lifecycle listener for online/offline status
+        setupAppLifecycleListener()
+
         enableEdgeToEdge()
         setContent {
             KidsRoutineTheme {
                 MainContent()
             }
         }
+    }
+
+    private fun setupAppLifecycleListener() {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                // App moved to foreground
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (userId != null) {
+                    Log.d("AppLifecycle", "App moved to foreground - setting online for $userId")
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(userId)
+                        .update(
+                            mapOf(
+                                "isOnline" to true,
+                                "lastActiveAt" to System.currentTimeMillis()
+                            )
+                        )
+                        .addOnSuccessListener {
+                            Log.d("AppLifecycle", "Successfully set online ✓")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("AppLifecycle", "Failed to set online", e)
+                        }
+                } else {
+                    Log.d("AppLifecycle", "No user logged in on foreground")
+                }
+            }
+
+            override fun onStop(owner: LifecycleOwner) {
+                // App moved to background
+                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                if (userId != null) {
+                    Log.d("AppLifecycle", "App moved to background - setting offline for $userId")
+                    FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(userId)
+                        .update(
+                            mapOf(
+                                "isOnline" to false,
+                                "lastActiveAt" to System.currentTimeMillis()
+                            )
+                        )
+                        .addOnSuccessListener {
+                            Log.d("AppLifecycle", "Successfully set offline ✓")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("AppLifecycle", "Failed to set offline", e)
+                        }
+                } else {
+                    Log.d("AppLifecycle", "No user logged in on background")
+                }
+            }
+        })
     }
 
     override fun onRequestPermissionsResult(
@@ -90,7 +150,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun saveFCMToken() {
-        // Don't delete, just get/refresh
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val token = task.result
@@ -101,11 +160,39 @@ class MainActivity : ComponentActivity() {
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(userId)
-                        .update("fcmToken", token)
+                        .update(
+                            mapOf(
+                                "fcmToken" to token,
+                                "isOnline" to true
+                            )
+                        )
                         .addOnSuccessListener {
-                            Log.d("FCM", "Token saved to Firestore ✓")
+                            Log.d("FCM", "Token & online status saved to Firestore ✓")
                         }
                 }
+            }
+        }
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Mark user as offline when app is destroyed (killed, closed, etc)
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            try {
+                FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(userId)
+                    .update("isOnline", false)
+                    .addOnSuccessListener {
+                        Log.d("MainActivity", "User marked offline on destroy")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("MainActivity", "Failed to set offline on destroy", e)
+                    }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error in onDestroy", e)
             }
         }
     }

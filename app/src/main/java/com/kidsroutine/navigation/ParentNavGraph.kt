@@ -61,21 +61,26 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Parent Profile Screen (NEW)
+        // Parent Profile Screen
         composable(Routes.PARENT_PROFILE) {
+            // Filter out the parent from family members (only show children)
+            val childrenOnly = familyMembers.filter { it.userId != currentUser.userId }
+
             ParentProfileScreen(
                 user = currentUser,
-                familyMembers = familyMembers,
+                familyMembers = childrenOnly,  // ← Use filtered list
                 onBackClick = { navController.popBackStack() },
                 onAddChildClick = { navController.navigate(Routes.INVITE_CHILDREN) },
+                onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
                 onSettingsClick = { /* TODO: Navigate to settings */ },
                 onChildClick = { child ->
                     navController.navigate(Routes.CHILD_PROFILE)
-                }
+                },
+                onChildStatsClick = { navController.navigate(Routes.STATS) }
             )
         }
 
-        // Child Profile Screen - Accessible from Parent Profile (NEW)
+        // Child Profile Screen - Accessible from Parent Profile
         composable(Routes.CHILD_PROFILE) {
             val selectedChild = remember { mutableStateOf<UserModel?>(null) }
             val childToDisplay = selectedChild.value ?: familyMembers.firstOrNull()
@@ -229,7 +234,7 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Stats Screen - Parent can view their own stats OR children's stats
+        // Stats Screen - Parent can view their own stats
         composable(Routes.PARENT_STATS) {
             StatsScreen(
                 currentUser = currentUser,

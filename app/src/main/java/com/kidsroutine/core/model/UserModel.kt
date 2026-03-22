@@ -14,6 +14,7 @@ data class UserModel(
     val email: String = "",
     val avatarUrl: String = "",
     val isAdmin: Boolean = false,
+    val isOnline: Boolean = false,
     val xp: Int = 0,
     val level: Int = 1,
     val streak: Int = 0,

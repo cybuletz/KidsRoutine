@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.model.UserModel
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -31,8 +34,10 @@ fun ParentProfileScreen(
     familyMembers: List<UserModel>,
     onBackClick: () -> Unit,
     onAddChildClick: () -> Unit,
+    onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onChildClick: (UserModel) -> Unit
+    onChildClick: (UserModel) -> Unit,
+    onChildStatsClick: (UserModel) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -86,7 +91,7 @@ fun ParentProfileScreen(
 
             // Parent Info Card
             item {
-                ParentInfoCard(user = user)
+                ParentInfoCard(user = user, onStatsClick = onStatsClick)
             }
 
             // Add Child Button
@@ -131,7 +136,8 @@ fun ParentProfileScreen(
             items(familyMembers) { member ->
                 FamilyMemberCard(
                     member = member,
-                    onClick = { onChildClick(member) }
+                    onClick = { onChildClick(member) },
+                    onStatsClick = { onChildStatsClick(member) }
                 )
             }
 
@@ -143,7 +149,10 @@ fun ParentProfileScreen(
 }
 
 @Composable
-private fun ParentInfoCard(user: UserModel) {
+private fun ParentInfoCard(
+    user: UserModel,
+    onStatsClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,6 +185,35 @@ private fun ParentInfoCard(user: UserModel) {
                 InfoChip(label = "Role", value = "Parent")
                 InfoChip(label = "Status", value = "Active")
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Stats Button
+            Button(
+                onClick = onStatsClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1E88E5)
+                )
+            ) {
+                Icon(
+                    Icons.Default.BarChart,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(end = 8.dp)
+                )
+                Text(
+                    "📊 View My Stats",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -206,8 +244,27 @@ private fun InfoChip(label: String, value: String) {
 @Composable
 private fun FamilyMemberCard(
     member: UserModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onStatsClick: () -> Unit
 ) {
+    var memberIsOnline by remember { mutableStateOf(false) }
+
+    LaunchedEffect(member.userId) {
+        try {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(member.userId)
+                .addSnapshotListener { snapshot, error ->
+                    if (snapshot != null && snapshot.exists()) {
+                        val isOnline = snapshot.getBoolean("isOnline") ?: false
+                        memberIsOnline = isOnline
+                    }
+                }
+        } catch (e: Exception) {
+            memberIsOnline = false
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,18 +279,35 @@ private fun FamilyMemberCard(
                 .background(Color.White)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "👤",
                 fontSize = 40.sp
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = member.displayName,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = member.displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Online/Offline Status Badge
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = if (memberIsOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                        modifier = Modifier.size(8.dp)
+                    ) {}
+                    Text(
+                        text = if (memberIsOnline) "Online" else "Offline",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (memberIsOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                        fontSize = 10.sp
+                    )
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.padding(top = 8.dp)
@@ -255,12 +329,18 @@ private fun FamilyMemberCard(
                     )
                 }
             }
-            Icon(
-                Icons.Default.Settings,
-                contentDescription = "Manage",
-                tint = Color.Gray,
-                modifier = Modifier.size(20.dp)
-            )
+            // Stats Icon Button
+            IconButton(
+                onClick = onStatsClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.BarChart,
+                    contentDescription = "View Stats",
+                    tint = Color(0xFF1E88E5),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

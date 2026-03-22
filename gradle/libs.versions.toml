@@ -25,6 +25,8 @@ runtime = "1.10.5"
 foundationLayout = "1.10.5"
 foundation = "1.10.5"
 firebase-messaging = "25.0.1"
+firebaseDatabaseKtx = "21.0.0"
+lifecycleProcess = "2.10.0"
 
 
 [libraries]
@@ -71,6 +73,8 @@ camerax-view                        = { group = "androidx.camera",            na
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
 android-application      = { id = "com.android.application",                        version.ref = "agp" }

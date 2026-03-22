@@ -30,13 +30,13 @@ class AuthRepositoryImpl @Inject constructor(
             role = Role.CHILD.name,
             familyId = "family_$uid",
             displayName = "Child",
-            email = "",  // ADD THIS
-            avatarUrl = "",  // ADD THIS
-            isAdmin = false,  // ADD THIS
+            email = "",
+            avatarUrl = "",
+            isAdmin = false,
             xp = 0,
             level = 1,
             streak = 0,
-            createdAt = System.currentTimeMillis(),  // ADD THIS
+            createdAt = System.currentTimeMillis(),
             lastActiveAt = System.currentTimeMillis()
         )
 
@@ -48,14 +48,15 @@ class AuthRepositoryImpl @Inject constructor(
                 "role" to Role.CHILD.name,
                 "familyId" to "family_$uid",
                 "displayName" to "Child",
-                "email" to "",  // ADD THIS
-                "avatarUrl" to "",  // ADD THIS
-                "isAdmin" to false,  // ADD THIS
+                "email" to "",
+                "avatarUrl" to "",
+                "isAdmin" to false,
                 "xp" to 0,
                 "level" to 1,
                 "streak" to 0,
-                "createdAt" to System.currentTimeMillis(),  // ADD THIS
-                "lastActiveAt" to System.currentTimeMillis()
+                "createdAt" to System.currentTimeMillis(),
+                "lastActiveAt" to System.currentTimeMillis(),
+                "isOnline" to true
             ))
             .await()
 
@@ -63,11 +64,34 @@ class AuthRepositoryImpl @Inject constructor(
         return userEntity.toUserModel()
     }
 
+    private fun setupPresenceListener(userId: String) {
+        val userRef = firestore.collection("users").document(userId)
+
+        // When connection is lost, set isOnline to false
+        userRef.update("isOnline", true)
+            .addOnSuccessListener {
+                Log.d("AuthRepository", "User $userId marked as online")
+            }
+    }
+
     override suspend fun signInWithEmail(email: String, password: String): UserModel {
         Log.d("AuthRepository", "Signing in with email: $email")
 
         val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
         val uid = result.user?.uid ?: throw Exception("Auth failed")
+
+        // Set user as online in Firestore
+        firestore.collection("users").document(uid)
+            .update("isOnline", true)
+            .await()
+
+        // Setup presence in Realtime Database (auto-disconnects on network loss)
+        val presenceRef = com.google.firebase.database.FirebaseDatabase.getInstance()
+            .getReference("presence/$uid")
+        presenceRef.onDisconnect().removeValue()
+        presenceRef.setValue(true)
+
+        Log.d("AuthRepository", "User $uid marked as online with presence listener")
 
         // Get or create user
         val userDoc = firestore.collection("users").document(uid).get().await()
@@ -80,13 +104,13 @@ class AuthRepositoryImpl @Inject constructor(
                 role = Role.valueOf(data["role"] as? String ?: Role.CHILD.name),
                 familyId = data["familyId"] as? String ?: "",
                 displayName = data["displayName"] as? String ?: "",
-                email = data["email"] as? String ?: email,  // ADD THIS
-                avatarUrl = data["avatarUrl"] as? String ?: "",  // ADD THIS
-                isAdmin = data["isAdmin"] as? Boolean ?: false,  // ADD THIS
+                email = data["email"] as? String ?: email,
+                avatarUrl = data["avatarUrl"] as? String ?: "",
+                isAdmin = data["isAdmin"] as? Boolean ?: false,
                 xp = (data["xp"] as? Number)?.toInt() ?: 0,
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
-                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,  // ADD THIS
+                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
                 lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
             )
             userDao.upsert(UserEntity(
@@ -94,13 +118,13 @@ class AuthRepositoryImpl @Inject constructor(
                 role = user.role.name,
                 familyId = user.familyId,
                 displayName = user.displayName,
-                email = user.email,  // ADD THIS
-                avatarUrl = user.avatarUrl,  // ADD THIS
-                isAdmin = user.isAdmin,  // ADD THIS
+                email = user.email,
+                avatarUrl = user.avatarUrl,
+                isAdmin = user.isAdmin,
                 xp = user.xp,
                 level = user.level,
                 streak = user.streak,
-                createdAt = user.createdAt,  // ADD THIS
+                createdAt = user.createdAt,
                 lastActiveAt = user.lastActiveAt
             ))
             Log.d("AuthRepository", "Signed in existing user: $uid")
@@ -145,16 +169,20 @@ class AuthRepositoryImpl @Inject constructor(
                 "role" to role.name,
                 "familyId" to familyId,
                 "displayName" to displayName,
-                "email" to email,  // ADD THIS
-                "avatarUrl" to "",  // ADD THIS
-                "isAdmin" to false,  // ADD THIS
+                "email" to email,
+                "avatarUrl" to "",
+                "isAdmin" to false,
                 "xp" to 0,
                 "level" to 1,
                 "streak" to 0,
-                "createdAt" to now,  // ADD THIS
-                "lastActiveAt" to now
+                "createdAt" to now,
+                "lastActiveAt" to now,
+                "isOnline" to true
             ))
             .await()
+
+        // Setup presence listener
+        setupPresenceListener(uid)
 
         userDao.upsert(userEntity)
         Log.d("AuthRepository", "New user created: $uid with role=$role")
@@ -174,19 +202,32 @@ class AuthRepositoryImpl @Inject constructor(
         val userDoc = firestore.collection("users").document(uid).get().await()
 
         return if (userDoc.exists()) {
+            // Existing user - mark as online
+            firestore.collection("users").document(uid)
+                .update("isOnline", true)
+                .await()
+
+            // Setup presence in Realtime Database
+            val presenceRef = com.google.firebase.database.FirebaseDatabase.getInstance()
+                .getReference("presence/$uid")
+            presenceRef.onDisconnect().removeValue()
+            presenceRef.setValue(true)
+
+            Log.d("AuthRepository", "Google sign in - existing user $uid marked online")
+
             val data = userDoc.data ?: throw Exception("Invalid user data")
             val user = UserModel(
                 userId = uid,
                 role = Role.valueOf(data["role"] as? String ?: Role.PARENT.name),
                 familyId = data["familyId"] as? String ?: "",
                 displayName = data["displayName"] as? String ?: displayName,
-                email = data["email"] as? String ?: googleEmail,  // ADD THIS
-                avatarUrl = data["avatarUrl"] as? String ?: "",  // ADD THIS
-                isAdmin = data["isAdmin"] as? Boolean ?: false,  // ADD THIS
+                email = data["email"] as? String ?: googleEmail,
+                avatarUrl = data["avatarUrl"] as? String ?: "",
+                isAdmin = data["isAdmin"] as? Boolean ?: false,
                 xp = (data["xp"] as? Number)?.toInt() ?: 0,
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
-                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,  // ADD THIS
+                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
                 lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
             )
             userDao.upsert(UserEntity(
@@ -194,32 +235,32 @@ class AuthRepositoryImpl @Inject constructor(
                 role = user.role.name,
                 familyId = user.familyId,
                 displayName = user.displayName,
-                email = user.email,  // ADD THIS
-                avatarUrl = user.avatarUrl,  // ADD THIS
-                isAdmin = user.isAdmin,  // ADD THIS
+                email = user.email,
+                avatarUrl = user.avatarUrl,
+                isAdmin = user.isAdmin,
                 xp = user.xp,
                 level = user.level,
                 streak = user.streak,
-                createdAt = user.createdAt,  // ADD THIS
+                createdAt = user.createdAt,
                 lastActiveAt = user.lastActiveAt
             ))
             Log.d("AuthRepository", "Google sign in - existing user: $uid")
             user
         } else {
-            // New user - create as PARENT with EMPTY familyId
+            // New user - create as PARENT with EMPTY familyId and mark as online
             val now = System.currentTimeMillis()
             val userEntity = UserEntity(
                 userId = uid,
                 role = Role.PARENT.name,
                 familyId = "",  // Parent must create family
                 displayName = displayName,
-                email = googleEmail,  // ADD THIS
-                avatarUrl = "",  // ADD THIS
-                isAdmin = false,  // ADD THIS
+                email = googleEmail,
+                avatarUrl = "",
+                isAdmin = false,
                 xp = 0,
                 level = 1,
                 streak = 0,
-                createdAt = now,  // ADD THIS
+                createdAt = now,
                 lastActiveAt = now
             )
 
@@ -229,16 +270,25 @@ class AuthRepositoryImpl @Inject constructor(
                     "role" to Role.PARENT.name,
                     "familyId" to "",
                     "displayName" to displayName,
-                    "email" to googleEmail,  // ADD THIS
-                    "avatarUrl" to "",  // ADD THIS
-                    "isAdmin" to false,  // ADD THIS
+                    "email" to googleEmail,
+                    "avatarUrl" to "",
+                    "isAdmin" to false,
                     "xp" to 0,
                     "level" to 1,
                     "streak" to 0,
-                    "createdAt" to now,  // ADD THIS
-                    "lastActiveAt" to now
+                    "createdAt" to now,
+                    "lastActiveAt" to now,
+                    "isOnline" to true  // ← NEW
                 ))
                 .await()
+
+            // Setup presence in Realtime Database
+            val presenceRef = com.google.firebase.database.FirebaseDatabase.getInstance()
+                .getReference("presence/$uid")
+            presenceRef.onDisconnect().removeValue()
+            presenceRef.setValue(true)
+
+            Log.d("AuthRepository", "New Google user created: $uid with presence listener")
 
             userDao.upsert(userEntity)
             Log.d("AuthRepository", "New Google user created: $uid")
@@ -247,6 +297,25 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
+        val userId = firebaseAuth.currentUser?.uid
+        if (userId != null) {
+            try {
+                // Set user as offline in Firestore
+                firestore.collection("users").document(userId)
+                    .update("isOnline", false)
+                    .await()
+
+                // Remove from Realtime Database presence
+                com.google.firebase.database.FirebaseDatabase.getInstance()
+                    .getReference("presence/$userId")
+                    .removeValue()
+                    .await()
+
+                Log.d("AuthRepository", "User $userId marked as offline")
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Error setting offline status", e)
+            }
+        }
         firebaseAuth.signOut()
         Log.d("AuthRepository", "Signed out")
     }

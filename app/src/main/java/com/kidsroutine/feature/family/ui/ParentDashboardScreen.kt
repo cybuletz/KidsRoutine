@@ -426,16 +426,9 @@ private fun MembersListCard(memberIds: List<String>) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // You'll need to fetch member data from Firestore
-            // For now, here's the structure:
-            LaunchedEffect(memberIds) {
-                // Fetch member details from Firestore
-            }
-
             memberIds.forEach { memberId ->
-                // This is a placeholder - you should fetch real names
                 var memberName by remember { mutableStateOf("Loading...") }
-                var memberAvatar by remember { mutableStateOf("") }
+                var memberIsOnline by remember { mutableStateOf(false) }
 
                 LaunchedEffect(memberId) {
                     try {
@@ -445,7 +438,7 @@ private fun MembersListCard(memberIds: List<String>) {
                             .get()
                             .await()
                         memberName = userDoc.data?.get("displayName") as? String ?: "Family Member"
-                        memberAvatar = userDoc.data?.get("avatarUrl") as? String ?: ""
+                        memberIsOnline = userDoc.data?.get("isOnline") as? Boolean ?: false
                     } catch (e: Exception) {
                         memberName = "Family Member"
                     }
@@ -475,25 +468,43 @@ private fun MembersListCard(memberIds: List<String>) {
 
                     // Member info
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = memberName,  // ← NOW SHOWS REAL NAME
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextDark
-                        )
-                        Text(
-                            text = memberId.take(8),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = memberName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextDark
+                            )
+                            // Online/Offline Badge
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (memberIsOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                                modifier = Modifier.size(8.dp)
+                            ) {}
+                            Text(
+                                text = if (memberIsOnline) "Online" else "Offline",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (memberIsOnline) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                                fontSize = 10.sp
+                            )
+                        }
                     }
 
-                    Icon(
-                        Icons.Default.People,
-                        contentDescription = null,
-                        tint = GradientStart,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    // Stats Icon
+                    IconButton(
+                        onClick = { /* Navigate to child stats */ },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.BarChart,
+                            contentDescription = "View Stats",
+                            tint = Color(0xFF1E88E5),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -712,32 +723,6 @@ private fun ActionButtonsSection(
             )
             Text(
                 "Family Chat",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-
-        Button(
-            onClick = onStatsClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1E88E5)
-            )
-        ) {
-            Icon(
-                Icons.Default.BarChart,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier
-                    .size(20.dp)
-                    .padding(end = 8.dp)
-            )
-            Text(
-                "📊 Analytics & Stats",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
