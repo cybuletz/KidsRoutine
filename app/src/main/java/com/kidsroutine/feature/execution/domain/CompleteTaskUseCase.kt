@@ -8,6 +8,7 @@ import com.kidsroutine.core.model.*
 import com.kidsroutine.core.common.util.DateUtils
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.daily.data.UserRepository
+import com.kidsroutine.feature.achievements.data.AchievementRepository
 import javax.inject.Inject
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -17,7 +18,8 @@ class CompleteTaskUseCase @Inject constructor(
     private val progressionEngine: ProgressionEngine,
     private val repository: TaskProgressRepository,
     private val userRepository: UserRepository,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val achievementRepository: AchievementRepository
 ) {
     suspend operator fun invoke(
         task: TaskModel,
@@ -99,6 +101,17 @@ class CompleteTaskUseCase @Inject constructor(
         } catch (e: Exception) {
             Log.e("CompleteTaskUseCase", "XP update FAILED", e)
             throw e
+        }
+
+        // 4. CHECK FOR NEW ACHIEVEMENTS ← NEW ADDITION
+        Log.d("CompleteTaskUseCase", "Checking for new achievements...")
+        try {
+            val newBadges = achievementRepository.checkAndUnlockAchievements(userId)
+            if (newBadges.isNotEmpty()) {
+                Log.d("CompleteTaskUseCase", "🏆 Unlocked ${newBadges.size} new badges!")
+            }
+        } catch (e: Exception) {
+            Log.e("CompleteTaskUseCase", "Achievement check failed (non-fatal)", e)
         }
 
         Log.d("CompleteTaskUseCase", "=== TASK COMPLETION SUCCESS ===")

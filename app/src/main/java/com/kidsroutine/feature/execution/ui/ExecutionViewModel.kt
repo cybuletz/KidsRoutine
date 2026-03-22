@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.kidsroutine.core.model.*
 import com.kidsroutine.feature.execution.domain.CompleteTaskUseCase
 import com.kidsroutine.feature.execution.domain.CompletionResult
+import com.kidsroutine.feature.achievements.data.AchievementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.util.Log
 
 data class ExecutionUiState(
     val task: TaskModel = TaskModel(),
@@ -20,7 +22,8 @@ data class ExecutionUiState(
     val timerSecondsLeft: Int = 0,
     val isCompleting: Boolean = false,
     val result: CompletionResult? = null,
-    val showSuccessAnim: Boolean = false
+    val showSuccessAnim: Boolean = false,
+    val newBadgesUnlocked: List<Badge> = emptyList()  // ← ADD THIS
 )
 
 sealed class ExecutionEvent {
@@ -36,6 +39,7 @@ sealed class ExecutionEvent {
 @HiltViewModel
 class ExecutionViewModel @Inject constructor(
     private val completeTaskUseCase: CompleteTaskUseCase,
+    private val achievementRepository: AchievementRepository,  // ← ADD THIS
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -78,6 +82,23 @@ class ExecutionViewModel @Inject constructor(
                 userId   = userId,  // ← Use real userId, not "demo_user"
                 photoUrl = state.photoUrl
             )
+
+            // ← NEW: Check for achievements
+            if (result is CompletionResult.Success) {
+                Log.d("ExecutionVM", "Task completed, checking for new badges...")
+                try {
+                    val newBadges = achievementRepository.checkAndUnlockAchievements(userId)
+                    Log.d("ExecutionVM", "New badges: ${newBadges.size}")
+                    _uiState.update {
+                        it.copy(
+                            newBadgesUnlocked = newBadges
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("ExecutionVM", "Error checking badges", e)
+                }
+            }
+
             _uiState.update {
                 it.copy(
                     isCompleting   = false,

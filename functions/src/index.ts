@@ -143,6 +143,13 @@ export const notifyTaskCompletion = functions.firestore
           }
         }
       }
+
+      // Track task completion count for achievements
+      await db.collection("users").doc(userId).update({
+        tasksCompleted: admin.firestore.FieldValue.increment(1)
+      });
+      console.log(`[Task Completion] Incremented tasksCompleted for user: ${userId}`);
+
     } catch (error) {
       console.error("[Task Completion] Error:", error);
     }

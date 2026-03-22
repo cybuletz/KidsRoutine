@@ -51,8 +51,19 @@ fun TaskExecutionScreen(
         if (result is CompletionResult.Success) {
             Log.d("TaskExecutionScreen", "Task completed! Result: $result")
             celebrationViewModel.showTaskCompletion()
-            // Add small delay to ensure celebration shows
-            kotlinx.coroutines.delay(500)
+
+            // ← NEW: Check if badges were unlocked
+            if (uiState.newBadgesUnlocked.isNotEmpty()) {
+                Log.d("TaskExecutionScreen", "New badges unlocked: ${uiState.newBadgesUnlocked.size}")
+                // Show first badge after task celebration completes
+                kotlinx.coroutines.delay(3500)  // Wait for task celebration
+                val badge = uiState.newBadgesUnlocked.first()
+                celebrationViewModel.showAchievementUnlock(badge.title)
+                kotlinx.coroutines.delay(500)
+            } else {
+                kotlinx.coroutines.delay(500)
+            }
+
             onCompleted(result.xpGained)
         }
     }
