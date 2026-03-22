@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.family.ui
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -32,7 +33,9 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
+
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -430,17 +433,26 @@ private fun MembersListCard(memberIds: List<String>) {
                 var memberName by remember { mutableStateOf("Loading...") }
                 var memberIsOnline by remember { mutableStateOf(false) }
 
+                // ← CHANGE THIS: Use snapshot listener instead of .get()
                 LaunchedEffect(memberId) {
                     try {
-                        val userDoc = FirebaseFirestore.getInstance()
+                        // Subscribe to real-time updates
+                        FirebaseFirestore.getInstance()
                             .collection("users")
                             .document(memberId)
-                            .get()
-                            .await()
-                        memberName = userDoc.data?.get("displayName") as? String ?: "Family Member"
-                        memberIsOnline = userDoc.data?.get("isOnline") as? Boolean ?: false
+                            .addSnapshotListener { snapshot, error ->
+                                if (snapshot != null && snapshot.exists()) {
+                                    memberName = snapshot.getString("displayName") ?: "Family Member"
+                                    memberIsOnline = snapshot.getBoolean("isOnline") ?: false
+                                    Log.d("MembersListCard", "$memberName isOnline: $memberIsOnline")
+                                } else if (error != null) {
+                                    Log.e("MembersListCard", "Error listening to member", error)
+                                    memberName = "Family Member"
+                                }
+                            }
                     } catch (e: Exception) {
                         memberName = "Family Member"
+                        Log.e("MembersListCard", "Exception in listener setup", e)
                     }
                 }
 

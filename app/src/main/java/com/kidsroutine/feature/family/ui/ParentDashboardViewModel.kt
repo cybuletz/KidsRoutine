@@ -3,6 +3,7 @@ package com.kidsroutine.feature.family.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.FamilyModel
 import com.kidsroutine.feature.family.data.FamilyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 data class ParentDashboardUiState(
@@ -64,6 +66,36 @@ class ParentDashboardViewModel @Inject constructor(
                     error = e.message ?: "Failed to load family",
                     family = null
                 )
+            }
+        }
+    }
+
+    fun refreshMemberStatus(familyId: String) {
+        Log.d("ParentDashboardViewModel", "Refreshing member status only")
+        viewModelScope.launch {
+            try {
+                val familyDoc = FirebaseFirestore.getInstance()
+                    .collection("families")
+                    .document(familyId)
+                    .get()
+                    .await()
+
+                if (familyDoc.exists()) {
+                    val memberIds = familyDoc.get("memberIds") as? List<String> ?: emptyList()
+
+                    // Just trigger listeners to update without reloading everything
+                    memberIds.forEach { memberId ->
+                        FirebaseFirestore.getInstance()
+                            .collection("users")
+                            .document(memberId)
+                            .get() // This will trigger the snapshot listeners in the UI
+                            .await()
+                    }
+
+                    Log.d("ParentDashboardViewModel", "Member status refreshed")
+                }
+            } catch (e: Exception) {
+                Log.e("ParentDashboardViewModel", "Error refreshing member status", e)
             }
         }
     }

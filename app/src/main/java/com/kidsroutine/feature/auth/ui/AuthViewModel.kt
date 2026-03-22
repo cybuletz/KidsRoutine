@@ -3,8 +3,11 @@ package com.kidsroutine.feature.auth.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.AuthState
 import com.kidsroutine.core.model.Role
+import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.auth.domain.SignInAnonymouslyUseCase
 import com.kidsroutine.feature.auth.data.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,6 +26,55 @@ class AuthViewModel @Inject constructor(
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    init {
+        checkExistingSession()
+    }
+
+    private fun checkExistingSession() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            Log.d("AuthViewModel", "Existing session found for: ${currentUser.uid}")
+            // Load user data from Firestore
+            viewModelScope.launch {
+                try {
+                    val userDoc = FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(currentUser.uid)
+                        .get()
+                        .await()
+
+                    if (userDoc.exists()) {
+                        val user = UserModel(
+                            userId = currentUser.uid,
+                            role = Role.valueOf(
+                                userDoc.data?.get("role") as? String ?: Role.CHILD.name
+                            ),
+                            familyId = userDoc.data?.get("familyId") as? String ?: "",
+                            displayName = userDoc.data?.get("displayName") as? String ?: "",
+                            email = userDoc.data?.get("email") as? String ?: currentUser.email
+                            ?: "",
+                            avatarUrl = userDoc.data?.get("avatarUrl") as? String ?: "",
+                            isAdmin = userDoc.data?.get("isAdmin") as? Boolean ?: false,
+                            xp = (userDoc.data?.get("xp") as? Number)?.toInt() ?: 0,
+                            level = (userDoc.data?.get("level") as? Number)?.toInt() ?: 1,
+                            streak = (userDoc.data?.get("streak") as? Number)?.toInt() ?: 0,
+                            createdAt = (userDoc.data?.get("createdAt") as? Number)?.toLong() ?: 0L,
+                            lastActiveAt = (userDoc.data?.get("lastActiveAt") as? Number)?.toLong()
+                                ?: 0L
+                        )
+                        Log.d("AuthViewModel", "Session restored for user: ${user.displayName}")
+                        _authState.value = AuthState.Authenticated(user)
+                    }
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "Error restoring session", e)
+                    _authState.value = AuthState.Unauthenticated
+                }
+            }
+        } else {
+            _authState.value = AuthState.Unauthenticated
+        }
+    }
 
     fun signInWithEmail(email: String, password: String) {
         _authState.value = AuthState.Loading

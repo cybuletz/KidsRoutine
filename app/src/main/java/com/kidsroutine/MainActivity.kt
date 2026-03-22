@@ -217,6 +217,17 @@ fun MainContent() {
     val authState by authViewModel.authState.collectAsState()
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Loading) }
 
+    // ← ADD THIS: Check if user is already logged in
+    LaunchedEffect(Unit) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
+            Log.d("MainContent", "User already logged in: ${currentUser.uid}")
+            // Don't do anything - let authState handle it
+        } else {
+            Log.d("MainContent", "No user logged in")
+        }
+    }
+
     // Update screen based on auth state
     LaunchedEffect(authState) {
         currentScreen = when (authState) {
