@@ -286,7 +286,8 @@ fun SelectChildrenScreen(
                                         "createdBy" to task.createdBy.name,
                                         "interactionBlocks" to emptyList<Map<String, Any>>(),
                                         "isActive" to task.isActive,
-                                        "familyId" to currentUser.familyId
+                                        "familyId" to currentUser.familyId,
+                                        "gameType" to task.gameType.name,
                                     )
                                 ).await()
 

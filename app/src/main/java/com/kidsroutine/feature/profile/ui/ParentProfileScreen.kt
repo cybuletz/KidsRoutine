@@ -22,7 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.model.UserModel
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import com.kidsroutine.core.common.util.SoundManager
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.ui.draw.scale
 
 private val GradientStart = Color(0xFFFF6B35)
 private val GradientEnd = Color(0xFFFFD93D)
@@ -214,6 +217,11 @@ private fun ParentInfoCard(
                     color = Color.White
                 )
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Sound Effects Toggle ──────────────────────────────────────────
+            SoundToggleCard()
         }
     }
 }
@@ -341,6 +349,66 @@ private fun FamilyMemberCard(
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun SoundToggleCard() {
+    var soundEnabled by remember { mutableStateOf(SoundManager.isEnabled()) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 0.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                    contentDescription = "Sound",
+                    tint = if (soundEnabled) Color(0xFF4ECDC4) else Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column {
+                    Text(
+                        text = "Sound Effects",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2D3436)
+                    )
+                    Text(
+                        text = if (soundEnabled) "Enabled" else "Disabled",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Switch(
+                checked = soundEnabled,
+                onCheckedChange = { newValue ->
+                    soundEnabled = newValue
+                    SoundManager.setEnabled(newValue)
+                },
+                modifier = Modifier.scale(0.8f),
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF4ECDC4),
+                    checkedTrackColor = Color(0xFF4ECDC4).copy(alpha = 0.3f)
+                )
+            )
         }
     }
 }

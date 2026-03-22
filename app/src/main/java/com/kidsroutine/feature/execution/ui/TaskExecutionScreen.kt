@@ -30,6 +30,7 @@ import com.kidsroutine.feature.daily.ui.taskTypeIcon
 import com.kidsroutine.feature.execution.domain.CompletionResult
 import com.kidsroutine.feature.execution.ui.blocks.InteractionBlockRenderer
 import com.kidsroutine.feature.celebrations.ui.CelebrationViewModel
+import com.kidsroutine.core.model.GameType
 
 
 @Composable
@@ -42,6 +43,8 @@ fun TaskExecutionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val taskColor = taskTypeColor(task.type)
+
+    Log.d("TaskExecution", "Task: ${task.title}, GameType: ${task.gameType}")
 
     LaunchedEffect(task.id) { viewModel.loadTask(task) }
 
@@ -112,26 +115,36 @@ fun TaskExecutionScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Interaction Blocks ─────────────��────────────────────────────
+            // ── Interaction Blocks or Game ──────────────────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                val block = task.interactionBlocks.getOrNull(uiState.currentBlockIndex)
-                if (block != null) {
-                    BlockProgressIndicator(
-                        current = uiState.currentBlockIndex + 1,
-                        total   = task.interactionBlocks.size,
-                        color   = taskColor
+                // Check if task has a game instead of interaction blocks
+                if (task.gameType != GameType.NONE) {
+                    // Render the game
+                    GameRenderer(
+                        gameType = task.gameType,
+                        onGameComplete = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
                     )
-                    InteractionBlockRenderer(block = block, onEvent = viewModel::onEvent)
                 } else {
-                    // All blocks answered — show submit
-                    SubmitSection(
-                        isLoading   = uiState.isCompleting,
-                        taskColor   = taskColor,
-                        onSubmit    = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
-                    )
+                    // Render interaction blocks
+                    val block = task.interactionBlocks.getOrNull(uiState.currentBlockIndex)
+                    if (block != null) {
+                        BlockProgressIndicator(
+                            current = uiState.currentBlockIndex + 1,
+                            total   = task.interactionBlocks.size,
+                            color   = taskColor
+                        )
+                        InteractionBlockRenderer(block = block, onEvent = viewModel::onEvent)
+                    } else {
+                        // All blocks answered — show submit
+                        SubmitSection(
+                            isLoading   = uiState.isCompleting,
+                            taskColor   = taskColor,
+                            onSubmit    = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
+                        )
+                    }
                 }
             }
 

@@ -1,6 +1,7 @@
 package com.kidsroutine.feature.tasks.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +29,8 @@ import com.kidsroutine.core.model.TaskCategory
 import com.kidsroutine.core.model.DifficultyLevel
 import com.kidsroutine.core.model.UserModel
 import java.util.UUID
+import com.kidsroutine.core.model.GameType
+
 
 private val GradientStart = Color(0xFF4A90E2)
 private val GradientEnd = Color(0xFF357ABD)
@@ -48,6 +52,7 @@ fun CreateTaskScreen(
     var xpReward by remember { mutableStateOf("10") }
     var selectedCategory by remember { mutableStateOf(TaskCategory.MORNING_ROUTINE) }
     var selectedDifficulty by remember { mutableStateOf(DifficultyLevel.EASY) }
+    var selectedGame by remember { mutableStateOf(GameType.NONE) }
 
     // Success message handling
     LaunchedEffect(uiState.successMessage) {
@@ -60,6 +65,7 @@ fun CreateTaskScreen(
                 reward = TaskReward(xp = xpReward.toIntOrNull() ?: 10),
                 category = selectedCategory,
                 difficulty = selectedDifficulty,
+                gameType = selectedGame,
                 familyId = currentUser.familyId
             )
             onTaskCreated(newTask)
@@ -223,6 +229,55 @@ fun CreateTaskScreen(
                     singleLine = true
                 )
 
+                // Game Selection Section ──────────────────────────────────────
+                Text(
+                    text = "Add a Micro-Game (Optional)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2D3436),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Memory Game
+                    GameSelectionCard(
+                        icon = "🎮",
+                        title = "Memory Game",
+                        description = "Match pairs of cards",
+                        isSelected = selectedGame == GameType.MEMORY_GAME,
+                        onClick = {
+                            selectedGame = if (selectedGame == GameType.MEMORY_GAME) GameType.NONE else GameType.MEMORY_GAME
+                        }
+                    )
+
+                    // Speed Game
+                    GameSelectionCard(
+                        icon = "⚡",
+                        title = "Speed Game",
+                        description = "Tap colors against the clock",
+                        isSelected = selectedGame == GameType.SPEED_GAME,
+                        onClick = {
+                            selectedGame = if (selectedGame == GameType.SPEED_GAME) GameType.NONE else GameType.SPEED_GAME
+                        }
+                    )
+
+                    // Logic Game
+                    GameSelectionCard(
+                        icon = "🧠",
+                        title = "Logic Puzzle",
+                        description = "Solve math problems",
+                        isSelected = selectedGame == GameType.LOGIC_GAME,
+                        onClick = {
+                            selectedGame = if (selectedGame == GameType.LOGIC_GAME) GameType.NONE else GameType.LOGIC_GAME
+                        }
+                    )
+                }
+
+                Spacer(Modifier.height(20.dp))
+
                 // XP reward field
                 Text(
                     text = "XP Reward",
@@ -351,6 +406,7 @@ fun CreateTaskScreen(
                                 reward = TaskReward(xp = xpReward.toIntOrNull() ?: 10),
                                 category = selectedCategory,
                                 difficulty = selectedDifficulty,
+                                gameType = selectedGame,
                                 familyId = currentUser.familyId
                             )
                             viewModel.createTask(currentUser.familyId, newTask)
@@ -381,6 +437,54 @@ fun CreateTaskScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GameSelectionCard(
+    icon: String,
+    title: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isSelected) Color(0xFF4ECDC4).copy(alpha = 0.2f) else Color(0xFFF5F5F5)
+    val borderColor = if (isSelected) Color(0xFF4ECDC4) else Color.Transparent
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 2.dp else 0.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(icon, fontSize = 32.sp)
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2D3436)
+                )
+                Text(
+                    description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
             }
         }
     }

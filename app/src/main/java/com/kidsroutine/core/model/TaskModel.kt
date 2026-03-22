@@ -9,6 +9,7 @@ data class TaskModel(
     val difficulty: DifficultyLevel = DifficultyLevel.EASY,
     val estimatedDurationSec: Int = 60,
     val interactionBlocks: List<InteractionBlock> = emptyList(),
+    val gameType: GameType = GameType.NONE,
     val validationType: ValidationType = ValidationType.SELF,
     val reward: TaskReward = TaskReward(xp = 10),
     val tags: List<String> = emptyList(),

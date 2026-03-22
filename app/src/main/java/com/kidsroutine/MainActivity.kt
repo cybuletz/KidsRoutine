@@ -41,6 +41,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.DefaultLifecycleObserver
+import com.kidsroutine.core.common.util.SoundManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -70,6 +71,9 @@ class MainActivity : ComponentActivity() {
 
         // Setup app lifecycle listener for online/offline status
         setupAppLifecycleListener()
+
+        // Initialize sound system
+        SoundManager.initialize(this)
 
         enableEdgeToEdge()
         setContent {
