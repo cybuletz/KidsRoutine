@@ -17,6 +17,8 @@ import com.kidsroutine.feature.family.data.FamilyRepository
 import com.kidsroutine.feature.family.data.FamilyRepositoryImpl
 import com.kidsroutine.feature.notifications.data.NotificationRepository
 import com.kidsroutine.feature.notifications.data.NotificationRepositoryImpl
+import com.kidsroutine.feature.stats.data.StatsRepository
+import com.kidsroutine.feature.stats.data.StatsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -58,4 +60,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindFamilyMessageRepository(impl: FamilyMessageRepositoryImpl): FamilyMessageRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStatsRepository(impl: StatsRepositoryImpl): StatsRepository
 }

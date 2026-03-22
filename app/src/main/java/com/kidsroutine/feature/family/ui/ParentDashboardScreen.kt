@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
@@ -52,6 +53,7 @@ fun ParentDashboardScreen(
     onLeaderboardClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
     onProfileClick: () -> Unit,
+    onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -255,6 +257,7 @@ fun ParentDashboardScreen(
                     onModerationClick = onModerationClick,
                     onLeaderboardClick = onLeaderboardClick,
                     onFamilyMessagingClick = onFamilyMessagingClick,
+                    onStatsClick = onStatsClick,
                     currentUser = currentUser
                 )
 
@@ -508,6 +511,7 @@ private fun ActionButtonsSection(
     onModerationClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
+    onStatsClick: () -> Unit,
     currentUser: UserModel
 ) {
     Column(
@@ -708,6 +712,32 @@ private fun ActionButtonsSection(
             )
             Text(
                 "Family Chat",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Button(
+            onClick = onStatsClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF1E88E5)
+            )
+        ) {
+            Icon(
+                Icons.Default.BarChart,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .padding(end = 8.dp)
+            )
+            Text(
+                "📊 Analytics & Stats",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

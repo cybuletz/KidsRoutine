@@ -18,6 +18,7 @@ import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
+import com.kidsroutine.feature.stats.ui.StatsScreen
 
 object TaskPassthrough {
     var pendingTask: TaskModel? = null
@@ -52,6 +53,7 @@ fun NavGraphBuilder.childNavGraph(
                 user = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
+                onStatsClick = { navController.navigate(Routes.STATS) },
                 onSettingsClick = { /* TODO: Navigate to settings */ }
             )
         }
@@ -129,6 +131,14 @@ fun NavGraphBuilder.childNavGraph(
             ChallengeDetailScreen(
                 currentUser = currentUser,
                 challengeId = challengeId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Stats Screen - Child views own progress
+        composable(Routes.STATS) {
+            StatsScreen(
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )
         }

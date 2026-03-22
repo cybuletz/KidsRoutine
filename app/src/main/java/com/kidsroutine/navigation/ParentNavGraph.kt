@@ -31,6 +31,7 @@ import com.kidsroutine.core.model.TaskModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.kidsroutine.feature.stats.ui.StatsScreen
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -54,7 +55,8 @@ fun NavGraphBuilder.parentNavGraph(
                 onModerationClick = { navController.navigate(Routes.MODERATION) },
                 onLeaderboardClick = { navController.navigate(Routes.LEADERBOARD) },
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
-                onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },  // ← ADD THIS
+                onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },
+                onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -83,6 +85,7 @@ fun NavGraphBuilder.parentNavGraph(
                     user = childToDisplay,
                     onBackClick = { navController.popBackStack() },
                     onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
+                    onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
                     onSettingsClick = { /* TODO: Navigate to child settings */ }
                 )
             }
@@ -221,6 +224,14 @@ fun NavGraphBuilder.parentNavGraph(
         // Leaderboard
         composable(Routes.LEADERBOARD) {
             LeaderboardScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // Stats Screen - Parent can view their own stats OR children's stats
+        composable(Routes.PARENT_STATS) {
+            StatsScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

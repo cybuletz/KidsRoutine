@@ -30,6 +30,8 @@ object Routes {
     const val START_CHALLENGE = "start_challenge"
     const val PARENT_CHALLENGE_DETAIL = "parent_challenge_detail/{challengeId}"
 
+    const val PARENT_STATS = "parent_stats"
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // COMMUNITY ROUTES

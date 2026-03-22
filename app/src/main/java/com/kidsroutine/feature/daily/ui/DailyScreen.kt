@@ -47,6 +47,7 @@ fun DailyScreen(
     onAchievementsClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
+    onProfileClick: () -> Unit,
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -70,7 +71,8 @@ fun DailyScreen(
                 onChallengesClick = onChallengesClick,
                 onAchievementsClick = onAchievementsClick,
                 onFamilyMessagingClick = onFamilyMessagingClick,
-                onStatsClick = onStatsClick
+                onStatsClick = onStatsClick,
+                onProfileClick = onProfileClick
             )
         }
     }
@@ -83,7 +85,8 @@ private fun DailyContent(
     onChallengesClick: () -> Unit,
     onAchievementsClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
-    onStatsClick: () -> Unit
+    onStatsClick: () -> Unit,
+    onProfileClick: () -> Unit  // ← ADD THIS
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -94,7 +97,7 @@ private fun DailyContent(
             contentPadding = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { DailyHeader(uiState) }
+            item { DailyHeader(uiState, onProfileClick) }
             item { ProgressSection(uiState.dailyState, uiState.currentUser) }
             item {
                 Text(
@@ -269,7 +272,10 @@ private fun NavItemButton(
 }
 
 @Composable
-private fun DailyHeader(uiState: DailyUiState) {
+private fun DailyHeader(
+    uiState: DailyUiState,
+    onProfileClick: () -> Unit  // ← ADD THIS PARAMETER
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -296,7 +302,26 @@ private fun DailyHeader(uiState: DailyUiState) {
                     color = Color.White.copy(alpha = 0.85f)
                 )
             }
-            StreakBadge(streak = uiState.currentUser.streak)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Profile Button
+                IconButton(
+                    onClick = onProfileClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Profile",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                StreakBadge(streak = uiState.currentUser.streak)
+            }
         }
     }
 }

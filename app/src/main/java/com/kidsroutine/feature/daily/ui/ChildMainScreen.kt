@@ -56,7 +56,8 @@ fun ChildMainScreen(
                     onChallengesClick = { innerNavController.navigate("challenges") },
                     onAchievementsClick = { innerNavController.navigate("achievements") },
                     onFamilyMessagingClick = onFamilyMessagingClick,
-                    onStatsClick = { innerNavController.navigate("leaderboard") }
+                    onStatsClick = { innerNavController.navigate("leaderboard") },
+                    onProfileClick = { parentNavController.navigate(Routes.CHILD_PROFILE) }
                 )
             }
 

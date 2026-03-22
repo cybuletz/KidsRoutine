@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +34,7 @@ fun ChildProfileScreen(
     user: UserModel,
     onBackClick: () -> Unit,
     onAvatarCustomizeClick: () -> Unit,
+    onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     Box(
@@ -130,6 +132,46 @@ fun ChildProfileScreen(
                         }
                     }
                 }
+            }
+
+            // Stats Button Section ← ADD THIS COMMENT
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Button(
+                        onClick = onStatsClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1E88E5)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.BarChart,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(end = 8.dp)
+                        )
+                        Text(
+                            "📊 View My Stats",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            // Statistics Section (existing - keep as is)
+            item {
+                StatisticsSection(user = user)
             }
 
             // Statistics Section
