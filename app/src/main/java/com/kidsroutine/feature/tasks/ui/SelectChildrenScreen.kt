@@ -4,10 +4,10 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -69,6 +69,7 @@ fun SelectChildrenScreen(
             }
             isLoading = false
         } catch (e: Exception) {
+            Log.e("SelectChildren", "Error loading children: ${e.message}", e)
             isLoading = false
         }
     }
@@ -81,53 +82,53 @@ fun SelectChildrenScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.25f)
+                .fillMaxHeight(0.15f)
                 .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
         )
 
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding(),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Text(
+                        text = "Assign to Children",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
                     )
+                    Spacer(Modifier.width(40.dp))
                 }
-                Text(
-                    text = "Assign to Children",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(40.dp))
             }
 
-            Spacer(Modifier.height(24.dp))
+            item { Spacer(Modifier.height(24.dp)) }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                // Task info
+            // Task Info Card
+            item {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
                         .padding(bottom = 24.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -151,19 +152,22 @@ fun SelectChildrenScreen(
                         Text(
                             text = "⭐ ${task.reward.xp} XP",
                             style = MaterialTheme.typography.labelMedium,
-                            color = GradientStart,
+                            color = Color(0xFF4A90E2),
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
                 }
+            }
 
-                // Parent approval toggle
+            // Approval Toggle
+            item {
                 var requiresParent by remember { mutableStateOf(false) }
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
                         .padding(bottom = 24.dp)
                         .clickable { requiresParent = !requiresParent },
                     verticalAlignment = Alignment.CenterVertically,
@@ -187,17 +191,25 @@ fun SelectChildrenScreen(
                         )
                     }
                 }
+            }
 
-                // Children selection
+            // Children Selection Title
+            item {
                 Text(
                     text = "Select children to assign this task:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2D3436),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 16.dp)
                 )
+            }
 
-                if (isLoading) {
+            // Children List
+            if (isLoading) {
+                item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -206,10 +218,13 @@ fun SelectChildrenScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                } else if (children.isEmpty()) {
+                }
+            } else if (children.isEmpty()) {
+                item {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
                             .padding(bottom = 24.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
@@ -229,30 +244,29 @@ fun SelectChildrenScreen(
                             )
                         }
                     }
-                } else {
-                    Column(
+                }
+            } else {
+                items(children) { child ->
+                    ChildSelectionCard(
+                        child = child,
+                        isSelected = child.userId in selectedChildrenIds,
+                        onToggle = {
+                            selectedChildrenIds = if (child.userId in selectedChildrenIds) {
+                                selectedChildrenIds - child.userId
+                            } else {
+                                selectedChildrenIds + child.userId
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        children.forEach { child ->
-                            ChildSelectionCard(
-                                child = child,
-                                isSelected = child.userId in selectedChildrenIds,
-                                onToggle = {
-                                    selectedChildrenIds = if (child.userId in selectedChildrenIds) {
-                                        selectedChildrenIds - child.userId
-                                    } else {
-                                        selectedChildrenIds + child.userId
-                                    }
-                                }
-                            )
-                        }
-                    }
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = 12.dp)
+                    )
                 }
+            }
 
-                // Assign button
+            // Assign Button
+            item {
                 Button(
                     onClick = {
                         isSaving = true
@@ -262,12 +276,10 @@ fun SelectChildrenScreen(
                                 val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                                     .format(java.util.Date())
 
-                                // Generate ID for the task
                                 val taskId = UUID.randomUUID().toString()
 
-                                Log.d("SelectChildren", "Saving task: title='${task.title}', requiresParent=$requiresParent, familyId=${currentUser.familyId}")
+                                Log.d("SelectChildren", "Saving task: title='${task.title}', familyId=${currentUser.familyId}")
 
-                                // First, save the task itself to Firestore
                                 firestore.collection("tasks").document(taskId).set(
                                     mapOf(
                                         "id" to taskId,
@@ -279,9 +291,8 @@ fun SelectChildrenScreen(
                                         "estimatedDurationSec" to task.estimatedDurationSec,
                                         "reward" to mapOf("xp" to task.reward.xp),
                                         "validationType" to task.validationType.name,
-                                        "requiresParent" to requiresParent,  // ← Uses the toggle, good
+                                        "requiresParent" to false,
                                         "requiresCoop" to task.requiresCoop,
-                                        "validationType" to task.validationType.name,  // ← DUPLICATE - remove
                                         "tags" to task.tags,
                                         "createdBy" to task.createdBy.name,
                                         "interactionBlocks" to emptyList<Map<String, Any>>(),
@@ -291,14 +302,8 @@ fun SelectChildrenScreen(
                                     )
                                 ).await()
 
-                                Log.d("SelectChildren", "Task saved to Firestore with ID: $taskId")
-
-                                // Then create task assignment for each selected child
                                 selectedChildrenIds.forEach { childId ->
                                     val taskAssignmentId = "${childId}_${taskId}_${System.currentTimeMillis()}"
-
-                                    Log.d("SelectChildren", "Creating assignment for child: $childId")
-
                                     firestore.collection("taskAssignments").document(taskAssignmentId).set(
                                         mapOf(
                                             "taskId" to taskId,
@@ -309,11 +314,8 @@ fun SelectChildrenScreen(
                                             "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
                                         )
                                     ).await()
-
-                                    Log.d("SelectChildren", "Assignment created: $taskAssignmentId")
                                 }
 
-                                Log.d("SelectChildren", "All tasks assigned successfully")
                                 isSaving = false
                                 onAssignmentComplete()
                             } catch (e: Exception) {
@@ -325,9 +327,10 @@ fun SelectChildrenScreen(
                     enabled = selectedChildrenIds.isNotEmpty() && !isSaving,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .padding(horizontal = 20.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GradientStart)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A90E2))
                 ) {
                     if (isSaving) {
                         CircularProgressIndicator(
@@ -344,8 +347,6 @@ fun SelectChildrenScreen(
                         )
                     }
                 }
-
-                Spacer(Modifier.height(32.dp))
             }
         }
     }
@@ -355,11 +356,11 @@ fun SelectChildrenScreen(
 private fun ChildSelectionCard(
     child: UserModel,
     isSelected: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .clickable { onToggle() },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(

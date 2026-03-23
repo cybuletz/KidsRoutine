@@ -49,13 +49,36 @@ fun GenerationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var activeTab by remember { mutableStateOf(GenerationTab.TASKS) }
+    var showChildSelection by remember { mutableStateOf(false) }
+    var selectedTaskForAssignment by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        // Initialize screen
         Log.d("GenerationScreen", "Screen loaded for user: ${currentUser.displayName}")
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // SHOW CHILD SELECTION SCREEN (FULL SCREEN) ← NEW!
+    // ════════════════════════════════════════════════════════════════════════
+    if (showChildSelection && selectedTaskForAssignment != null) {
+        SelectChildrenScreen(
+            task = selectedTaskForAssignment!!,
+            currentUser = currentUser,
+            onBackClick = {
+                showChildSelection = false
+                selectedTaskForAssignment = null
+            },
+            onAssignmentComplete = {
+                showChildSelection = false
+                selectedTaskForAssignment = null
+            }
+        )
+        return  // ← EXIT early, don't show GenerationScreen
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // NORMAL GENERATION SCREEN
+    // ════════════════════════════════════════════════════════════════════════
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -89,9 +112,13 @@ fun GenerationScreen(
                                 coroutineScope.launch {
                                     viewModel.generateTasks(
                                         currentUser = currentUser,
-                                        childAge = currentUser.level + 4  // Estimate age from level
+                                        childAge = currentUser.level + 4
                                     )
                                 }
+                            },
+                            onTaskSelected = { taskModel ->  // ← NEW callback
+                                selectedTaskForAssignment = taskModel
+                                showChildSelection = true
                             }
                         )
                     }
@@ -258,7 +285,8 @@ private fun TaskGenerationContent(
     currentUser: UserModel,
     uiState: GenerationUiState,
     viewModel: GenerationViewModel,
-    onGenerateClick: () -> Unit
+    onGenerateClick: () -> Unit,
+    onTaskSelected: (com.kidsroutine.core.model.TaskModel) -> Unit = {}  // ← NEW!
 ) {
     Column(
         modifier = Modifier
@@ -284,29 +312,40 @@ private fun TaskGenerationContent(
                     color = TextDark
                 )
 
-                // Difficulty selector
+                // ═════ DIFFICULTY SELECTOR (NOW INTERACTIVE!) ═════
                 Text(
                     text = "Difficulty Level",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DifficultyChip("Easy", "🟢")
-                    DifficultyChip("Medium", "🟠")
-                    DifficultyChip("Hard", "🔴")
+                    listOf("EASY", "MEDIUM", "HARD").forEach { difficulty ->
+                        DifficultyChip(
+                            label = difficulty,
+                            emoji = when (difficulty) {
+                                "EASY" -> "🟢"
+                                "MEDIUM" -> "🟠"
+                                else -> "🔴"
+                            },
+                            isSelected = uiState.selectedDifficulty == difficulty,
+                            onClick = { viewModel.toggleDifficulty(difficulty) }
+                        )
+                    }
                 }
 
                 Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
 
-                // Preferences
+                // ═════ PREFERENCES SELECTOR (NOW INTERACTIVE!) ═════
                 Text(
-                    text = "Preferences",
+                    text = "Preferences (Multi-select)",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Row(
@@ -315,10 +354,13 @@ private fun TaskGenerationContent(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    PreferenceChip("🎨 Creative")
-                    PreferenceChip("⚽ Sports")
-                    PreferenceChip("📚 Learning")
-                    PreferenceChip("🧘 Wellness")
+                    listOf("🎨 Creative", "⚽ Sports", "📚 Learning", "🧘 Wellness").forEach { pref ->
+                        PreferenceChip(
+                            label = pref,
+                            isSelected = pref in uiState.selectedPreferences,
+                            onClick = { viewModel.togglePreference(pref) }
+                        )
+                    }
                 }
             }
         }
@@ -326,17 +368,19 @@ private fun TaskGenerationContent(
         // ──────── QUOTA INDICATOR ────────
         QuotaCard(
             remaining = uiState.quotaRemaining,
-            limit = 3
+            limit = 3,
+            tier = "FREE"
         )
 
-        // ──────── GENERATE BUTTON ────────
+        // ──────── GENERATE BUTTON (NOW ENABLED!) ────────
         Button(
             onClick = onGenerateClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = SecondaryOrange
+                containerColor = SecondaryOrange,
+                disabledContainerColor = Color(0xFFCCCCCC)
             ),
             shape = RoundedCornerShape(12.dp),
             enabled = !uiState.isLoading && uiState.quotaRemaining > 0
@@ -353,6 +397,8 @@ private fun TaskGenerationContent(
                     )
                     Text("Generating...", fontWeight = FontWeight.Bold)
                 }
+            } else if (uiState.quotaRemaining <= 0) {
+                Text("📊 Quota Exceeded - Upgrade to PRO", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             } else {
                 Text("✨ Generate Tasks", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
@@ -373,7 +419,7 @@ private fun TaskGenerationContent(
                     index = index,
                     viewModel = viewModel,
                     currentUser = currentUser,
-                    onUseNow = { /* Task saved via SelectChildrenScreen */ }
+                    onUseNow = { onTaskSelected(it) }
                 )
             }
         }
@@ -417,11 +463,12 @@ private fun ChallengeGenerationContent(
                     color = TextDark
                 )
 
-                // Goals selector
+                // ═════ GOALS SELECTOR (NOW INTERACTIVE!) ═════
                 Text(
-                    text = "Goals",
+                    text = "Goals (Multi-select)",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 Row(
@@ -430,10 +477,13 @@ private fun ChallengeGenerationContent(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    GoalChip("💤 Better Sleep")
-                    GoalChip("📱 Screen Time")
-                    GoalChip("🏃 Health")
-                    GoalChip("🤝 Social")
+                    listOf("💤 Better Sleep", "📱 Screen Time", "🏃 Health", "🤝 Social").forEach { goal ->
+                        GoalChip(
+                            label = goal,
+                            isSelected = goal in uiState.selectedGoals,
+                            onClick = { viewModel.toggleGoal(goal) }
+                        )
+                    }
                 }
 
                 Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
@@ -449,7 +499,8 @@ private fun ChallengeGenerationContent(
         // ──────── QUOTA INDICATOR ────────
         QuotaCard(
             remaining = uiState.quotaRemaining,
-            limit = 2
+            limit = 2,
+            tier = "PRO"
         )
 
         // ──────── GENERATE BUTTON ────────
@@ -459,7 +510,8 @@ private fun ChallengeGenerationContent(
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = AccentPurple
+                containerColor = AccentPurple,
+                disabledContainerColor = Color(0xFFCCCCCC)
             ),
             shape = RoundedCornerShape(12.dp),
             enabled = !uiState.isLoading && uiState.quotaRemaining > 0
@@ -476,12 +528,14 @@ private fun ChallengeGenerationContent(
                     )
                     Text("Generating...", fontWeight = FontWeight.Bold)
                 }
+            } else if (uiState.quotaRemaining <= 0) {
+                Text("🔒 PRO Only - Upgrade Required", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             } else {
                 Text("🏆 Generate Challenge", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
 
-        // ──────── RESULTS ────────
+        // ──────── RESULTS ────��───
         if (uiState.generatedChallenges.isNotEmpty()) {
             Text(
                 text = "Generated Challenges (${uiState.generatedChallenges.size})",
@@ -507,12 +561,11 @@ private fun ChallengeGenerationContent(
 private fun TaskCard(
     task: GeneratedTask,
     index: Int,
-    onUseNow: (task: GeneratedTask) -> Unit = {},
+    onUseNow: (com.kidsroutine.core.model.TaskModel) -> Unit = {},
     viewModel: GenerationViewModel = hiltViewModel(),
     currentUser: com.kidsroutine.core.model.UserModel = com.kidsroutine.core.model.UserModel()
 ) {
     var showCustomizationModal by remember { mutableStateOf(false) }
-    var showChildSelection by remember { mutableStateOf(false) }
     var currentTask by remember { mutableStateOf(task) }
 
     AnimatedVisibility(
@@ -592,29 +645,76 @@ private fun TaskCard(
 
                 // Action buttons
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Button(
                         onClick = {
-                            // Show child selection screen
-                            showChildSelection = true
+                            // Convert to TaskModel and pass to parent
+                            val taskModel = com.kidsroutine.core.model.TaskModel(
+                                id = "task_${System.currentTimeMillis()}",
+                                type = try {
+                                    com.kidsroutine.core.model.TaskType.valueOf(currentTask.type)
+                                } catch (e: Exception) {
+                                    com.kidsroutine.core.model.TaskType.REAL_LIFE
+                                },
+                                title = currentTask.title,
+                                description = currentTask.description,
+                                category = try {
+                                    com.kidsroutine.core.model.TaskCategory.valueOf(currentTask.category)
+                                } catch (e: Exception) {
+                                    com.kidsroutine.core.model.TaskCategory.LEARNING
+                                },
+                                difficulty = try {
+                                    com.kidsroutine.core.model.DifficultyLevel.valueOf(currentTask.difficulty)
+                                } catch (e: Exception) {
+                                    com.kidsroutine.core.model.DifficultyLevel.EASY
+                                },
+                                estimatedDurationSec = currentTask.estimatedDurationSec,
+                                reward = com.kidsroutine.core.model.TaskReward(xp = currentTask.xpReward),
+                                familyId = currentUser.familyId
+                            )
+                            onUseNow(taskModel)
                         },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SuccessGreen
-                        ),
+                        modifier = Modifier
+                            .weight(1.5f)
+                            .height(40.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Use Now", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("✓ Use Now", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
                         onClick = { showCustomizationModal = true },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Edit", fontSize = 12.sp)
+                        Text("✏️", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.addToFavorites(currentTask) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("❤️", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.shareToMarketplace(currentTask, currentUser.familyId) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("📤", fontSize = 11.sp)
                     }
                 }
             }
@@ -622,7 +722,7 @@ private fun TaskCard(
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // CUSTOMIZATION MODAL
+    // CUSTOMIZATION MODAL ONLY
     // ════════════════════════════════════════════════════════════════════════
     TaskCustomizationModal(
         task = currentTask,
@@ -633,48 +733,6 @@ private fun TaskCard(
             showCustomizationModal = false
         }
     )
-
-    // ════════════════════════════════════════════════════════════════════════
-    // CHILD SELECTION MODAL
-    // ════════════════════════════════════════════════════════════════════════
-    if (showChildSelection) {
-        // Convert GeneratedTask to TaskModel for SelectChildrenScreen
-        val taskModel = com.kidsroutine.core.model.TaskModel(
-            id = "task_${System.currentTimeMillis()}",
-            type = try {
-                com.kidsroutine.core.model.TaskType.valueOf(currentTask.type)
-            } catch (e: Exception) {
-                com.kidsroutine.core.model.TaskType.REAL_LIFE
-            },
-            title = currentTask.title,
-            description = currentTask.description,
-            category = try {
-                com.kidsroutine.core.model.TaskCategory.valueOf(currentTask.category)
-            } catch (e: Exception) {
-                com.kidsroutine.core.model.TaskCategory.LEARNING
-            },
-            difficulty = try {
-                com.kidsroutine.core.model.DifficultyLevel.valueOf(currentTask.difficulty)
-            } catch (e: Exception) {
-                com.kidsroutine.core.model.DifficultyLevel.EASY
-            },
-            estimatedDurationSec = currentTask.estimatedDurationSec,
-            reward = com.kidsroutine.core.model.TaskReward(xp = currentTask.xpReward),
-            familyId = currentUser.familyId
-        )
-
-        SelectChildrenScreen(
-            task = taskModel,
-            currentUser = currentUser,
-            onBackClick = {
-                showChildSelection = false
-            },
-            onAssignmentComplete = {
-                showChildSelection = false
-                onUseNow(currentTask)
-            }
-        )
-    }
 }
 
 @Composable
@@ -777,92 +835,141 @@ private fun ChallengeCard(challenge: GeneratedChallenge, index: Int) {
 // ────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun QuotaCard(remaining: Int, limit: Int) {
+private fun QuotaCard(remaining: Int, limit: Int, tier: String = "FREE") {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (remaining > 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+            containerColor = when {
+                remaining > 0 -> Color(0xFFE8F5E9)
+                else -> Color(0xFFFFEBEE)
+            }
         )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Generations Today",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "$remaining of $limit",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDark
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Generations Today ($tier)",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "$remaining of $limit remaining",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                }
+
+                // Progress circle
+                CircularProgressIndicator(
+                    progress = { (remaining.coerceAtLeast(0).toFloat() / limit).coerceIn(0f, 1f) },
+                    modifier = Modifier.size(60.dp),
+                    color = if (remaining > 0) SuccessGreen else Color(0xFFC62828),
+                    strokeWidth = 4.dp
                 )
             }
 
-            // Progress circle
-            CircularProgressIndicator(
-                progress = { remaining.toFloat() / limit },
-                modifier = Modifier.size(60.dp),
-                color = if (remaining > 0) SuccessGreen else Color(0xFFC62828),
-                strokeWidth = 4.dp
-            )
+            // Upgrade button if needed
+            if (remaining <= 0) {
+                Button(
+                    onClick = { /* Navigate to upgrade */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("⭐ Upgrade to PRO - Unlimited Generations!", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DifficultyChip(label: String, emoji: String) {
+private fun DifficultyChip(
+    label: String,
+    emoji: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFFF0F0F0),
-        modifier = Modifier.clickable { }
+        color = if (isSelected) PrimaryBlue else Color(0xFFF0F0F0),
+        border = if (isSelected) BorderStroke(2.dp, PrimaryBlue) else null,
+        modifier = Modifier
+            .clickable { onClick() }
+            .animateContentSize()
     ) {
         Text(
             text = "$emoji $label",
             fontSize = 12.sp,
             modifier = Modifier.padding(10.dp, 6.dp),
-            fontWeight = FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) Color.White else TextDark
         )
     }
 }
 
 @Composable
-private fun PreferenceChip(label: String) {
+private fun PreferenceChip(
+    label: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-        modifier = Modifier.clickable { }
+        color = if (isSelected) PrimaryBlue.copy(alpha = 0.2f) else Color.White,
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) PrimaryBlue else Color(0xFFEEEEEE)
+        ),
+        modifier = Modifier
+            .clickable { onClick() }
+            .animateContentSize()
     ) {
         Text(
             text = label,
             fontSize = 12.sp,
             modifier = Modifier.padding(10.dp, 6.dp),
-            color = TextDark
+            color = if (isSelected) PrimaryBlue else TextDark,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
 
 @Composable
-private fun GoalChip(label: String) {
+private fun GoalChip(
+    label: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-        modifier = Modifier.clickable { }
+        color = if (isSelected) AccentPurple.copy(alpha = 0.2f) else Color.White,
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) AccentPurple else Color(0xFFEEEEEE)
+        ),
+        modifier = Modifier
+            .clickable { onClick() }
+            .animateContentSize()
     ) {
         Text(
             text = label,
             fontSize = 12.sp,
             modifier = Modifier.padding(10.dp, 6.dp),
-            color = TextDark
+            color = if (isSelected) AccentPurple else TextDark,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
