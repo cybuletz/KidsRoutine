@@ -60,10 +60,7 @@ export const generateTasksAI = functions.https.onCall(
       console.log(`[AIGeneration] Preferences: ${preferences.join(", ")}`);
 
       // 1. CHECK QUOTA
-      const quotaDoc = await db
-        .collection("ai_quotas")
-        .doc(userId)
-        .get();
+      const quotaDoc = await db.collection("ai_quotas").doc(userId).get();
 
       const quota = quotaDoc.data() || {
         tier: tier,
@@ -149,32 +146,39 @@ export const generateTasksAI = functions.https.onCall(
       }
 
       // 4. GENERATE NEW TASKS (if no cache for today or all cached were used)
+      const themes = ["Space", "Jungle", "Dinosaurs", "Superheroes", "Robots", "Underwater", "Pirates", "Mountains", "Dragons", "Deep Sea"];
+      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
       const systemPrompt = `You are a children's task generator for ages ${childAge}+.
-Generate a fun, engaging, UNIQUE task that is age-appropriate and safe.
+Generate a fun, engaging, PHYSICAL, and UNIQUE task that is age-appropriate and safe.
 
-${preferences.length > 0 ? `⚠️ CRITICAL - YOU MUST FOLLOW THIS:
-The task category MUST be EXACTLY ONE of these: ${preferences.join(" OR ")}
-Do NOT generate a task from any other category.
-Do NOT interpret this loosely - pick ONE of these EXACTLY.` : ""}
+${preferences.length > 0 ? `⚠️ CATEGORY REQUIREMENT: Pick EXACTLY ONE from: ${preferences.join(", ")}` : ""}
 
-IMPORTANT - CREATE DIVERSE, SPECIFIC TITLES:
-- NO generic titles like "Rainbow Art" or repeated patterns
-- Make titles ACTION-ORIENTED showing WHAT the child does
-- Use emojis to make titles appealing
-- Each title should be DIFFERENT and CREATIVE
+🚫 FORBIDDEN (CRITICAL - Do NOT suggest these):
+- No "Drawing," "Coloring," "Painting," or "Sketching."
+- No "Making a list," "Writing a story," or "Watching a video."
+- No generic "Play with [toy]" or "Read a book" tasks.
+- No activities that keep the child stationary for long periods.
 
-TASK EXAMPLES BY CATEGORY:
-CREATIVE: "🎨 Mix Paint Colors Like a Real Artist", "📖 Write a Funny Story About Your Pet", "🎭 Act Out a Movie Scene", "🎪 Create a Circus Poster"
-SPORTS: "⚽ Invent Rules for a Brand New Sport", "🏃 Race Against the Clock for 30 Seconds", "🎾 Bounce a Ball 20 Times", "🤸 Do 10 Jumping Jacks", "🏀 Create a Basketball Course in Your Room"
-LEARNING: "📚 Read 5 Pages of Your Favorite Book", "🔬 Mix Potions with Safe Kitchen Items", "🧮 Solve 5 Math Puzzles", "✏️ Write a Short Story About Dragons", "🧪 Do a Simple Science Experiment"
-HEALTH: "🥗 Taste a New Healthy Snack", "🧘 Try 5 Minutes of Meditation", "💪 Do 10 Push-ups or Squats", "🚴 Ride Your Bike for 15 Minutes", "🤸 Stretch for 3 Minutes"
-MORNING_ROUTINE: "🛏️ Make Your Bed Without Help", "🧼 Brush Teeth for 2 Minutes", "🚿 Take a Quick Shower", "👕 Pick Out Your Outfit"
-SOCIAL: "👥 Play a Game with a Friend", "💬 Ask Someone About Their Day", "🤝 Help a Family Member with a Chore", "🎮 Play Video Games with a Friend"
-EMOTIONAL: "❤️ Draw What Makes You Happy", "😊 Do 3 Things You Love Today", "🎵 Sing Your Favorite Song", "📝 Write 3 Things You're Grateful For"
-REAL_LIFE: "🧹 Sweep the Kitchen Floor", "🍽️ Set the Dinner Table", "🧺 Fold Your Clothes", "🧼 Wash Your Hands"
+✅ PRIORITY ACTIONS (Focus on these):
+- Sports/Physical: Balance, agility, speed, coordination, obstacle courses
+- Creativity: Building, acting, singing, inventing, problem-solving
+- Learning: Discovery, memory games, logic puzzles, scavenger hunts
+- Health: Movement, stretching, balance
+- Social: Games with others, helping tasks
+- Emotional: Physical expression, movement-based activities
+- Real Life: Practical chores with movement
+
+GOLD STANDARD EXAMPLES (Follow this level of specificity):
+- Theme: Space + Sports -> "🚀 Moon Jump Challenge: See how high you can jump 10 times"
+- Theme: Jungle + Creativity -> "🦁 Animal Charades: Act out 3 different jungle animals"
+- Theme: Robots + Learning -> "🤖 Binary Scavenger Hunt: Find 1 of something and 0 of something else"
+- Theme: Pirates + Sports -> "🏴‍☠️ Pirate Balance Walk: Walk heel-to-toe like a pirate on a plank"
+- Theme: Underwater + Health -> "🐠 Mermaid Stretches: Stretch like different ocean creatures"
+- Theme: Dinosaurs + Creativity -> "🦕 Dinosaur Stomp Dance: Create a stomp pattern and teach it to someone"
 
 TASK REQUIREMENTS:
-- Title: Short, fun, emoji-enabled, SPECIFIC, ACTION-FOCUSED
+- Title: Short, fun, emoji-enabled, SPECIFIC, ACTION-FOCUSED, PHYSICAL
 - Description: Clear, child-friendly, under 100 chars
 - Duration: 5-60 seconds
 - Category: ${preferences.length > 0 ? `MUST be EXACTLY one of: ${preferences.join(" or ")}` : "Any appropriate category"}
@@ -195,18 +199,18 @@ Return ONLY valid JSON (no markdown):
   "type": "string"
 }`;
 
-      const prompt = `Generate ONE task for a ${childAge}-year-old child.
+      const userPrompt = `Generate ONE ${randomTheme}-themed task for a ${childAge}-year-old child.
 ${preferences.length > 0 ? `STRICT REQUIREMENT: Category MUST be ${preferences.join(" or ")} - pick EXACTLY ONE of these, do not deviate.` : ""}
-Make it fun, specific, and age-appropriate.
+Make it fun, specific, action-oriented, and PHYSICAL.
 Use an emoji in the title.
-Do NOT create generic titles.`;
+DO NOT suggest drawing, coloring, painting, or any stationary activities.`;
 
       // Generate 10 tasks per day (more variety, less repeats)
       const tasksToGenerate = 10;
 
       for (let i = 0; i < tasksToGenerate; i++) {
         try {
-          const response = await callGemini(apiKey, systemPrompt, prompt);
+          const response = await callGemini(apiKey, systemPrompt, userPrompt);
 
           let jsonStr = response.trim();
 
@@ -425,34 +429,40 @@ export const generateChallengesAI = functions.https.onCall(
       }
 
       // 4. GENERATE NEW CHALLENGES (if no cache for today)
+      const themes = ["Space", "Jungle", "Dinosaurs", "Superheroes", "Robots", "Underwater", "Pirates", "Mountains", "Dragons"];
+      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
       const systemPrompt = `You are a children's challenge (habit) generator for ages ${childAge}+.
 Generate a multi-day challenge that builds healthy habits and is ENGAGING and MOTIVATING.
 
-${goals.length > 0 ? `⚠️ CRITICAL - YOU MUST FOLLOW THIS:
-The challenge category MUST be EXACTLY ONE of these: ${goals.join(" OR ")}
-Do NOT generate a challenge from any other category.
-Do NOT interpret this loosely - pick ONE of these EXACTLY.` : ""}
+${goals.length > 0 ? `⚠️ CATEGORY REQUIREMENT: Pick EXACTLY ONE from: ${goals.join(", ")}` : ""}
 
-IMPORTANT - CREATE DIVERSE, SPECIFIC TITLES:
-- NO generic or repeated titles
-- Make titles SPECIFIC showing the HABIT/GOAL clearly
-- Use emojis and motivating language
-- Each challenge should have a UNIQUE title
+🚫 FORBIDDEN (CRITICAL):
+- No stationary or passive activities.
+- No screen-time related challenges (unless SCREEN_TIME category selected).
 
-CHALLENGE EXAMPLES BY CATEGORY:
-SLEEP: "🌙 Bedtime Champion: In Bed Before 9 PM", "😴 Sleep Hero: 8 Hours Every Night", "🌙 Dream Warrior: Consistent Bedtime"
-HEALTH: "💪 Movement Master: 10 Mins Exercise Daily", "🥗 Veggie Explorer: Try New Vegetables", "🏃 Active Kid: Play Outside 30 Mins Daily"
-LEARNING: "📚 Page Turner: Read 20+ Pages Daily", "🧠 Brain Booster: Learn One New Thing Daily", "📖 Story Lover: Read Before Bed"
-SOCIAL: "🤝 Kindness Quest: One Good Deed Daily", "👥 Friendship Champion: Call a Friend Weekly", "💬 Good Listener: Ask 3 Questions Daily"
-SCREEN_TIME: "🎮 Screen Time Boss: 1 Hour Max Daily", "📱 Digital Detox: Phone-Free Meals", "🎬 Smart Watcher: Choose 1 Show Daily"
-CREATIVITY: "🎨 Artist's Week: Create Art Daily", "🎵 Music Maker: Learn One Song", "✏️ Story Writer: Write 100 Words Daily"
+✅ PRIORITY ACTIONS:
+- Sleep: Bedtime routines with consistency
+- Health: Movement, nutrition, wellness
+- Learning: Reading, discovery, education
+- Social: Kindness, friendship, helping
+- Creativity: Art, music, inventing
+- Screen Time: Digital limits
+
+CHALLENGE EXAMPLES:
+SLEEP: "🌙 Bedtime Champion: In Bed Before 9 PM", "😴 Sleep Hero: 8 Hours Every Night"
+HEALTH: "💪 Movement Master: 10 Mins Exercise Daily", "🥗 Veggie Explorer: Try New Vegetables"
+LEARNING: "📚 Page Turner: Read 20+ Pages Daily", "🧠 Brain Booster: Learn One New Thing Daily"
+SOCIAL: "🤝 Kindness Quest: One Good Deed Daily", "👥 Friendship Champion: Call a Friend Weekly"
+CREATIVITY: "🎨 Artist's Week: Create Art Daily", "🎵 Music Maker: Learn One Song"
+SCREEN_TIME: "🎮 Screen Time Boss: 1 Hour Max Daily", "📱 Digital Detox: Phone-Free Meals"
 
 CHALLENGE REQUIREMENTS:
 - Title: Short, motivating (under 50 chars), SPECIFIC
 - Description: Clear, achievable (under 100 chars)
 - Duration: 3-30 days (age-appropriate)
 - Category: ${goals.length > 0 ? `MUST be EXACTLY one of: ${goals.join(" or ")}` : "SLEEP, SCREEN_TIME, HEALTH, SOCIAL, LEARNING, CREATIVITY"}
-- Success condition: Clear, measurable per day (e.g., "In bed by 9 PM" not "Sleep well")
+- Success condition: Clear, measurable per day
 
 Return ONLY valid JSON (no markdown):
 {
@@ -463,19 +473,19 @@ Return ONLY valid JSON (no markdown):
   "successCondition": "string"
 }`;
 
-      const prompt = `Generate ONE engaging habit-building challenge for a ${childAge}-year-old.
+      const userPrompt = `Generate ONE ${randomTheme}-themed habit-building challenge for a ${childAge}-year-old.
 ${goals.length > 0 ? `STRICT REQUIREMENT: Category MUST be ${goals.join(" or ")} - pick EXACTLY ONE of these, do not deviate.` : ""}
 Make it motivating and achievable.
 Create a SPECIFIC title clearly showing what habit to build.
 Include an emoji in the title.
-Success condition must be specific and measurable (e.g., "Complete 20 push-ups" not "Be strong").`;
+Success condition must be specific and measurable.`;
 
       // Generate 10 challenges per day (more variety, less repeats)
       const challengesToGenerate = 10;
 
       for (let i = 0; i < challengesToGenerate; i++) {
         try {
-          const response = await callGemini(apiKey, systemPrompt, prompt);
+          const response = await callGemini(apiKey, systemPrompt, userPrompt);
 
           let jsonStr = response.trim();
 
@@ -590,20 +600,20 @@ async function callGemini(
 ): Promise<string> {
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`,
       {
+        system_instruction: {
+          parts: [{ text: systemPrompt }]
+        },
         contents: [
           {
-            parts: [
-              {
-                text: `${systemPrompt}\n\n${userPrompt}`,
-              },
-            ],
-          },
+            parts: [{ text: userPrompt }]
+          }
         ],
         generationConfig: {
-          maxOutputTokens: 1000,
+          maxOutputTokens: 500,
           temperature: 0.9,
+          topP: 0.95,
           responseMimeType: "application/json",
         },
         safetySettings: [
