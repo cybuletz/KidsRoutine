@@ -12,8 +12,8 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 // ===== Export AI functions =====
-export const initializeFirestore = firebaseSetup.setupFirestore;
-export const getFirestoreRules = firebaseSetup.setupFirestoreRules;
+//export const initializeFirestore = firebaseSetup.setupFirestore;
+//export const getFirestoreRules = firebaseSetup.setupFirestoreRules;
 export const generateTasksAI = aiGeneration.generateTasksAI;
 export const generateChallengesAI = aiGeneration.generateChallengesAI;
 

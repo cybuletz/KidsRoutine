@@ -27,8 +27,6 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
-import com.kidsroutine.feature.celebrations.ui.CelebrationOverlay
-import com.kidsroutine.feature.tasks.ui.ChildItemViewModel
 
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
@@ -49,21 +47,15 @@ fun DailyScreen(
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    viewModel: DailyViewModel = hiltViewModel(),
-    childItemViewModel: ChildItemViewModel = hiltViewModel()
+    viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(currentUser.userId) {
         Log.d("DailyScreen", "Initializing with user: ${currentUser.userId}")
         viewModel.init(currentUser)
-
-        // Set up real-time task listener
-        if (currentUser.userId.isNotEmpty() && currentUser.familyId.isNotEmpty()) {
-            childItemViewModel.loadChildItems(currentUser.userId, currentUser.familyId)
-        }
+        // ← REMOVED: childItemViewModel.loadChildItems()
     }
-
 
     Box(
         modifier = Modifier
