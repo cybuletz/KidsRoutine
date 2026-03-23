@@ -1,11 +1,21 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-
+// ✅ INITIALIZE FIREBASE FIRST - BEFORE ANY IMPORTS THAT USE IT
 admin.initializeApp();
+
+// ✅ NOW import modules that need Firebase
+import * as aiGeneration from "./aiGeneration";
+import * as firebaseSetup from "./setupFirestore";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
+
+// ===== Export AI functions =====
+export const initializeFirestore = firebaseSetup.setupFirestore;
+export const getFirestoreRules = firebaseSetup.setupFirestoreRules;
+export const generateTasksAI = aiGeneration.generateTasksAI;
+export const generateChallengesAI = aiGeneration.generateChallengesAI;
 
 // ===== TASK COMPLETION NOTIFICATIONS =====
 

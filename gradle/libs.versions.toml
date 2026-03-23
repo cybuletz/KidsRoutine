@@ -1,5 +1,6 @@
 [versions]
 agp                     = "9.0.0"
+firebaseConfigKtxVersion = "22.1.2"
 kotlin                  = "2.2.21"
 ksp                     = "2.3.4"
 coreKtx                 = "1.17.0"
@@ -27,6 +28,7 @@ foundation = "1.10.5"
 firebase-messaging = "25.0.1"
 firebaseDatabaseKtx = "21.0.0"
 lifecycleProcess = "2.10.0"
+firebaseConfigKtx = "22.1.2"
 
 
 [libraries]
@@ -43,6 +45,7 @@ androidx-compose-ui-test-junit4     = { group = "androidx.compose.ui",        na
 androidx-compose-material3          = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons     = { group = "androidx.compose.material",  name = "material-icons-extended" }
 androidx-navigation-compose         = { group = "androidx.navigation",        name = "navigation-compose",                version.ref = "navigation" }
+firebase-config-ktx-v2212 = { module = "com.google.firebase:firebase-config-ktx", version.ref = "firebaseConfigKtxVersion" }
 hilt-android                        = { group = "com.google.dagger",          name = "hilt-android",                      version.ref = "hilt" }
 hilt-compiler                       = { group = "com.google.dagger",          name = "hilt-android-compiler",             version.ref = "hilt" }
 hilt-navigation-compose             = { group = "androidx.hilt",              name = "hilt-navigation-compose",           version.ref = "hiltNavigationCompose" }
@@ -75,6 +78,7 @@ androidx-compose-foundation-layout = { group = "androidx.compose.foundation", na
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
+firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebaseConfigKtx" }
 
 [plugins]
 android-application      = { id = "com.android.application",                        version.ref = "agp" }

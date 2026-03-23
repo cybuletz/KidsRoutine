@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.firebase.database.ktx)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.firebase.config.ktx)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
