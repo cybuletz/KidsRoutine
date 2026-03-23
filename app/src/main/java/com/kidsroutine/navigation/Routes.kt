@@ -32,6 +32,8 @@ object Routes {
 
     const val PARENT_STATS = "parent_stats"
 
+    const val GENERATION = "generation"
+
 
     // ═══════════════════════════════════════════════════════════════════════
     // COMMUNITY ROUTES

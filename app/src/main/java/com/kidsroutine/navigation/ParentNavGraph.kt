@@ -32,6 +32,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.kidsroutine.feature.stats.ui.StatsScreen
+import com.kidsroutine.feature.generation.ui.GenerationScreen
+
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -57,6 +59,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
                 onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },
                 onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
+                onGenerationClick = { navController.navigate(Routes.GENERATION) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -205,6 +208,14 @@ fun NavGraphBuilder.parentNavGraph(
         // Family messaging
         composable(Routes.FAMILY_MESSAGING) {
             FamilyMessagingScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // AI Task/Challenge Generation Screen
+        composable(Routes.GENERATION) {
+            GenerationScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

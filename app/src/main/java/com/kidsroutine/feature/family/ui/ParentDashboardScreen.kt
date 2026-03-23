@@ -33,8 +33,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Person
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.tasks.await
+import androidx.compose.material.icons.filled.ArrowForward
 
 
 private val GradientStart = Color(0xFFFF6B35)
@@ -58,6 +57,7 @@ fun ParentDashboardScreen(
     onProfileClick: () -> Unit,
     onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onGenerationClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -248,6 +248,46 @@ fun ParentDashboardScreen(
 
                     Spacer(Modifier.height(24.dp))
                 }
+
+                // ──────── CREATE AI TASKS (NEW) ────────
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onGenerationClick() },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "✨ Create Tasks",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                            Text(
+                                text = "AI-powered task generation",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = "Open",
+                            tint = AccentBlue,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
 
                 // Action buttons
                 ActionButtonsSection(

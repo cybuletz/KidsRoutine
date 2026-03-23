@@ -8,6 +8,7 @@ import com.kidsroutine.core.ai.AIGenerationService
 import com.kidsroutine.core.ai.AIProviderRegistry
 import com.kidsroutine.core.ai.providers.GeminiProvider
 import com.kidsroutine.feature.generation.data.GenerationRepository
+import com.kidsroutine.feature.generation.data.TaskSaveRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,15 +32,16 @@ object AIModule {
             // Fetch latest remote config
             remoteConfig.fetchAndActivate()
 
-            // Get Gemini API key from Firebase Remote Config (secure!)
-            val geminiKey = remoteConfig.getString("gemini_api_key")
+            // Get Gemini API key from Firebase Remote Config
+            val geminiKey = remoteConfig.getString("GEMINI_API_KEY")
 
+            // Register Gemini provider
             if (geminiKey.isNotEmpty()) {
                 registry.register("gemini", GeminiProvider(geminiKey))
                 android.util.Log.d("AIModule", "✅ Gemini provider registered")
                 registry.setActive("gemini")
             } else {
-                android.util.Log.e("AIModule", "❌ Gemini API key not found in Remote Config!")
+                android.util.Log.e("AIModule", "❌ Gemini API key not found in Remote Config")
             }
         } catch (e: Exception) {
             android.util.Log.e("AIModule", "Error initializing AI providers: ${e.message}", e)
@@ -81,5 +83,13 @@ object GenerationModule {
         aiService: AIGenerationService
     ): GenerationRepository {
         return GenerationRepository(functions, aiService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTaskSaveRepository(
+        firestore: FirebaseFirestore
+    ): TaskSaveRepository {
+        return TaskSaveRepository(firestore)
     }
 }

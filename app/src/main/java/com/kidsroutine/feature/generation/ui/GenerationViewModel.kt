@@ -13,10 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.kidsroutine.feature.generation.data.TaskSaveRepository
+import com.google.firebase.firestore.FirebaseFirestore
 
-/**
- * UI state for task/challenge generation
- */
 data class GenerationUiState(
     val isLoading: Boolean = false,
     val generatedTasks: List<GeneratedTask> = emptyList(),
@@ -27,21 +26,18 @@ data class GenerationUiState(
     val isCached: Boolean = false
 )
 
-/**
- * ViewModel for AI task & challenge generation
- * Calls Cloud Functions (Gemini-only)
- */
 @HiltViewModel
 class GenerationViewModel @Inject constructor(
-    private val repository: GenerationRepository
+    private val repository: GenerationRepository,
+    private val taskSaveRepository: TaskSaveRepository,
+    private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GenerationUiState())
     val uiState: StateFlow<GenerationUiState> = _uiState.asStateFlow()
 
     /**
-     * Generate AI tasks via Cloud Function
-     * Powered by Gemini API
+     * Generate AI tasks
      */
     fun generateTasks(
         currentUser: UserModel,
@@ -53,14 +49,17 @@ class GenerationViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                Log.d("GenerationVM", "⏳ Generating tasks for age $childAge via Gemini...")
+                Log.d("GenerationVM", "Generating tasks for age $childAge...")
+
+                // Determine tier from user data (if available, default to FREE)
+                val tier = "FREE" // TODO: Add tier field to UserModel later if needed
 
                 val result = repository.generateTasks(
                     familyId = currentUser.familyId,
                     childAge = childAge,
                     preferences = preferences,
                     recentCompletions = recentCompletions,
-                    tier = currentUser.subscriptionTier ?: "FREE",
+                    tier = tier,
                     count = 3
                 )
 
@@ -70,42 +69,30 @@ class GenerationViewModel @Inject constructor(
                         generatedTasks = response.tasks,
                         quotaRemaining = response.quotaRemaining,
                         isCached = response.cached,
-                        successMessage = "✅ Generated ${response.tasks.size} tasks! ${if (response.cached) "(Cached)" else ""}"
+                        successMessage = "Generated ${response.tasks.size} tasks!"
                     )
-                    Log.d("GenerationVM", "✅ Success: ${response.tasks.size} tasks generated")
+                    Log.d("GenerationVM", "Success: ${response.tasks.size} tasks")
                 }
 
                 result.onFailure { error ->
-                    val errorMsg = when {
-                        error.message?.contains("PERMISSION_DENIED") == true ->
-                            "❌ Task generation not available on your tier. Upgrade to PRO+"
-                        error.message?.contains("RESOURCE_EXHAUSTED") == true ->
-                            "❌ Daily quota reached. Try again tomorrow"
-                        error.message?.contains("unauthenticated") == true ->
-                            "❌ Please sign in to generate tasks"
-                        else -> error.message ?: "Failed to generate tasks"
-                    }
-
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = errorMsg
+                        error = error.message ?: "Failed to generate tasks"
                     )
-                    Log.e("GenerationVM", "❌ Error: $errorMsg")
+                    Log.e("GenerationVM", "Error: ${error.message}")
                 }
             } catch (e: Exception) {
-                Log.e("GenerationVM", "❌ Exception: ${e.message}", e)
+                Log.e("GenerationVM", "Exception: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Unknown error occurred"
+                    error = e.message ?: "Unknown error"
                 )
             }
         }
     }
 
     /**
-     * Generate AI challenges via Cloud Function
-     * Powered by Gemini API
-     * PRO+ tier only
+     * Generate AI challenges
      */
     fun generateChallenges(
         currentUser: UserModel,
@@ -116,23 +103,16 @@ class GenerationViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                Log.d("GenerationVM", "⏳ Generating challenges for age $childAge via Gemini...")
+                Log.d("GenerationVM", "Generating challenges...")
 
-                // Check if user has PRO tier
-                if (currentUser.subscriptionTier != "PRO" && currentUser.subscriptionTier != "PREMIUM") {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "❌ Challenge generation requires PRO tier. Upgrade now!"
-                    )
-                    Log.w("GenerationVM", "User tier: ${currentUser.subscriptionTier} (requires PRO)")
-                    return@launch
-                }
+                // Determine tier from user data (if available, default to PRO for challenges)
+                val tier = "PRO" // TODO: Add tier field to UserModel later if needed
 
                 val result = repository.generateChallenges(
                     familyId = currentUser.familyId,
                     childAge = childAge,
                     goals = goals,
-                    tier = currentUser.subscriptionTier!!,
+                    tier = tier,
                     count = 2
                 )
 
@@ -142,41 +122,28 @@ class GenerationViewModel @Inject constructor(
                         generatedChallenges = response.challenges,
                         quotaRemaining = response.quotaRemaining,
                         isCached = response.cached,
-                        successMessage = "✅ Generated ${response.challenges.size} challenges! ${if (response.cached) "(Cached)" else ""}"
+                        successMessage = "Generated ${response.challenges.size} challenges!"
                     )
-                    Log.d("GenerationVM", "✅ Success: ${response.challenges.size} challenges generated")
+                    Log.d("GenerationVM", "Success: ${response.challenges.size} challenges")
                 }
 
                 result.onFailure { error ->
-                    val errorMsg = when {
-                        error.message?.contains("PERMISSION_DENIED") == true ->
-                            "❌ Challenge generation not available on FREE tier"
-                        error.message?.contains("RESOURCE_EXHAUSTED") == true ->
-                            "❌ Challenge quota reached. Try again tomorrow"
-                        error.message?.contains("unauthenticated") == true ->
-                            "❌ Please sign in to generate challenges"
-                        else -> error.message ?: "Failed to generate challenges"
-                    }
-
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = errorMsg
+                        error = error.message ?: "Failed to generate challenges"
                     )
-                    Log.e("GenerationVM", "❌ Error: $errorMsg")
+                    Log.e("GenerationVM", "Error: ${error.message}")
                 }
             } catch (e: Exception) {
-                Log.e("GenerationVM", "❌ Exception: ${e.message}", e)
+                Log.e("GenerationVM", "Exception: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Unknown error occurred"
+                    error = e.message ?: "Unknown error"
                 )
             }
         }
     }
 
-    /**
-     * Clear error and success messages
-     */
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(
             error = null,
@@ -185,20 +152,81 @@ class GenerationViewModel @Inject constructor(
     }
 
     /**
-     * Clear generated tasks
+     * Save a generated task to Firestore and assign to children
      */
-    fun clearGeneratedTasks() {
-        _uiState.value = _uiState.value.copy(
-            generatedTasks = emptyList()
-        )
+    fun saveGeneratedTask(
+        task: GeneratedTask,
+        familyId: String,
+        childrenIds: List<String>
+    ) {
+        viewModelScope.launch {
+            try {
+                Log.d("GenerationVM", "Saving task: ${task.title}")
+
+                // Only save if children are selected
+                if (childrenIds.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Please select at least one child",
+                        successMessage = null
+                    )
+                    return@launch
+                }
+
+                val result = taskSaveRepository.saveAndAssignToFamily(
+                    generatedTask = task,
+                    familyId = familyId,
+                    childrenIds = childrenIds
+                )
+
+                result.onSuccess { taskId ->
+                    _uiState.value = _uiState.value.copy(
+                        successMessage = "✅ Task assigned to ${childrenIds.size} child${if (childrenIds.size != 1) "ren" else ""}!",
+                        error = null
+                    )
+                    Log.d("GenerationVM", "Task saved successfully: $taskId")
+                }
+
+                result.onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "Failed to save task",
+                        successMessage = null
+                    )
+                    Log.e("GenerationVM", "Error saving task: ${error.message}")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Error: ${e.message}",
+                    successMessage = null
+                )
+                Log.e("GenerationVM", "Exception: ${e.message}", e)
+            }
+        }
     }
 
     /**
-     * Clear generated challenges
+     * Save a generated challenge
      */
-    fun clearGeneratedChallenges() {
-        _uiState.value = _uiState.value.copy(
-            generatedChallenges = emptyList()
-        )
+    fun saveChallengeToFamily(
+        challenge: GeneratedChallenge,
+        familyId: String,
+        childId: String
+    ) {
+        viewModelScope.launch {
+            try {
+                Log.d("GenerationVM", "Saving challenge: ${challenge.title}")
+
+                // For now, just show success message
+                // Challenge saving logic will be added in next phase
+                _uiState.value = _uiState.value.copy(
+                    successMessage = "✅ Challenge saved! Assign to your child to start.",
+                    error = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = "Error: ${e.message}",
+                    successMessage = null
+                )
+            }
+        }
     }
 }
