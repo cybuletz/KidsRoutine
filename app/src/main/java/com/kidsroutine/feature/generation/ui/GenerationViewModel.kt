@@ -27,6 +27,7 @@ data class GenerationUiState(
     val selectedDifficulty: String = "MEDIUM",
     val selectedPreferences: Set<String> = setOf("🎨 Creative"),
     val selectedGoals: Set<String> = setOf("🏃 Health"),
+    val selectedAge: Int = 8,
     val generationHistory: List<GeneratedTask> = emptyList()
 )
 
@@ -41,8 +42,13 @@ class GenerationViewModel @Inject constructor(
     val uiState: StateFlow<GenerationUiState> = _uiState.asStateFlow()
 
     // ════════════════════════════════════════════════════════════════════════
-    // PREFERENCE MANAGEMENT
-    // ════════════════════════════════════════════════════════════════════════
+// PREFERENCE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════
+
+    fun setAge(age: Int) {
+        _uiState.value = _uiState.value.copy(selectedAge = age)
+        Log.d("GenerationVM", "Age selected: $age")
+    }
 
     fun toggleDifficulty(difficulty: String) {
         _uiState.value = _uiState.value.copy(selectedDifficulty = difficulty)

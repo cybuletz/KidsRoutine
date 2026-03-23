@@ -112,7 +112,7 @@ fun GenerationScreen(
                                 coroutineScope.launch {
                                     viewModel.generateTasks(
                                         currentUser = currentUser,
-                                        childAge = currentUser.level + 4
+                                        childAge = uiState.selectedAge
                                     )
                                 }
                             },
@@ -134,7 +134,7 @@ fun GenerationScreen(
                                 coroutineScope.launch {
                                     viewModel.generateChallenges(
                                         currentUser = currentUser,
-                                        childAge = currentUser.level + 4
+                                        childAge = uiState.selectedAge
                                     )
                                 }
                             }
@@ -286,7 +286,7 @@ private fun TaskGenerationContent(
     uiState: GenerationUiState,
     viewModel: GenerationViewModel,
     onGenerateClick: () -> Unit,
-    onTaskSelected: (com.kidsroutine.core.model.TaskModel) -> Unit = {}  // ← NEW!
+    onTaskSelected: (com.kidsroutine.core.model.TaskModel) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -312,7 +312,32 @@ private fun TaskGenerationContent(
                     color = TextDark
                 )
 
-                // ═════ DIFFICULTY SELECTOR (NOW INTERACTIVE!) ═════
+                // ═════ AGE SELECTOR (NEW!) ═════
+                Text(
+                    text = "Child Age",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    (7..18).forEach { age ->
+                        AgeChip(
+                            label = "$age",
+                            isSelected = uiState.selectedAge == age,
+                            onClick = { viewModel.setAge(age) }
+                        )
+                    }
+                }
+
+                Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+
+                // ═════ DIFFICULTY SELECTOR ═════
                 Text(
                     text = "Difficulty Level",
                     fontSize = 12.sp,
@@ -340,7 +365,7 @@ private fun TaskGenerationContent(
 
                 Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
 
-                // ═════ PREFERENCES SELECTOR (NOW INTERACTIVE!) ═════
+                // ═════ PREFERENCES SELECTOR ═════
                 Text(
                     text = "Preferences (Multi-select)",
                     fontSize = 12.sp,
@@ -372,7 +397,7 @@ private fun TaskGenerationContent(
             tier = "FREE"
         )
 
-        // ──────── GENERATE BUTTON (NOW ENABLED!) ────────
+        // ──────── GENERATE BUTTON ────────
         Button(
             onClick = onGenerateClick,
             modifier = Modifier
@@ -914,6 +939,30 @@ private fun DifficultyChip(
             text = "$emoji $label",
             fontSize = 12.sp,
             modifier = Modifier.padding(10.dp, 6.dp),
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) Color.White else TextDark
+        )
+    }
+}
+
+@Composable
+private fun AgeChip(
+    label: String,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = if (isSelected) SecondaryOrange else Color(0xFFF0F0F0),
+        border = if (isSelected) BorderStroke(2.dp, SecondaryOrange) else null,
+        modifier = Modifier
+            .clickable { onClick() }
+            .animateContentSize()
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(12.dp, 6.dp),
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             color = if (isSelected) Color.White else TextDark
         )

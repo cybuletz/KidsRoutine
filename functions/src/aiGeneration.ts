@@ -145,105 +145,136 @@ export const generateTasksAI = functions.https.onCall(
         }
       }
 
-      // 4. GENERATE NEW TASKS (if no cache for today or all cached were used)
-      const themes = ["Space", "Jungle", "Dinosaurs", "Superheroes", "Robots", "Underwater", "Pirates", "Mountains", "Dragons", "Deep Sea"];
-      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+      // 4. DEFINE AGE-ADAPTIVE TONE AND EXAMPLES
+      let ageVibe = "";
+      let difficultyRange = "";
 
-      const systemPrompt = `You are a children's task generator for ages ${childAge}+.
-Generate a fun, engaging, PHYSICAL, and UNIQUE task that is age-appropriate and safe.
+      if (childAge < 7) {
+        ageVibe = "Imaginary, playful, silly, and fun. Use simple one-word action verbs.";
+        difficultyRange = "5-15 seconds, very simple movements";
+      } else if (childAge >= 7 && childAge < 13) {
+        ageVibe = "Skill-based, gamified, fun, and slightly competitive. Encourage mastery and progress.";
+        difficultyRange = "15-45 seconds, moderate physical effort";
+      } else {
+        ageVibe = "Fitness-focused, practical, life-skill oriented, and respectful of teen maturity. Avoid 'baby' language.";
+        difficultyRange = "30-60 seconds, challenging physical or mental effort";
+      }
 
-${preferences.length > 0 ? `⚠️ CATEGORY REQUIREMENT: Pick EXACTLY ONE from: ${preferences.join(", ")}` : ""}
+      // 5. GENERATE NEW TASKS (if no cache for today or all cached were used)
+      const minXP = childAge < 7 ? 10 : childAge < 13 ? 15 : 20;
+      const maxXP = childAge < 7 ? 25 : childAge < 13 ? 35 : 50;
 
-🚫 FORBIDDEN (CRITICAL - Do NOT suggest these):
-- No "Drawing," "Coloring," "Painting," or "Sketching."
-- No "Making a list," "Writing a story," or "Watching a video."
-- No generic "Play with [toy]" or "Read a book" tasks.
-- No activities that keep the child stationary for long periods.
+      const systemPrompt = `### ROLE: Task generator for age ${childAge}.
+### TONE: ${ageVibe} (${difficultyRange})
 
-✅ PRIORITY ACTIONS (Focus on these):
-- Sports/Physical: Balance, agility, speed, coordination, obstacle courses
-- Creativity: Building, acting, singing, inventing, problem-solving
-- Learning: Discovery, memory games, logic puzzles, scavenger hunts
-- Health: Movement, stretching, balance
-- Social: Games with others, helping tasks
-- Emotional: Physical expression, movement-based activities
-- Real Life: Practical chores with movement
+### CONSTRAINTS:
+- NO stationary: Drawing, coloring, painting, reading, watching, writing.
+- MUST be physical, action-focused, or a quick mental challenge.
+${preferences.length > 0 ? `- CATEGORY: Pick EXACTLY ONE from [${preferences.join(", ")}]` : ""}
 
-GOLD STANDARD EXAMPLES (Follow this level of specificity):
-- Theme: Space + Sports -> "🚀 Moon Jump Challenge: See how high you can jump 10 times"
-- Theme: Jungle + Creativity -> "🦁 Animal Charades: Act out 3 different jungle animals"
-- Theme: Robots + Learning -> "🤖 Binary Scavenger Hunt: Find 1 of something and 0 of something else"
-- Theme: Pirates + Sports -> "🏴‍☠️ Pirate Balance Walk: Walk heel-to-toe like a pirate on a plank"
-- Theme: Underwater + Health -> "🐠 Mermaid Stretches: Stretch like different ocean creatures"
-- Theme: Dinosaurs + Creativity -> "🦕 Dinosaur Stomp Dance: Create a stomp pattern and teach it to someone"
-
-TASK REQUIREMENTS:
-- Title: Short, fun, emoji-enabled, SPECIFIC, ACTION-FOCUSED, PHYSICAL
-- Description: Clear, child-friendly, under 100 chars
-- Duration: 5-60 seconds
-- Category: ${preferences.length > 0 ? `MUST be EXACTLY one of: ${preferences.join(" or ")}` : "Any appropriate category"}
-- Difficulty: EASY, MEDIUM, or HARD
-- Type: LOGIC, REAL_LIFE, CREATIVE, LEARNING, EMOTIONAL, CO_OP, or SOCIAL
-- XP Reward: 10-50
-
-${recentCompletions && recentCompletions.length > 0 ? `AVOID these recent tasks: ${recentCompletions.join(", ")}` : ""}
-
-Return ONLY valid JSON (no markdown):
+### JSON SCHEMA (Strict):
 {
-  "title": "string",
-  "description": "string",
-  "estimatedDurationSec": number,
-  "category": "string",
-  "difficulty": "string",
-  "xpReward": number,
-  "type": "string"
-}`;
+  "title": "Emoji + Short Action Title",
+  "description": "Max 60 chars. Clear, child-friendly instruction.",
+  "estimatedDurationSec": 5-60 (Integer),
+  "category": "MORNING_ROUTINE|HEALTH|LEARNING|CREATIVITY|SOCIAL|FAMILY|CHORES|OUTDOOR|SLEEP|SCREEN_TIME",
+  "difficulty": "EASY|MEDIUM|HARD",
+  "xpReward": ${minXP}-${maxXP} (Integer),
+  "type": "LOGIC|REAL_LIFE|CREATIVE|LEARNING|EMOTIONAL|CO_OP|SOCIAL"
+}
 
-      const userPrompt = `Generate ONE ${randomTheme}-themed task for a ${childAge}-year-old child.
-${preferences.length > 0 ? `STRICT REQUIREMENT: Category MUST be ${preferences.join(" or ")} - pick EXACTLY ONE of these, do not deviate.` : ""}
-Make it fun, specific, action-oriented, and PHYSICAL.
-Use an emoji in the title.
-DO NOT suggest drawing, coloring, painting, or any stationary activities.`;
+### EXAMPLE (Age ${childAge}):
+{"title": "🚀 Moon Jump", "description": "Jump as high as you can 10 times!", "estimatedDurationSec": 20, "category": "HEALTH", "difficulty": "EASY", "xpReward": 20, "type": "REAL_LIFE"}
 
-      // Generate 10 tasks per day (more variety, less repeats)
-      const tasksToGenerate = 10;
+### RECENT (AVOID): ${recentCompletions.slice(-5).join(", ")}`;
+
+      const themes = ["Space", "Jungle", "Dinosaurs", "Superheroes", "Robots", "Underwater", "Pirates", "Mountains", "Dragons", "Deep Sea"];
+      const tasksToGenerate = Math.min(count + 2, 5);
 
       for (let i = 0; i < tasksToGenerate; i++) {
+        const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+        const localUserPrompt = `Generate ONE ${randomTheme}-themed task.
+Mode: ${childAge < 7 ? "Playful" : childAge < 13 ? "Skill-based" : "Fitness/Practical"}.
+Return ONLY the JSON object.`;
+
         try {
-          const response = await callGemini(apiKey, systemPrompt, userPrompt);
+          const response = await callGemini(apiKey, systemPrompt, localUserPrompt);
 
           let jsonStr = response.trim();
 
-          if (!jsonStr.endsWith('}')) {
-            const openBraces = (jsonStr.match(/\{/g) || []).length;
-            const closeBraces = (jsonStr.match(/\}/g) || []).length;
+          // More robust regex to strip backticks and markdown code blocks
+          jsonStr = jsonStr.replace(/^```json\s*|```\s*$/gm, '');
+          jsonStr = jsonStr.replace(/^```\s*|```\s*$/gm, '');
 
-            if (openBraces > closeBraces) {
-              for (let j = 0; j < openBraces - closeBraces; j++) {
-                jsonStr += '}';
-              }
-            }
+          // Extract the JSON object if there's extra text outside braces
+          const firstBrace = jsonStr.indexOf('{');
+          const lastBrace = jsonStr.lastIndexOf('}');
+
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
           }
 
-          const task = JSON.parse(jsonStr);
+          console.log("[AIGeneration] After cleanup:", jsonStr.substring(0, 200));
+
+          // 🛡�� TRUNCATION GUARD - Check if JSON is complete
+          if (!jsonStr.trim().endsWith('}')) {
+            console.warn("[AIGeneration] Skipping attempt: JSON is incomplete/truncated.");
+            continue;
+          }
+
+          let task;
+          try {
+            task = JSON.parse(jsonStr);
+          } catch (parseError) {
+            console.error("[AIGeneration] JSON.parse failed:", (parseError as Error).message);
+            continue;
+          }
+
+          console.log("[AIGeneration] Parsed task:", JSON.stringify(task));
 
           if (!validateTaskSchema(task)) {
-            console.warn("[AIGeneration] Invalid task schema, skipping");
+            console.warn("[AIGeneration] Invalid task schema:", JSON.stringify(task));
             continue;
           }
 
           // ✅ VALIDATE PREFERENCES
-          if (preferences.length > 0 && !preferences.includes(task.category)) {
-            console.warn(`[AIGeneration] Task category "${task.category}" not in preferences ${preferences}, skipping`);
+          const validCategories = ["MORNING_ROUTINE", "HEALTH", "LEARNING", "CREATIVITY", "SOCIAL", "FAMILY", "CHORES", "OUTDOOR", "SLEEP", "SCREEN_TIME"];
+          const validTypes = ["LOGIC", "REAL_LIFE", "CREATIVE", "LEARNING", "EMOTIONAL", "CO_OP", "SOCIAL"];
+          const validDifficulties = ["EASY", "MEDIUM", "HARD"];
+
+          // Check if category is valid
+          if (!validCategories.includes(task.category)) {
+            console.warn(`[AIGeneration] Task category "${task.category}" is not valid.`);
             continue;
           }
 
+          // Check if type is valid
+          if (!validTypes.includes(task.type)) {
+            console.warn(`[AIGeneration] Task type "${task.type}" is not valid.`);
+            continue;
+          }
+
+          // Check if difficulty is valid
+          if (!validDifficulties.includes(task.difficulty)) {
+            console.warn(`[AIGeneration] Task difficulty "${task.difficulty}" is not valid.`);
+            continue;
+          }
+
+          // Check if category matches preferences (if preferences are set)
+          if (preferences.length > 0 && !preferences.includes(task.category)) {
+            console.warn(`[AIGeneration] Task category "${task.category}" not in preferences.`);
+            continue;
+          }
+
+          // Check safety
           const isSafe = await validateTaskSafety(task);
           if (!isSafe) {
-            console.warn("[AIGeneration] Task failed safety check, skipping");
+            console.warn("[AIGeneration] Task failed safety check:", task.title);
             continue;
           }
 
+          console.log("[AIGeneration] ✅ Valid task:", task.title);
           tasks.push(task);
 
           // Store in cache for today
@@ -261,18 +292,26 @@ DO NOT suggest drawing, coloring, painting, or any stationary activities.`;
             usageCount: 0,
           });
 
-          if (tasks.length >= 5) break; // Stop after 5 valid tasks found
+          if (tasks.length >= count + 1) break;
         } catch (e) {
-          console.error("[AIGeneration] Failed to parse task:", e);
+          console.error("[AIGeneration] Parse error (attempt ${i + 1}):", (e as Error).message);
           continue;
         }
       }
 
+      // Safety fallback
       if (tasks.length === 0) {
-        throw new functions.https.HttpsError(
-          "internal",
-          "Failed to generate valid tasks"
-        );
+        console.warn("[AIGeneration] No tasks generated, returning safety fallback.");
+        const fallback = {
+          title: "⚡ Quick Energy Blast",
+          description: "Do 10 high-knees as fast as a lightning bolt!",
+          estimatedDurationSec: 20,
+          category: "HEALTH",
+          difficulty: "EASY",
+          xpReward: 15,
+          type: "REAL_LIFE"
+        };
+        tasks.push(fallback);
       }
 
       // Return random task from generated set
@@ -288,6 +327,7 @@ DO NOT suggest drawing, coloring, painting, or any stationary activities.`;
         provider: "gemini",
         taskCount: 1,
         preferences: preferences,
+        childAge: childAge,
         timestamp: admin.firestore.Timestamp.now(),
       });
 
@@ -428,99 +468,121 @@ export const generateChallengesAI = functions.https.onCall(
         };
       }
 
-      // 4. GENERATE NEW CHALLENGES (if no cache for today)
+      // 4. DEFINE AGE-ADAPTIVE TONE AND EXAMPLES FOR CHALLENGES
+      let ageVibe = "";
+      let durationRange = "";
+
+      if (childAge < 7) {
+        ageVibe = "Playful, imaginative, short-term habits. Make it fun and achievable for little ones.";
+        durationRange = "3-7 days, very simple daily actions";
+      } else if (childAge >= 7 && childAge < 13) {
+        ageVibe = "Gamified, achievable, builds confidence. Make it feel like a quest or challenge.";
+        durationRange = "7-14 days, moderate daily effort";
+      } else {
+        ageVibe = "Mature, fitness-focused, habit-building. Make it feel empowering and results-oriented.";
+        durationRange = "14-30 days, sustained commitment";
+      }
+
+      // 5. GENERATE NEW CHALLENGES (if no cache for today)
       const themes = ["Space", "Jungle", "Dinosaurs", "Superheroes", "Robots", "Underwater", "Pirates", "Mountains", "Dragons"];
-      const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+      const challengesToGenerate = Math.min(count + 2, 5);
 
-      const systemPrompt = `You are a children's challenge (habit) generator for ages ${childAge}+.
-Generate a multi-day challenge that builds healthy habits and is ENGAGING and MOTIVATING.
+      const systemPrompt = `### ROLE: Habit-builder for age ${childAge}+.
+### TONE: ${ageVibe} (${durationRange})
 
-${goals.length > 0 ? `⚠️ CATEGORY REQUIREMENT: Pick EXACTLY ONE from: ${goals.join(", ")}` : ""}
+### CONSTRAINTS:
+- NO stationary: Drawing, reading, watching, or passive screen-time.
+- MUST be a daily, measurable habit (not a one-time task).
+${goals.length > 0 ? `- GOAL: Pick EXACTLY ONE from [${goals.join(", ")}]` : ""}
 
-🚫 FORBIDDEN (CRITICAL):
-- No stationary or passive activities.
-- No screen-time related challenges (unless SCREEN_TIME category selected).
-
-✅ PRIORITY ACTIONS:
-- Sleep: Bedtime routines with consistency
-- Health: Movement, nutrition, wellness
-- Learning: Reading, discovery, education
-- Social: Kindness, friendship, helping
-- Creativity: Art, music, inventing
-- Screen Time: Digital limits
-
-CHALLENGE EXAMPLES:
-SLEEP: "🌙 Bedtime Champion: In Bed Before 9 PM", "😴 Sleep Hero: 8 Hours Every Night"
-HEALTH: "💪 Movement Master: 10 Mins Exercise Daily", "🥗 Veggie Explorer: Try New Vegetables"
-LEARNING: "📚 Page Turner: Read 20+ Pages Daily", "🧠 Brain Booster: Learn One New Thing Daily"
-SOCIAL: "🤝 Kindness Quest: One Good Deed Daily", "👥 Friendship Champion: Call a Friend Weekly"
-CREATIVITY: "🎨 Artist's Week: Create Art Daily", "🎵 Music Maker: Learn One Song"
-SCREEN_TIME: "🎮 Screen Time Boss: 1 Hour Max Daily", "📱 Digital Detox: Phone-Free Meals"
-
-CHALLENGE REQUIREMENTS:
-- Title: Short, motivating (under 50 chars), SPECIFIC
-- Description: Clear, achievable (under 100 chars)
-- Duration: 3-30 days (age-appropriate)
-- Category: ${goals.length > 0 ? `MUST be EXACTLY one of: ${goals.join(" or ")}` : "SLEEP, SCREEN_TIME, HEALTH, SOCIAL, LEARNING, CREATIVITY"}
-- Success condition: Clear, measurable per day
-
-Return ONLY valid JSON (no markdown):
+### JSON SCHEMA (Strict):
 {
-  "title": "string",
-  "description": "string",
-  "durationDays": number,
-  "category": "string",
-  "successCondition": "string"
-}`;
+  "title": "Emoji + Theme Title",
+  "description": "Max 80 chars. Motivate the habit.",
+  "durationDays": ${childAge < 7 ? "3-7" : childAge < 13 ? "7-14" : "14-30"} (Integer),
+  "category": "HEALTH|SLEEP|SOCIAL|CREATIVITY|LEARNING|SCREEN_TIME",
+  "successCondition": "Specific daily action (e.g. 'Do 10 push-ups' NOT 'exercise')"
+}
 
-      const userPrompt = `Generate ONE ${randomTheme}-themed habit-building challenge for a ${childAge}-year-old.
-${goals.length > 0 ? `STRICT REQUIREMENT: Category MUST be ${goals.join(" or ")} - pick EXACTLY ONE of these, do not deviate.` : ""}
-Make it motivating and achievable.
-Create a SPECIFIC title clearly showing what habit to build.
-Include an emoji in the title.
-Success condition must be specific and measurable.`;
-
-      // Generate 10 challenges per day (more variety, less repeats)
-      const challengesToGenerate = 10;
+### EXAMPLE (Age ${childAge}):
+{"title": "🚀 Galaxy Sleeper", "description": "Power up like a star with 8 hours of sleep!", "durationDays": 7, "category": "SLEEP", "successCondition": "Be in bed with lights out by 9:00 PM."}`;
 
       for (let i = 0; i < challengesToGenerate; i++) {
+        const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+
+        const localUserPrompt = `Generate ONE ${randomTheme}-themed challenge for a ${childAge}-year-old.
+Theme: ${randomTheme}.
+Vibe: ${childAge < 7 ? "Playful" : childAge < 13 ? "Quest-like" : "Achievement-oriented"}.
+Return ONLY the JSON object.`;
+
         try {
-          const response = await callGemini(apiKey, systemPrompt, userPrompt);
+          const response = await callGemini(apiKey, systemPrompt, localUserPrompt);
 
           let jsonStr = response.trim();
 
-          if (!jsonStr.endsWith('}')) {
-            const openBraces = (jsonStr.match(/\{/g) || []).length;
-            const closeBraces = (jsonStr.match(/\}/g) || []).length;
+          // More robust regex to strip backticks and markdown code blocks
+          jsonStr = jsonStr.replace(/^```json\s*|```\s*$/gm, '');
+          jsonStr = jsonStr.replace(/^```\s*|```\s*$/gm, '');
 
-            if (openBraces > closeBraces) {
-              for (let j = 0; j < openBraces - closeBraces; j++) {
-                jsonStr += '}';
-              }
-            }
+          // Extract the JSON object if there's extra text outside braces
+          const firstBrace = jsonStr.indexOf('{');
+          const lastBrace = jsonStr.lastIndexOf('}');
+
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
           }
 
-          const challenge = JSON.parse(jsonStr);
+          console.log("[AIGeneration] After cleanup:", jsonStr.substring(0, 200));
+
+          // 🛡️ TRUNCATION GUARD
+          if (!jsonStr.trim().endsWith('}')) {
+            console.warn("[AIGeneration] Skipping attempt: JSON is incomplete/truncated.");
+            continue;
+          }
+
+          let challenge;
+          try {
+            challenge = JSON.parse(jsonStr);
+          } catch (parseError) {
+            console.error("[AIGeneration] JSON.parse failed:", (parseError as Error).message);
+            continue;
+          }
+
+          console.log("[AIGeneration] Parsed challenge:", JSON.stringify(challenge));
 
           if (!validateChallengeSchema(challenge)) {
-            console.warn("[AIGeneration] Invalid challenge schema, skipping");
+            console.warn("[AIGeneration] Invalid challenge schema:", JSON.stringify(challenge));
             continue;
           }
 
           // ✅ VALIDATE GOALS
+          const validCategories = ["HEALTH", "SLEEP", "SOCIAL", "CREATIVITY", "LEARNING", "SCREEN_TIME"];
+
+          // Check if category is valid
+          if (!validCategories.includes(challenge.category)) {
+            console.warn(`[AIGeneration] Challenge category "${challenge.category}" is not valid.`);
+            continue;
+          }
+
+          // Check if category matches goals (if goals are set)
           if (goals.length > 0 && !goals.includes(challenge.category)) {
-            console.warn(`[AIGeneration] Challenge category "${challenge.category}" not in goals ${goals}, skipping`);
+            console.warn(`[AIGeneration] Challenge category "${challenge.category}" not in goals.`);
+            continue;
+          }
+
+          // Check if duration is valid
+          if (typeof challenge.durationDays !== "number" || challenge.durationDays < 3 || challenge.durationDays > 30) {
+            console.warn(`[AIGeneration] Challenge duration ${challenge.durationDays} is not valid.`);
             continue;
           }
 
           const isSafe = await validateChallengeSafety(challenge);
           if (!isSafe) {
-            console.warn(
-              "[AIGeneration] Challenge failed safety check, skipping"
-            );
+            console.warn("[AIGeneration] Challenge failed safety check:", challenge.title);
             continue;
           }
 
+          console.log("[AIGeneration] ✅ Valid challenge:", challenge.title);
           challenges.push(challenge);
 
           // Store in cache for today
@@ -538,21 +600,24 @@ Success condition must be specific and measurable.`;
             usageCount: 0,
           });
 
-          if (challenges.length >= 5) break; // Stop after 5 valid challenges found
+          if (challenges.length >= count + 1) break;
         } catch (e) {
-          console.error(
-            "[AIGeneration] Failed to parse challenge:",
-            e
-          );
+          console.error("[AIGeneration] Parse error (attempt ${i + 1}):", (e as Error).message);
           continue;
         }
       }
 
+      // Safety fallback
       if (challenges.length === 0) {
-        throw new functions.https.HttpsError(
-          "internal",
-          "Failed to generate valid challenges"
-        );
+        console.warn("[AIGeneration] Challenge loop failed, using fallback.");
+        const fallback = {
+          title: "🌟 7-Day Star Power",
+          description: "Build your energy by trying one new fruit or veggie every day!",
+          durationDays: 7,
+          category: "HEALTH",
+          successCondition: "Eat at least one serving of a fruit or vegetable you haven't had today."
+        };
+        challenges.push(fallback);
       }
 
       // Return random challenge from generated set
@@ -568,6 +633,7 @@ Success condition must be specific and measurable.`;
         provider: "gemini",
         count: 1,
         goals: goals,
+        childAge: childAge,
         timestamp: admin.firestore.Timestamp.now(),
       });
 
@@ -600,21 +666,22 @@ async function callGemini(
 ): Promise<string> {
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         system_instruction: {
           parts: [{ text: systemPrompt }]
         },
         contents: [
           {
+            role: "user",
             parts: [{ text: userPrompt }]
           }
         ],
         generationConfig: {
           maxOutputTokens: 500,
-          temperature: 0.9,
-          topP: 0.95,
-          responseMimeType: "application/json",
+          temperature: 0.7,
+          topP: 1.0,
+          response_mime_type: "application/json",
         },
         safetySettings: [
           {
@@ -629,15 +696,18 @@ async function callGemini(
       },
       {
         headers: { "Content-Type": "application/json" },
-        timeout: 30000,
+        timeout: 20000,
       }
     );
 
-    const parts = response.data.candidates?.[0]?.content?.parts || [];
-    return parts.map((p: any) => p.text || "").join("");
+    const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    console.log(`[DEBUG] Received ${text.length} chars: ${text}`);
+
+    return text;
   } catch (err: any) {
-    console.error("Gemini error:", err.response?.data || err.message);
-    throw new Error("AI generation failed");
+    console.error("Gemini API Error:", err.response?.data || err.message);
+    throw new Error("AI failed to return content");
   }
 }
 
