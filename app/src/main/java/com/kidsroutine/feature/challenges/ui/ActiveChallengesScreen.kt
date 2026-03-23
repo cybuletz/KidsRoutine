@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.ChallengeModel
 import com.kidsroutine.core.model.ChallengeProgress
 import com.kidsroutine.core.model.UserModel
+import com.kidsroutine.feature.tasks.ui.ChildItemViewModel
 
 private val GradientStart = Color(0xFF6C5CE7)
 private val GradientEnd = Color(0xFFA29BFE)
@@ -35,12 +36,18 @@ fun ActiveChallengesScreen(
     onBackClick: () -> Unit,
     onStartChallengeClick: () -> Unit,
     onChallengeClick: (ChallengeModel) -> Unit,
-    viewModel: ActiveChallengesViewModel = hiltViewModel()
+    viewModel: ActiveChallengesViewModel = hiltViewModel(),
+    childItemViewModel: ChildItemViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(currentUser.userId) {
         viewModel.loadActiveChallenges(currentUser.userId)
+
+        //  Set up real-time challenge listener
+        if (currentUser.userId.isNotEmpty() && currentUser.familyId.isNotEmpty()) {
+            childItemViewModel.loadChildItems(currentUser.userId, currentUser.familyId)
+        }
     }
 
     Box(

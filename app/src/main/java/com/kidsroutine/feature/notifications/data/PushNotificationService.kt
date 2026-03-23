@@ -13,6 +13,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.kidsroutine.core.model.AppNotification
 import com.kidsroutine.core.model.NotificationType
+import com.kidsroutine.feature.tasks.ui.RefreshEventManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +33,9 @@ class PushNotificationService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         Log.d(TAG, "Refreshed token: $token")
 
-        // Subscribe to topic
         FirebaseMessaging.getInstance().subscribeToTopic("all_users")
         Log.d(TAG, "Subscribed to all_users topic")
 
-        // Save token to Firestore
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             FirebaseFirestore.getInstance()
@@ -55,7 +54,6 @@ class PushNotificationService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Message received from: ${remoteMessage.from}")
 
-        // Check if message contains a notification payload
         remoteMessage.notification?.let {
             Log.d(TAG, "Message Notification Body: ${it.body}")
 
@@ -64,8 +62,8 @@ class PushNotificationService : FirebaseMessagingService() {
             val type = remoteMessage.data["type"] ?: "TASK_REMINDER"
             val userId = remoteMessage.data["userId"] ?: ""
             val icon = remoteMessage.data["icon"] ?: "🔔"
+            val refreshTrigger = remoteMessage.data["refreshTrigger"] ?: "false"
 
-            // Create notification object
             val notification = AppNotification(
                 id = java.util.UUID.randomUUID().toString(),
                 userId = userId,
@@ -82,7 +80,6 @@ class PushNotificationService : FirebaseMessagingService() {
                 createdAt = System.currentTimeMillis()
             )
 
-            // Save to database
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     notificationRepository.saveNotification(notification)
@@ -92,11 +89,17 @@ class PushNotificationService : FirebaseMessagingService() {
                 }
             }
 
-            // Show system notification
+            // ← NEW: Trigger refresh if this is a task/challenge assignment
+            if (refreshTrigger == "true" && (type.contains("ASSIGNED") || type.contains("TASK") || type.contains("CHALLENGE"))) {
+                Log.d(TAG, "Triggering UI refresh for notification type: $type")
+                CoroutineScope(Dispatchers.Default).launch {
+                    RefreshEventManager.triggerRefresh()
+                }
+            }
+
             showNotification(title, body, icon)
         }
 
-        // Check if message contains a data payload
         if (remoteMessage.data.isNotEmpty()) {
             Log.d(TAG, "Message data payload: ${remoteMessage.data}")
         }

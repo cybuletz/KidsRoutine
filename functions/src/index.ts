@@ -6,7 +6,7 @@ admin.initializeApp();
 
 // ✅ NOW import modules that need Firebase
 import * as aiGeneration from "./aiGeneration";
-import * as firebaseSetup from "./setupFirestore";
+//import * as firebaseSetup from "./setupFirestore";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -405,5 +405,145 @@ export const notifyFamilyMemberAdded = functions.firestore
       }
     } catch (error) {
       console.error("[Family Member] Error:", error);
+    }
+  });
+
+// ===== TASK ASSIGNMENT NOTIFICATIONS =====
+
+export const notifyTaskAssignment = functions.firestore
+  .document("taskAssignments/{docId}")
+  .onCreate(async (snap: any, context: any) => {
+    const assignment = snap.data();
+    const childId = assignment.childId;
+    const taskId = assignment.taskId;
+    const familyId = assignment.familyId;
+
+    console.log(`[Task Assignment] Task assigned to child: ${childId}`);
+
+    try {
+      // Get task details
+      const taskDoc = await db.collection("tasks").doc(taskId).get();
+      if (!taskDoc.exists) {
+        console.log(`[Task Assignment] Task not found: ${taskId}`);
+        return;
+      }
+      const task = taskDoc.data();
+
+      // ✅ ADD THIS CHECK
+      if (!task) {
+        console.log(`[Task Assignment] Task data is empty: ${taskId}`);
+        return;
+      }
+
+      // Get child's FCM token
+      const childDoc = await db.collection("users").doc(childId).get();
+      if (!childDoc.exists) {
+        console.log(`[Task Assignment] Child not found: ${childId}`);
+        return;
+      }
+
+      const fcmToken = childDoc.data()?.fcmToken;
+      if (!fcmToken) {
+        console.log(`[Task Assignment] No FCM token for child: ${childId}`);
+        return;
+      }
+
+      // Send notification to child
+      await messaging.send({
+        token: fcmToken,
+        notification: {
+          title: `📋 New Task: ${task.title}`,
+          body: task.description || "A new task has been assigned to you",
+        },
+        data: {
+          type: "TASK_ASSIGNED",
+          userId: childId,
+          taskId: taskId,
+          icon: "✨",
+          refreshTrigger: "true"
+        },
+        android: {
+          priority: "high",
+        },
+      });
+
+      console.log(`[Task Assignment] Notification sent to child: ${childId}`);
+    } catch (error: any) {
+      if (error?.code === "messaging/registration-token-not-registered") {
+        console.log(`[Task Assignment] Invalid token for child: ${childId}`);
+        await db.collection("users").doc(childId).update({ fcmToken: "" });
+      } else {
+        console.error(`[Task Assignment] Error:`, error);
+      }
+    }
+  });
+
+// ===== CHALLENGE ASSIGNMENT NOTIFICATIONS =====
+
+export const notifyChallengeAssignment = functions.firestore
+  .document("challengeAssignments/{docId}")
+  .onCreate(async (snap: any, context: any) => {
+    const assignment = snap.data();
+    const childId = assignment.childId;
+    const challengeId = assignment.challengeId;
+    const familyId = assignment.familyId;
+
+    console.log(`[Challenge Assignment] Challenge assigned to child: ${childId}`);
+
+    try {
+      // Get challenge details
+      const challengeDoc = await db.collection("challenges").doc(challengeId).get();
+      if (!challengeDoc.exists) {
+        console.log(`[Challenge Assignment] Challenge not found: ${challengeId}`);
+        return;
+      }
+      const challenge = challengeDoc.data();
+
+      // ✅ ADD THIS CHECK
+      if (!challenge) {
+        console.log(`[Challenge Assignment] Challenge data is empty: ${challengeId}`);
+        return;
+      }
+
+      // Get child's FCM token
+      const childDoc = await db.collection("users").doc(childId).get();
+      if (!childDoc.exists) {
+        console.log(`[Challenge Assignment] Child not found: ${childId}`);
+        return;
+      }
+
+      const fcmToken = childDoc.data()?.fcmToken;
+      if (!fcmToken) {
+        console.log(`[Challenge Assignment] No FCM token for child: ${childId}`);
+        return;
+      }
+
+      // Send notification to child
+      await messaging.send({
+        token: fcmToken,
+        notification: {
+          title: `🏆 New Challenge: ${challenge.title}`,
+          body: challenge.description || "A new challenge has been assigned to you",
+        },
+        data: {
+          type: "CHALLENGE_ASSIGNED",
+          userId: childId,
+          challengeId: challengeId,
+          icon: "🎯",
+          refreshTrigger: "true"
+        },
+        android: {
+          priority: "high",
+        },
+      });
+
+      console.log(`[Challenge Assignment] Notification sent to child: ${childId}`);
+    } catch (error: any) {
+      if (error?.code === "messaging/registration-token-not-registered") {
+        console.log(`[Challenge Assignment] Invalid token for child: ${childId}`);
+        await db.collection("users").doc(childId).update({ fcmToken: "" });
+      } else {
+        console.error(`[Challenge Assignment] Error:`, error);
+      }
     }
   });

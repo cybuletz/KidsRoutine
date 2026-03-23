@@ -304,6 +304,8 @@ fun SelectChildrenScreen(
 
                                 selectedChildrenIds.forEach { childId ->
                                     val taskAssignmentId = "${childId}_${taskId}_${System.currentTimeMillis()}"
+
+                                    // Create task assignment (Cloud Function will send notification automatically)
                                     firestore.collection("taskAssignments").document(taskAssignmentId).set(
                                         mapOf(
                                             "taskId" to taskId,
@@ -314,6 +316,8 @@ fun SelectChildrenScreen(
                                             "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
                                         )
                                     ).await()
+
+                                    Log.d("SelectChildren", "Task assignment created for child: $childId (Cloud Function will notify)")
                                 }
 
                                 isSaving = false
