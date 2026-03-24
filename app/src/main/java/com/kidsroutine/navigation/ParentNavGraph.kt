@@ -41,6 +41,9 @@ import com.kidsroutine.feature.billing.ContentPacksScreen
 import com.kidsroutine.feature.billing.UpgradeScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.EntitlementsRepository
+import androidx.compose.runtime.collectAsState
+import com.kidsroutine.feature.billing.ContentPacksViewModel
+import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
 
 fun NavGraphBuilder.parentNavGraph(
@@ -71,6 +74,8 @@ fun NavGraphBuilder.parentNavGraph(
                 onWeeklyPlanClick = { navController.navigate(Routes.WEEKLY_PLAN) },
                 onUpgradeClick      = { navController.navigate(Routes.UPGRADE) },
                 onContentPacksClick = { navController.navigate(Routes.CONTENT_PACKS) },
+                onNotificationsClick    = { navController.navigate(Routes.NOTIFICATIONS) },
+                unreadNotificationCount = notifState.unreadCount,
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -259,6 +264,13 @@ fun NavGraphBuilder.parentNavGraph(
         // Stats Screen - Parent can view their own stats
         composable(Routes.PARENT_STATS) {
             StatsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

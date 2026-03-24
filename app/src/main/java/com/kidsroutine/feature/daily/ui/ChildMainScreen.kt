@@ -35,7 +35,9 @@ import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kidsroutine.feature.moments.ui.MomentsScreen
+import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight = Color(0xFFFFFBF0)
@@ -87,6 +89,13 @@ fun ChildMainScreen(
 ) {
     val innerNavController = rememberNavController()
     var currentRoute by remember { mutableStateOf("daily") }
+
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val notificationUiState by notificationViewModel.uiState.collectAsState()
+
+    LaunchedEffect(currentUser.userId) {
+        notificationViewModel.loadNotifications(currentUser.userId)
+    }
 
     // Seasonal banner — visible at the very top when on the daily tab
     val themeManager = remember { SeasonalThemeManager() }
@@ -176,7 +185,9 @@ fun ChildMainScreen(
             onWorldClick        = { innerNavController.navigate("world") { popUpTo("daily") } },
             onAchievementsClick = { innerNavController.navigate("achievements") { popUpTo("daily") } },
             onMomentsClick      = { innerNavController.navigate("moments") { popUpTo("daily") } },
-            onChatClick         = onFamilyMessagingClick
+            onChatClick         = onFamilyMessagingClick,
+            unreadNotificationCount  = notificationUiState.unreadCount,
+            onNotificationsClick     = { parentNavController.navigate(Routes.NOTIFICATIONS) } 
         )
     }
 }
@@ -221,6 +232,7 @@ fun SeasonalBanner(
 
 // ── Nav bar ───────────────────────────────────────────────────────────────────
 @Composable
+@Composable
 private fun PersistentNavBar(
     currentRoute: String,
     currentUser: UserModel,
@@ -231,6 +243,8 @@ private fun PersistentNavBar(
     onAchievementsClick: () -> Unit,
     onMomentsClick: () -> Unit,
     onChatClick: () -> Unit,
+    unreadNotificationCount: Int = 0,
+    onNotificationsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -285,6 +299,38 @@ private fun PersistentNavBar(
                     onClick    = onMomentsClick,
                     modifier   = Modifier.weight(1f)
                 )
+
+                Box(modifier = Modifier.weight(1f)) {
+                    NavBarItemButton(
+                        icon       = Icons.Default.Notifications,
+                        label      = "Alerts",
+                        isSelected = currentRoute == "notifications",
+                        onClick    = onNotificationsClick
+                    )
+                    if (unreadNotificationCount > 0) {
+                        Surface(
+                            shape    = CircleShape,
+                            color    = Color(0xFFFF6B35),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-4).dp, y = 4.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier         = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text       = if (unreadNotificationCount > 9) "9+" else "$unreadNotificationCount",
+                                    color      = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize   = 8.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Achievements with badge
                 Box(modifier = Modifier.weight(1f)) {
                     NavBarItemButton(

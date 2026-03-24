@@ -60,6 +60,8 @@ fun ParentDashboardScreen(
     onGenerationClick: () -> Unit,
     onWeeklyPlanClick: () -> Unit,
     onUpgradeClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    unreadNotificationCount: Int = 0,
     onContentPacksClick: () -> Unit = {},
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
@@ -140,6 +142,40 @@ fun ParentDashboardScreen(
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick  = onNotificationsClick,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint     = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        if (unreadNotificationCount > 0) {
+                            Surface(
+                                shape    = CircleShape,
+                                color    = Color(0xFFFF6B35),
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .align(Alignment.TopEnd)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Text(
+                                        text       = if (unreadNotificationCount > 9) "9+" else "$unreadNotificationCount",
+                                        color      = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize   = 8.sp
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     // Settings Button

@@ -4,6 +4,7 @@ import android.app.Activity
 import com.kidsroutine.core.model.EntitlementsRepository
 import com.kidsroutine.core.model.PlanType
 import com.kidsroutine.core.model.UserEntitlements
+import com.kidsroutine.core.model.defaultEntitlements
 import javax.inject.Inject
 import javax.inject.Singleton
 

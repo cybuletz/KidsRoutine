@@ -555,3 +555,109 @@ export const notifyChallengeAssignment = functions.firestore
       }
     }
   });
+
+// ===== SCHEDULED LEADERBOARD SNAPSHOT COMPUTATION =====
+// Runs every 6 hours — pre-computes global leaderboard snapshots
+
+export const computeLeaderboardSnapshots = functions.pubsub
+  .schedule("every 6 hours")
+  .onRun(async (_context) => {
+    console.log("[Leaderboard] Computing snapshots...");
+
+    try {
+      // ── Children ──────────────────────────────────────────────────────
+      const childSnap = await db.collection("users")
+        .orderBy("xp", "desc")
+        .limit(100)
+        .get();
+
+      const childEntries = childSnap.docs.map((doc, index) => ({
+        rank:        index + 1,
+        userId:      doc.id,
+        displayName: doc.data().displayName ?? "Unknown",
+        familyId:    doc.data().familyId    ?? "",
+        avatarUrl:   doc.data().avatarUrl   ?? "",
+        xp:          doc.data().xp          ?? 0,
+        level:       doc.data().level       ?? 1,
+        streak:      doc.data().streak      ?? 0,
+        badges:      (doc.data().badges as any[])?.length ?? 0,
+      }));
+
+      await db.collection("leaderboard_snapshots").doc("children").set({
+        entries:    childEntries,
+        computedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // ── Families ──────────────────────────────────────────────────────
+      const familySnap = await db.collection("families")
+        .orderBy("familyStreak", "desc")
+        .limit(50)
+        .get();
+
+      const familyEntries = familySnap.docs.map((doc, index) => ({
+        rank:        index + 1,
+        familyId:    doc.id,
+        familyName:  doc.data().familyName  ?? "Unknown Family",
+        streak:      doc.data().familyStreak ?? 0,
+        familyXp:    doc.data().familyXp    ?? 0,
+        memberCount: (doc.data().memberIds as any[])?.length ?? 0,
+      }));
+
+      await db.collection("leaderboard_snapshots").doc("families").set({
+        entries:    familyEntries,
+        computedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // ── Challenges ────────────────────────────────────────────────────
+      const progressSnap = await db.collectionGroup("challenge_progress")
+        .whereEqualTo("status", "COMPLETED")
+        .get();
+
+      const challengeStats: Record<string, { count: number; days: number[] }> = {};
+      progressSnap.docs.forEach((doc) => {
+        const cid = doc.data().challengeId;
+        if (!cid) return;
+        if (!challengeStats[cid]) challengeStats[cid] = { count: 0, days: [] };
+        challengeStats[cid].count++;
+        if (doc.data().totalDays) challengeStats[cid].days.push(doc.data().totalDays);
+      });
+
+      const challengeEntries = await Promise.all(
+        Object.entries(challengeStats)
+          .sort(([, a], [, b]) => b.count - a.count)
+          .slice(0, 50)
+          .map(async ([challengeId, stats], index) => {
+            let title = "Unknown Challenge";
+            try {
+              const docs = await db.collectionGroup("challenges")
+                .whereEqualTo("challengeId", challengeId)
+                .limit(1)
+                .get();
+              if (!docs.empty) title = docs.docs[0].data().title ?? title;
+            } catch (_) {}
+            return {
+              rank:                 index + 1,
+              challengeId,
+              title,
+              completions:          stats.count,
+              averageCompletionDays: stats.days.length
+                ? stats.days.reduce((a, b) => a + b, 0) / stats.days.length
+                : 0,
+            };
+          })
+      );
+
+      await db.collection("leaderboard_snapshots").doc("challenges").set({
+        entries:    challengeEntries,
+        computedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log(
+        `[Leaderboard] ✅ Snapshots written — ` +
+        `${childEntries.length} children, ${familyEntries.length} families, ` +
+        `${challengeEntries.length} challenges`
+      );
+    } catch (error) {
+      console.error("[Leaderboard] ❌ Error computing snapshots:", error);
+    }
+  });

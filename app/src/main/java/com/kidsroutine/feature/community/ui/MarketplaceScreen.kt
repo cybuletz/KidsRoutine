@@ -346,15 +346,15 @@ private fun TaskMarketplaceCard(
             contentId = task.taskId,
             contentType = "task",
             onRate = { rating, review ->
-                // Submit rating
-                val userRating = UserRating(
-                    userId = currentUser.userId,
-                    contentId = task.taskId,
-                    contentType = "task",
-                    rating = rating,
-                    review = review
+                viewModel.rateContent(
+                    UserRating(
+                        userId      = currentUser.userId,
+                        contentId   = task.taskId,
+                        contentType = "task",
+                        rating      = rating,
+                        review      = review
+                    )
                 )
-                // TODO: Call viewModel to submit rating
                 showRatingDialog = false
             },
             onDismiss = { showRatingDialog = false }

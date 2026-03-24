@@ -135,6 +135,24 @@ class MarketplaceViewModel @Inject constructor(
         }
     }
 
+    fun rateContent(rating: UserRating) {
+        Log.d("MarketplaceVM", "Rating content: ${rating.contentId} with ${rating.rating} stars")
+        viewModelScope.launch {
+            try {
+                communityRepository.rateContent(rating)
+                _uiState.value = _uiState.value.copy(
+                    successMessage = "⭐ Thanks for your rating!"
+                )
+                Log.d("MarketplaceVM", "Rating submitted successfully")
+            } catch (e: Exception) {
+                Log.e("MarketplaceVM", "Error submitting rating", e)
+                _uiState.value = _uiState.value.copy(
+                    error = "Failed to submit rating"
+                )
+            }
+        }
+    }
+
     fun reportContent(report: ContentReport) {
         Log.d("MarketplaceVM", "Reporting content: ${report.contentId}")
         _uiState.value = _uiState.value.copy(isImporting = true)
