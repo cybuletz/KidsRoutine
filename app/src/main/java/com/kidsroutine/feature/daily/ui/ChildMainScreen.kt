@@ -103,16 +103,6 @@ fun ChildMainScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // ── Seasonal banner — shown above the NavHost when on "daily" tab ──
-        if (currentRoute == "daily") {
-            SeasonalBanner(
-                themeManager = themeManager,
-                modifier     = Modifier
-                    .align(Alignment.TopCenter)
-                    .zIndex(5f)
-            )
-        }
-
         // ── Navigation content ────────────────────────────────────────────
         NavHost(
             navController    = innerNavController,
@@ -249,7 +239,7 @@ private fun PersistentNavBar(
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        // ✅ CLEAN, PROFESSIONAL NAVBAR - NO ALERTS
+        // ✅ PROFESSIONAL NAVBAR - BIGGER, CLEANER
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -261,8 +251,8 @@ private fun PersistentNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
-                    .padding(horizontal = 0.dp, vertical = 0.dp),  // ← CHANGED from 4.dp to 0.dp
+                    .height(72.dp)  // ← INCREASED from 60.dp
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(0.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -306,26 +296,24 @@ private fun PersistentNavBar(
                         icon = Icons.Default.Star,
                         label = "Badges",
                         isSelected = currentRoute == "achievements",
-                        onClick = onAchievementsClick
+                        onClick = onAchievementsClick,
+                        modifier = Modifier.fillMaxHeight()
                     )
                     if (currentUser.badges.isNotEmpty()) {
                         Surface(
                             shape = CircleShape,
                             color = OrangePrimary,
                             modifier = Modifier
-                                .size(18.dp)
+                                .size(20.dp)
                                 .align(Alignment.TopEnd)
                                 .offset(x = (-4).dp, y = 4.dp)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                 Text(
                                     text = "${currentUser.badges.size}",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
+                                    fontSize = 10.sp
                                 )
                             }
                         }
@@ -338,7 +326,7 @@ private fun PersistentNavBar(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = (-16).dp, y = (-78).dp)
+                .offset(x = (-16).dp, y = (-90).dp)  // ← ADJUSTED for taller navbar
                 .zIndex(10f)
                 .navigationBarsPadding()
         ) {
@@ -380,23 +368,22 @@ private fun NavBarItemButton(
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .fillMaxHeight()
-            .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
+            .padding(horizontal = 0.dp, vertical = 4.dp)  // ← Equal padding
     ) {
         Icon(
             icon,
             contentDescription = label,
-            tint     = if (isSelected) OrangePrimary else Color.Gray,
-            modifier = Modifier.size(24.dp)
+            tint = if (isSelected) OrangePrimary else Color.Gray,
+            modifier = Modifier.size(28.dp)  // ← Increased from 24.dp
         )
         Text(
-            text       = label,
-            fontSize   = 9.sp,
+            text = label,
+            fontSize = 10.sp,  // ← Slightly larger
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color      = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis,
-            lineHeight = 10.sp
+            color = if (isSelected) OrangePrimary else Color.Gray,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

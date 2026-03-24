@@ -36,6 +36,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import com.kidsroutine.core.model.StoryArc
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
+import com.kidsroutine.core.engine.SeasonalThemeManager
 
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
@@ -106,25 +107,31 @@ private fun DailyContent(
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onNotificationsClick: () -> Unit
-    // NOTE: uiState already contains activeStoryArc — no new param needed
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { DailyHeader(uiState, onProfileClick, onNotificationsClick = onNotificationsClick) }
+            // ✅ SIMPLE: Just the header
+            item {
+                DailyHeader(
+                    uiState = uiState,
+                    onProfileClick = onProfileClick,
+                    onNotificationsClick = onNotificationsClick
+                )
+            }
+
             item { ProgressSection(uiState.dailyState, uiState.currentUser) }
+
             item {
                 val arc = uiState.activeStoryArc
                 if (arc != null && !arc.isComplete) {
                     StoryArcBannerCard(arc = arc)
                 }
             }
+
             item {
                 Text(
                     text = "Today's Tasks",
@@ -133,6 +140,7 @@ private fun DailyContent(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
+
             items(
                 items = uiState.dailyState.tasks,
                 key = { it.instanceId }
@@ -144,7 +152,7 @@ private fun DailyContent(
             }
         }
 
-        // Chat Bubble - ABOVE nav bar
+        // Chat Bubble
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -152,9 +160,7 @@ private fun DailyContent(
                 .zIndex(10f)
                 .navigationBarsPadding()
         ) {
-            ChatBubbleButton(
-                onClick = onFamilyMessagingClick
-            )
+            ChatBubbleButton(onClick = onFamilyMessagingClick)
         }
 
         // Bottom Navigation Bar
@@ -170,8 +176,8 @@ private fun DailyContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .padding(horizontal = 8.dp, vertical = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 0.dp, vertical = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 NavItemButton(
@@ -181,7 +187,6 @@ private fun DailyContent(
                     onClick = { },
                     modifier = Modifier.weight(1f)
                 )
-
                 NavItemButton(
                     icon = Icons.Default.EmojiEvents,
                     label = "Challenges",
@@ -189,7 +194,6 @@ private fun DailyContent(
                     onClick = onChallengesClick,
                     modifier = Modifier.weight(1f)
                 )
-
                 NavItemButton(
                     icon = Icons.Default.BarChart,
                     label = "Leaderboard",
@@ -197,7 +201,24 @@ private fun DailyContent(
                     onClick = onStatsClick,
                     modifier = Modifier.weight(1f)
                 )
-
+                Box(modifier = Modifier.weight(1f)) {
+                    NavItemButton(
+                        icon = Icons.Default.Language,
+                        label = "World",
+                        isSelected = false,
+                        onClick = { /* handle world nav */ },
+                        modifier = Modifier.fillMaxHeight()
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    NavItemButton(
+                        icon = Icons.Default.PhotoAlbum,
+                        label = "Moments",
+                        isSelected = false,
+                        onClick = { /* handle moments */ },
+                        modifier = Modifier.fillMaxHeight()
+                    )
+                }
                 Box(modifier = Modifier.weight(1f)) {
                     NavItemButton(
                         icon = Icons.Default.EmojiEvents,
@@ -214,10 +235,7 @@ private fun DailyContent(
                                 .align(Alignment.TopEnd)
                                 .offset(x = (-4).dp, y = 4.dp)
                         ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                 Text(
                                     text = "${uiState.currentUser.badges.size}",
                                     color = Color.White,
@@ -301,41 +319,68 @@ private fun NavItemButton(
 private fun DailyHeader(
     uiState: DailyUiState,
     onProfileClick: () -> Unit,
-    onNotificationsClick: () -> Unit  // ← ADD THIS PARAMETER
+    onNotificationsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .background(
                 Brush.linearGradient(listOf(YellowPrimary, OrangePrimary))
             )
-            .padding(horizontal = 20.dp, vertical = 28.dp)
+            .statusBarsPadding()  // ← Only here, wrapping entire header
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column {
-                Text(
-                    text = "Hey, ${uiState.currentUser.displayName}! 👋",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    text = "Ready for today?",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
+            // ✅ Seasonal banner - no extra vertical padding
+            val themeManager = remember { SeasonalThemeManager() }
+            val theme = remember { themeManager.getActiveTheme() }
+            if (theme.bannerText.isNotBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),  // ← Minimal padding
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.25f),
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = theme.bannerText,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),  // ← Minimal padding
+                        maxLines = 1
+                    )
+                }
             }
+
+            // ✅ Main header content - no padding gaps
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),  // ← Minimal
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // ✅ NOTIFICATIONS BUTTON
-                Box {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Hey, ${uiState.currentUser.displayName}! 👋",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = "Ready for today?",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(
                         onClick = onNotificationsClick,
                         modifier = Modifier
@@ -349,31 +394,27 @@ private fun DailyHeader(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    // Badge with unread count (optional)
-                    // if (unreadCount > 0) { ... }
-                }
 
-                // PROFILE BUTTON
-                IconButton(
-                    onClick = onProfileClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Profile",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                    IconButton(
+                        onClick = onProfileClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    StreakShieldCard(
+                        streak = uiState.currentUser.streak,
+                        shieldActive = uiState.currentUser.streakShieldActive,
+                        showLabel = false
                     )
                 }
-
-                // STREAK SHIELD
-                StreakShieldCard(
-                    streak       = uiState.currentUser.streak,
-                    shieldActive = uiState.currentUser.streakShieldActive,
-                    showLabel    = false
-                )
             }
         }
     }
