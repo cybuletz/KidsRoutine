@@ -96,8 +96,7 @@ class WorldRepositoryImpl @Inject constructor() : WorldRepository {
     }
 
     private fun statusFor(userXp: Int, required: Int) = when {
-        userXp >= required + 80 -> WorldNodeStatus.COMPLETED
-        userXp >= required      -> WorldNodeStatus.UNLOCKED
-        else                    -> WorldNodeStatus.LOCKED
+        userXp >= required -> WorldNodeStatus.UNLOCKED
+        else               -> WorldNodeStatus.LOCKED
     }
 }

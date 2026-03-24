@@ -65,13 +65,12 @@ fun WorldScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(currentUser.xp) {
-        viewModel.loadWorld(currentUser.xp)
+    // ✅ THIS IS IT - Just pass userId and let it observe
+    LaunchedEffect(currentUser.userId) {
+        viewModel.loadWorld(currentUser.userId)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
-        // ── Layer 1: Deep sky gradient background ──────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -84,33 +83,27 @@ fun WorldScreen(
                 )
         )
 
-        // ── Layer 2: Animated star field ──────────────────────────────────
         StarField()
-
-        // ── Layer 3: Floating clouds / nebula blobs ────────────────────────
         NebulaClouds()
 
-        // ── Layer 4: World map content ────────────────────────────────────
         when {
             uiState.isLoading -> WorldLoadingSkeleton()
             uiState.world != null -> {
                 WorldMapCanvas(
                     world = uiState.world!!,
-                    userXp = currentUser.xp,
+                    userXp = uiState.currentUser.xp,  // ← Get from viewModel state, not parameter
                     onNodeTapped = { node -> viewModel.onNodeTapped(node) }
                 )
             }
         }
 
-        // ── Layer 5: Top HUD ──────────────────────────────────────────────
         WorldHud(
             displayName = currentUser.displayName,
-            userXp = currentUser.xp,
+            userXp = uiState.currentUser.xp,  // ← Get from viewModel state
             totalXp = uiState.world?.totalXpRequired ?: 1000,
             onBackClick = onBackClick
         )
 
-        // ── Layer 6: Node detail bottom sheet ────────────────────────────
         AnimatedVisibility(
             visible = uiState.showNodeDetail && uiState.selectedNode != null,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -120,7 +113,7 @@ fun WorldScreen(
             uiState.selectedNode?.let { node ->
                 NodeDetailCard(
                     node = node,
-                    userXp = currentUser.xp,
+                    userXp = uiState.currentUser.xp,  // ← Get from viewModel state
                     onDismiss = { viewModel.dismissNodeDetail() }
                 )
             }

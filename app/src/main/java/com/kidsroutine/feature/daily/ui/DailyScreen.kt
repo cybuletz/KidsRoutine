@@ -57,6 +57,7 @@ fun DailyScreen(
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit,  // ← ADD THIS PARAMETER
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -66,11 +67,10 @@ fun DailyScreen(
         viewModel.init(currentUser)
     }
 
-    // ← ADD THIS BLOCK: Listen for push notification refresh trigger
     LaunchedEffect(Unit) {
         RefreshEventManager.refreshEvent.collect {
             Log.d("DailyScreen", "🔔 Refresh triggered by push notification!")
-            viewModel.init(currentUser)  // Reload all tasks
+            viewModel.init(currentUser)
         }
     }
 
@@ -89,7 +89,8 @@ fun DailyScreen(
                 onAchievementsClick = onAchievementsClick,
                 onFamilyMessagingClick = onFamilyMessagingClick,
                 onStatsClick = onStatsClick,
-                onProfileClick = onProfileClick
+                onProfileClick = onProfileClick,
+                onNotificationsClick = onNotificationsClick  // ← PASS IT THROUGH
             )
         }
     }
@@ -103,7 +104,8 @@ private fun DailyContent(
     onAchievementsClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit
     // NOTE: uiState already contains activeStoryArc — no new param needed
 ) {
     Box(
@@ -115,7 +117,7 @@ private fun DailyContent(
             contentPadding = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item { DailyHeader(uiState, onProfileClick) }
+            item { DailyHeader(uiState, onProfileClick, onNotificationsClick = onNotificationsClick) }
             item { ProgressSection(uiState.dailyState, uiState.currentUser) }
             item {
                 val arc = uiState.activeStoryArc
@@ -298,11 +300,13 @@ private fun NavItemButton(
 @Composable
 private fun DailyHeader(
     uiState: DailyUiState,
-    onProfileClick: () -> Unit  // ← ADD THIS PARAMETER
+    onProfileClick: () -> Unit,
+    onNotificationsClick: () -> Unit  // ← ADD THIS PARAMETER
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .background(
                 Brush.linearGradient(listOf(YellowPrimary, OrangePrimary))
             )
@@ -330,7 +334,26 @@ private fun DailyHeader(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Profile Button
+                // ✅ NOTIFICATIONS BUTTON
+                Box {
+                    IconButton(
+                        onClick = onNotificationsClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    // Badge with unread count (optional)
+                    // if (unreadCount > 0) { ... }
+                }
+
+                // PROFILE BUTTON
                 IconButton(
                     onClick = onProfileClick,
                     modifier = Modifier
@@ -344,11 +367,14 @@ private fun DailyHeader(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+
+                // STREAK SHIELD
                 StreakShieldCard(
                     streak       = uiState.currentUser.streak,
                     shieldActive = uiState.currentUser.streakShieldActive,
                     showLabel    = false
-                )            }
+                )
+            }
         }
     }
 }

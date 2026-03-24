@@ -128,7 +128,8 @@ fun ChildMainScreen(
                     onAchievementsClick  = { innerNavController.navigate("achievements") },
                     onFamilyMessagingClick = onFamilyMessagingClick,
                     onStatsClick         = { innerNavController.navigate("leaderboard") },
-                    onProfileClick       = { parentNavController.navigate(Routes.CHILD_PROFILE) }
+                    onProfileClick       = { parentNavController.navigate(Routes.CHILD_PROFILE) },
+                    onNotificationsClick = { parentNavController.navigate(Routes.NOTIFICATIONS) }  // ← ADD THIS
                 )
             }
 
@@ -248,101 +249,69 @@ private fun PersistentNavBar(
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
+        // ✅ CLEAN, PROFESSIONAL NAVBAR - NO ALERTS
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding(),
-            color          = Color.White,
+            color = Color.White,
             shadowElevation = 12.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment     = Alignment.CenterVertically
+                    .padding(horizontal = 0.dp, vertical = 0.dp),  // ← CHANGED from 4.dp to 0.dp
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 NavBarItemButton(
-                    icon       = Icons.Default.Home,
-                    label      = "Daily",
+                    icon = Icons.Default.Home,
+                    label = "Daily",
                     isSelected = currentRoute == "daily",
-                    onClick    = onDailyClick,
-                    modifier   = Modifier.weight(1f)
+                    onClick = onDailyClick,
+                    modifier = Modifier.weight(1f)
                 )
                 NavBarItemButton(
-                    icon       = Icons.Default.EmojiEvents,
-                    label      = "Challenges",
+                    icon = Icons.Default.EmojiEvents,
+                    label = "Challenges",
                     isSelected = currentRoute == "challenges",
-                    onClick    = onChallengesClick,
-                    modifier   = Modifier.weight(1f)
+                    onClick = onChallengesClick,
+                    modifier = Modifier.weight(1f)
                 )
                 NavBarItemButton(
-                    icon       = Icons.Default.BarChart,
-                    label      = "Leaderboard",
+                    icon = Icons.Default.BarChart,
+                    label = "Leaderboard",
                     isSelected = currentRoute == "leaderboard",
-                    onClick    = onLeaderboardClick,
-                    modifier   = Modifier.weight(1f)
+                    onClick = onLeaderboardClick,
+                    modifier = Modifier.weight(1f)
                 )
                 NavBarItemButton(
-                    icon       = Icons.Default.Language,
-                    label      = "World",
+                    icon = Icons.Default.Language,
+                    label = "World",
                     isSelected = currentRoute == "world",
-                    onClick    = onWorldClick,
-                    modifier   = Modifier.weight(1f)
+                    onClick = onWorldClick,
+                    modifier = Modifier.weight(1f)
                 )
                 NavBarItemButton(
-                    icon       = Icons.Default.PhotoAlbum,
-                    label      = "Moments",
+                    icon = Icons.Default.PhotoAlbum,
+                    label = "Moments",
                     isSelected = currentRoute == "moments",
-                    onClick    = onMomentsClick,
-                    modifier   = Modifier.weight(1f)
+                    onClick = onMomentsClick,
+                    modifier = Modifier.weight(1f)
                 )
-
                 Box(modifier = Modifier.weight(1f)) {
                     NavBarItemButton(
-                        icon       = Icons.Default.Notifications,
-                        label      = "Alerts",
-                        isSelected = currentRoute == "notifications",
-                        onClick    = onNotificationsClick
-                    )
-                    if (unreadNotificationCount > 0) {
-                        Surface(
-                            shape    = CircleShape,
-                            color    = Color(0xFFFF6B35),
-                            modifier = Modifier
-                                .size(16.dp)
-                                .align(Alignment.TopEnd)
-                                .offset(x = (-4).dp, y = 4.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier         = Modifier.fillMaxSize()
-                            ) {
-                                Text(
-                                    text       = if (unreadNotificationCount > 9) "9+" else "$unreadNotificationCount",
-                                    color      = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize   = 8.sp
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Achievements with badge
-                Box(modifier = Modifier.weight(1f)) {
-                    NavBarItemButton(
-                        icon       = Icons.Default.Star,
-                        label      = "Badges",
+                        icon = Icons.Default.Star,
+                        label = "Badges",
                         isSelected = currentRoute == "achievements",
-                        onClick    = onAchievementsClick
+                        onClick = onAchievementsClick
                     )
                     if (currentUser.badges.isNotEmpty()) {
                         Surface(
-                            shape    = CircleShape,
-                            color    = OrangePrimary,
+                            shape = CircleShape,
+                            color = OrangePrimary,
                             modifier = Modifier
                                 .size(18.dp)
                                 .align(Alignment.TopEnd)
@@ -350,13 +319,13 @@ private fun PersistentNavBar(
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier         = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 Text(
-                                    text       = "${currentUser.badges.size}",
-                                    color      = Color.White,
+                                    text = "${currentUser.badges.size}",
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize   = 9.sp
+                                    fontSize = 9.sp
                                 )
                             }
                         }
@@ -374,22 +343,22 @@ private fun PersistentNavBar(
                 .navigationBarsPadding()
         ) {
             Button(
-                onClick        = onChatClick,
-                modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-                shape          = RoundedCornerShape(
-                    topStart    = 16.dp,
-                    topEnd      = 16.dp,
+                onClick = onChatClick,
+                modifier = Modifier.size(width = 56.dp, height = 50.dp),
+                shape = RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
                     bottomStart = 16.dp,
-                    bottomEnd   = 2.dp
+                    bottomEnd = 2.dp
                 ),
-                colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
                 contentPadding = PaddingValues(0.dp),
-                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
                 Icon(
                     Icons.Default.Message,
                     contentDescription = "Chat",
-                    tint     = Color.White,
+                    tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
