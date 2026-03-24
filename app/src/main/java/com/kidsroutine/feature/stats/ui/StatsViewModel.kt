@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.kidsroutine.feature.world.data.WorldRepository
+import kotlinx.coroutines.flow.update
 
 data class StatsUiState(
     val isLoading: Boolean = false,

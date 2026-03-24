@@ -66,6 +66,7 @@ fun MomentsScreen(
             label = "gradShift"
         )
         Canvas(modifier = Modifier.fillMaxSize()) {
+            @Suppress("UNUSED_VARIABLE")
             val sweep = 360f * gradShift
             drawRect(
                 brush = Brush.sweepGradient(
@@ -108,10 +109,10 @@ fun MomentsScreen(
                 key   = { _, m -> m.momentId }
             ) { index, moment ->
                 MomentCard(
-                    moment     = moment,
-                    index      = index,
+                    moment        = moment,
+                    index         = index,
                     currentUserId = currentUser.userId,
-                    onReact    = { emoji ->
+                    onReact       = { emoji ->
                         viewModel.addReaction(moment.momentId, currentUser.userId, emoji)
                     }
                 )
@@ -169,9 +170,9 @@ private fun MomentsHeader(onBackClick: () -> Unit) {
         ) {
             Text("📸", fontSize = 40.sp)
             Text(
-                text  = "Family Moments",
-                color = TextWht,
-                fontSize = 28.sp,
+                text       = "Family Moments",
+                color      = TextWht,
+                fontSize   = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-0.5).sp
             )
@@ -184,14 +185,37 @@ private fun MomentsHeader(onBackClick: () -> Unit) {
 
         // Back button
         IconButton(
-            onClick   = onBackClick,
-            modifier  = Modifier
+            onClick  = onBackClick,
+            modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(8.dp)
                 .size(40.dp)
                 .background(Color.White.copy(alpha = 0.1f), CircleShape)
         ) {
             Text("←", color = TextWht, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+// ── Heart burst (extracted to avoid ColumnScope conflict) ─────────────────────
+
+@Composable
+private fun HeartBurst(
+    visible: Boolean,
+    onDismiss: () -> Unit
+) {
+    // Top-level AnimatedVisibility — no implicit scope conflict
+    AnimatedVisibility(
+        visible = visible,
+        enter   = scaleIn(spring(Spring.DampingRatioMediumBouncy)) + fadeIn(),
+        exit    = scaleOut() + fadeOut(tween(400))
+    ) {
+        Text("❤️", fontSize = 60.sp)
+    }
+    if (visible) {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(800)
+            onDismiss()
         }
     }
 }
@@ -207,19 +231,18 @@ private fun MomentCard(
 ) {
     var visible by remember { mutableStateOf(false) }
     val cardAlpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
+        targetValue   = if (visible) 1f else 0f,
         animationSpec = tween(500, delayMillis = (index * 80).coerceAtMost(600)),
-        label = "cardAlpha"
+        label         = "cardAlpha"
     )
     val cardY by animateFloatAsState(
-        targetValue = if (visible) 0f else 40f,
+        targetValue   = if (visible) 0f else 40f,
         animationSpec = tween(500, easing = EaseOutCubic, delayMillis = (index * 80).coerceAtMost(600)),
-        label = "cardY"
+        label         = "cardY"
     )
     LaunchedEffect(Unit) { visible = true }
 
-    // Double-tap for heart reaction
-    var showHeartBurst by remember { mutableStateOf(false) }
+    var showHeartBurst     by remember { mutableStateOf(false) }
     var showReactionPicker by remember { mutableStateOf(false) }
 
     Box(
@@ -230,9 +253,9 @@ private fun MomentCard(
             .alpha(cardAlpha)
     ) {
         Surface(
-            shape  = RoundedCornerShape(20.dp),
-            color  = CardBg,
-            border = BorderStroke(1.dp, CardBorder),
+            shape           = RoundedCornerShape(20.dp),
+            color           = CardBg,
+            border          = BorderStroke(1.dp, CardBorder),
             shadowElevation = 8.dp,
             tonalElevation  = 2.dp
         ) {
@@ -266,11 +289,10 @@ private fun MomentCard(
                     contentAlignment = Alignment.Center
                 ) {
                     if (moment.photoUrl.isEmpty()) {
-                        // Emoji hero with subtle float
                         val floatInfinite = rememberInfiniteTransition(label = "emojiFloat_$index")
                         val floatY by floatInfinite.animateFloat(
-                            initialValue = -6f,
-                            targetValue  = 6f,
+                            initialValue  = -6f,
+                            targetValue   = 6f,
                             animationSpec = infiniteRepeatable(
                                 tween(2000, easing = EaseInOutSine),
                                 RepeatMode.Reverse
@@ -279,7 +301,7 @@ private fun MomentCard(
                         )
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.offset(y = floatY.dp)
+                            modifier            = Modifier.offset(y = floatY.dp)
                         ) {
                             Text(moment.emoji, fontSize = 56.sp)
                             if (moment.taskTitle.isNotEmpty()) {
@@ -289,11 +311,11 @@ private fun MomentCard(
                                     color = Color.White.copy(alpha = 0.2f)
                                 ) {
                                     Text(
-                                        text = moment.taskTitle,
-                                        color = Color.White,
-                                        fontSize = 12.sp,
+                                        text       = moment.taskTitle,
+                                        color      = Color.White,
+                                        fontSize   = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                        modifier   = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                                     )
                                 }
                             }
@@ -303,73 +325,65 @@ private fun MomentCard(
                     // XP badge top-right
                     if (moment.xpAtMoment > 0) {
                         Surface(
-                            shape = RoundedCornerShape(50.dp),
-                            color = Color(0xFF000000).copy(alpha = 0.4f),
+                            shape  = RoundedCornerShape(50.dp),
+                            color  = Color(0xFF000000).copy(alpha = 0.4f),
                             border = BorderStroke(1.dp, AccentGold.copy(alpha = 0.6f)),
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(12.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                modifier              = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment     = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Default.Star, null, tint = AccentGold, modifier = Modifier.size(12.dp))
                                 Text(
                                     "${moment.xpAtMoment} XP",
-                                    color = AccentGold,
-                                    fontSize = 11.sp,
+                                    color      = AccentGold,
+                                    fontSize   = 11.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                             }
                         }
                     }
 
-                    // Heart burst on double-tap
-                    AnimatedVisibility(
-                        visible = showHeartBurst,
-                        enter   = scaleIn(spring(Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                        exit    = scaleOut() + fadeOut(tween(400))
-                    ) {
-                        Text("❤️", fontSize = 60.sp)
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(800)
-                            showHeartBurst = false
-                        }
-                    }
+                    // ── Heart burst — uses extracted composable to avoid ColumnScope ambiguity ──
+                    HeartBurst(
+                        visible   = showHeartBurst,
+                        onDismiss = { showHeartBurst = false }
+                    )
                 }
 
                 // ── Card body ────────────────────────────────────────────
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier            = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Title + date row
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment     = Alignment.Top
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text  = moment.title,
-                                color = TextWht,
-                                fontSize = 16.sp,
+                                text       = moment.title,
+                                color      = TextWht,
+                                fontSize   = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             if (moment.description.isNotEmpty()) {
                                 Text(
-                                    text  = moment.description,
-                                    color = TextGray,
+                                    text     = moment.description,
+                                    color    = TextGray,
                                     fontSize = 13.sp,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
                         }
                         Text(
-                            text  = formatMomentDate(moment.createdAt),
-                            color = TextGray,
+                            text     = formatMomentDate(moment.createdAt),
+                            color    = TextGray,
                             fontSize = 11.sp,
                             modifier = Modifier.padding(start = 8.dp, top = 2.dp)
                         )
@@ -410,7 +424,7 @@ private fun ReactionRow(
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment     = Alignment.CenterVertically
     ) {
         grouped.entries.take(5).forEach { (emoji, count) ->
             Surface(
@@ -419,16 +433,16 @@ private fun ReactionRow(
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier              = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment     = Alignment.CenterVertically
                 ) {
                     Text(emoji, fontSize = 14.sp)
                     if (count > 1) {
                         Text(
                             "$count",
-                            color = TextGray,
-                            fontSize = 11.sp,
+                            color      = TextGray,
+                            fontSize   = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -438,9 +452,9 @@ private fun ReactionRow(
 
         // Add reaction button
         Surface(
-            shape  = CircleShape,
-            color  = Color.White.copy(alpha = 0.06f),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+            shape    = CircleShape,
+            color    = Color.White.copy(alpha = 0.06f),
+            border   = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
             modifier = Modifier
                 .size(30.dp)
                 .clickable { onReact() }
@@ -465,7 +479,7 @@ private fun ReactionPicker(
     LaunchedEffect(Unit) { visible = true }
 
     Box(
-        modifier = Modifier
+        modifier         = Modifier
             .fillMaxSize()
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center
@@ -475,24 +489,24 @@ private fun ReactionPicker(
             enter   = scaleIn(spring(Spring.DampingRatioMediumBouncy)) + fadeIn()
         ) {
             Surface(
-                shape  = RoundedCornerShape(50.dp),
-                color  = Color(0xFF1E1E3A),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+                shape           = RoundedCornerShape(50.dp),
+                color           = Color(0xFF1E1E3A),
+                border          = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
                 shadowElevation = 24.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier              = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     emojis.forEachIndexed { i, emoji ->
                         var pressed by remember { mutableStateOf(false) }
                         val emojiScale by animateFloatAsState(
-                            targetValue = if (pressed) 0.8f else 1f,
+                            targetValue   = if (pressed) 0.8f else 1f,
                             animationSpec = spring(Spring.DampingRatioMediumBouncy),
-                            label = "emojiBtn_$i"
+                            label         = "emojiBtn_$i"
                         )
                         Text(
-                            text = emoji,
+                            text     = emoji,
                             fontSize = 26.sp,
                             modifier = Modifier
                                 .scale(emojiScale)
@@ -529,8 +543,8 @@ private fun MomentsEmpty() {
         Text("No moments yet!", color = TextWht, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(
             "Complete tasks to create family memories here!",
-            color = TextGray,
-            fontSize = 14.sp,
+            color     = TextGray,
+            fontSize  = 14.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -540,10 +554,10 @@ private fun MomentsEmpty() {
 private fun MomentsSkeleton() {
     val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.15f,
-        targetValue  = 0.35f,
+        initialValue  = 0.15f,
+        targetValue   = 0.35f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "skeletonAlpha"
+        label         = "skeletonAlpha"
     )
     repeat(3) {
         Box(
@@ -560,20 +574,20 @@ private fun MomentsSkeleton() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 private fun momentGradientStart(index: Int): Color = when (index % 6) {
-    0 -> Color(0xFF1A0A3A)
-    1 -> Color(0xFF0A2A1A)
-    2 -> Color(0xFF0A1A3A)
-    3 -> Color(0xFF2A1A0A)
-    4 -> Color(0xFF1A2A0A)
+    0    -> Color(0xFF1A0A3A)
+    1    -> Color(0xFF0A2A1A)
+    2    -> Color(0xFF0A1A3A)
+    3    -> Color(0xFF2A1A0A)
+    4    -> Color(0xFF1A2A0A)
     else -> Color(0xFF2A0A1A)
 }
 
 private fun momentGradientEnd(index: Int): Color = when (index % 6) {
-    0 -> Color(0xFF3A1060)
-    1 -> Color(0xFF106030)
-    2 -> Color(0xFF103060)
-    3 -> Color(0xFF603010)
-    4 -> Color(0xFF306010)
+    0    -> Color(0xFF3A1060)
+    1    -> Color(0xFF106030)
+    2    -> Color(0xFF103060)
+    3    -> Color(0xFF603010)
+    4    -> Color(0xFF306010)
     else -> Color(0xFF601030)
 }
 

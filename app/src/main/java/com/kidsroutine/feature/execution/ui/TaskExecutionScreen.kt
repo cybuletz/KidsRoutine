@@ -40,7 +40,8 @@ fun TaskExecutionScreen(
     onBack: () -> Unit,
     onCompleted: (xpGained: Int) -> Unit,
     viewModel: ExecutionViewModel = hiltViewModel(),
-    celebrationViewModel: CelebrationViewModel = hiltViewModel()  // ← ADD THIS
+    celebrationViewModel: CelebrationViewModel = hiltViewModel(),
+    lootBoxViewModel: LootBoxViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val taskColor = taskTypeColor(task.type)

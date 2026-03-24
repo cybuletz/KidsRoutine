@@ -26,20 +26,20 @@ export const aggregateLeaderboards = functions.pubsub
     // ── 1. CHILDREN leaderboard (top 100 by XP) ──────────────────────────
     try {
       const childSnap = await db.collection("users")
-        .orderBy("xp", "asc")           // Firestore orderBy requires index
+        .orderBy("xp", "asc")           // fetch ascending, sort in memory below
         .limit(batchSize)
         .get();
 
       // Reverse so highest XP = rank 1
       const childEntries = childSnap.docs
-        .map((doc, idx) => ({
+        .map((doc) => ({
           userId:      doc.id,
-          displayName: doc.get("displayName") || "Unknown",
-          familyId:    doc.get("familyId")    || "",
-          avatarUrl:   doc.get("avatarUrl")   || "",
-          xp:          doc.get("xp")          || 0,
-          level:       doc.get("level")       || 1,
-          streak:      doc.get("streak")      || 0,
+          displayName: doc.get("displayName") as string || "Unknown",
+          familyId:    doc.get("familyId")    as string || "",
+          avatarUrl:   doc.get("avatarUrl")   as string || "",
+          xp:          doc.get("xp")          as number || 0,
+          level:       doc.get("level")       as number || 1,
+          streak:      doc.get("streak")      as number || 0,
           badges:      (doc.get("badges") as any[])?.length || 0,
           rank:        0,                     // filled in below
         }))
@@ -65,9 +65,9 @@ export const aggregateLeaderboards = functions.pubsub
       const familyEntries = familySnap.docs
         .map((doc) => ({
           familyId:    doc.id,
-          familyName:  doc.get("familyName")  || "Unknown Family",
-          streak:      doc.get("familyStreak") || 0,
-          familyXp:    doc.get("familyXp")     || 0,
+          familyName:  doc.get("familyName")  as string || "Unknown Family",
+          streak:      doc.get("familyStreak") as number || 0,
+          familyXp:    doc.get("familyXp")     as number || 0,
           memberCount: (doc.get("memberIds") as any[])?.length || 0,
           rank:        0,
         }))
@@ -85,8 +85,9 @@ export const aggregateLeaderboards = functions.pubsub
 
     // ── 3. CHALLENGES leaderboard (top 50 by completion count) ───────────
     try {
+      // FIX: .where() instead of .whereEqualTo() for CollectionGroup
       const progressSnap = await db.collectionGroup("challenge_progress")
-        .whereEqualTo("status", "COMPLETED")
+        .where("status", "==", "COMPLETED")
         .limit(500)
         .get();
 
@@ -107,7 +108,7 @@ export const aggregateLeaderboards = functions.pubsub
           let title = challengeId;
           try {
             const cdoc = await db.collection("challenges").doc(challengeId).get();
-            title = cdoc.get("title") || challengeId;
+            title = cdoc.get("title") as string || challengeId;
           } catch (_) {}
           return { rank: idx + 1, challengeId, title, completions };
         })

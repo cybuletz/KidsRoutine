@@ -46,6 +46,7 @@ private val CoopPurple    = Color(0xFF9B5DE5)
 private val LogicBlue     = Color(0xFF4361EE)
 private val RealLifeGreen = Color(0xFF06D6A0)
 private val BgLight       = Color(0xFFFFFBF0)
+private val TextDark = Color(0xFF2D3436)
 
 @Composable
 fun DailyScreen(

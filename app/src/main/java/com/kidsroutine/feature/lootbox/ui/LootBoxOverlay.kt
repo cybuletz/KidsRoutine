@@ -300,7 +300,7 @@ private fun LootBoxBurst(reward: LootBoxReward?) {
                 color  = rarityColor.copy(alpha = (1f - burst) * 0.6f),
                 radius = maxR * 0.5f,
                 center = Offset(cx, cy),
-                style  = androidx.compose.ui.graphics.drawscope.Stroke(strokeWidth = 8f * (1f - burst * 0.9f))
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8f * (1f - burst * 0.9f))
             )
         }
 

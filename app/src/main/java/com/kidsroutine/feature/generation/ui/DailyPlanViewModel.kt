@@ -49,7 +49,7 @@ class DailyPlanViewModel @Inject constructor(
 
                 val result = repository.generateDailyPlan(
                     familyId    = currentUser.familyId,
-                    childAge    = currentUser.age.takeIf { it > 0 } ?: 10,
+                    childAge = 10,
                     preferences = emptyList(),
                     goals       = emptyList(),
                     tier        = "PRO",

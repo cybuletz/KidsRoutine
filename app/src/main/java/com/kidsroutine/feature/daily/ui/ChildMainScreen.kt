@@ -35,9 +35,10 @@ import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
+
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight = Color(0xFFFFFBF0)
@@ -187,7 +188,7 @@ fun ChildMainScreen(
             onMomentsClick      = { innerNavController.navigate("moments") { popUpTo("daily") } },
             onChatClick         = onFamilyMessagingClick,
             unreadNotificationCount  = notificationUiState.unreadCount,
-            onNotificationsClick     = { parentNavController.navigate(Routes.NOTIFICATIONS) } 
+            onNotificationsClick     = { parentNavController.navigate(Routes.NOTIFICATIONS) }
         )
     }
 }
@@ -231,7 +232,6 @@ fun SeasonalBanner(
 }
 
 // ── Nav bar ───────────────────────────────────────────────────────────────────
-@Composable
 @Composable
 private fun PersistentNavBar(
     currentRoute: String,

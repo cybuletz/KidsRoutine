@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import com.kidsroutine.core.model.FamilyModel
 import com.kidsroutine.core.model.UserModel
+import androidx.compose.foundation.clickable
 
 private val NudgeBlue   = Color(0xFF667EEA)
 private val NudgeGreen  = Color(0xFF4CAF50)
@@ -220,7 +221,7 @@ private fun buildNudges(
     }
 
     // 2. No active challenges for large family
-    if (family.activeChallengeIds.isEmpty() && family.memberIds.size >= 2) {
+    if (family.sharedChallengeIds.isEmpty() && family.memberIds.size >= 2) {
         nudges.add(SmartNudge(
             emoji       = "🏆",
             title       = "No active challenges",

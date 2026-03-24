@@ -43,6 +43,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.EntitlementsRepository
 import androidx.compose.runtime.collectAsState
 import com.kidsroutine.feature.billing.ContentPacksViewModel
+import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
 
@@ -57,6 +58,14 @@ fun NavGraphBuilder.parentNavGraph(
     ) {
         // Parent dashboard (home)
         composable(Routes.PARENT_DASHBOARD) {
+
+            val notifViewModel: NotificationViewModel = hiltViewModel()
+            val notifState by notifViewModel.uiState.collectAsState()
+
+            LaunchedEffect(currentUser.userId) {
+                notifViewModel.loadNotifications(currentUser.userId)
+            }
+
             ParentDashboardScreen(
                 currentUser = currentUser,
                 onInviteClick = { navController.navigate(Routes.INVITE_CHILDREN) },

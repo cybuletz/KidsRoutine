@@ -608,44 +608,42 @@ export const computeLeaderboardSnapshots = functions.pubsub
         computedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // ── Challenges ────────────────────────────────────────────────────
-      const progressSnap = await db.collectionGroup("challenge_progress")
-        .whereEqualTo("status", "COMPLETED")
-        .get();
+      // ── Challenges ───────────────────────────────────────────────────
+            const progressSnap = await db.collectionGroup("challenge_progress")
+              .where("status", "==", "COMPLETED")   // ← was .whereEqualTo(...)
+              .get();
 
-      const challengeStats: Record<string, { count: number; days: number[] }> = {};
-      progressSnap.docs.forEach((doc) => {
-        const cid = doc.data().challengeId;
-        if (!cid) return;
-        if (!challengeStats[cid]) challengeStats[cid] = { count: 0, days: [] };
-        challengeStats[cid].count++;
-        if (doc.data().totalDays) challengeStats[cid].days.push(doc.data().totalDays);
-      });
+            const challengeStats: Record<string, { count: number; days: number[] }> = {};
+            progressSnap.docs.forEach((doc: admin.firestore.QueryDocumentSnapshot) => {  // ← explicit type fixes TS7006
+              const cid = doc.data().challengeId;
+              if (!cid) return;
+              if (!challengeStats[cid]) challengeStats[cid] = { count: 0, days: [] };
+              challengeStats[cid].count++;
+              if (doc.data().totalDays) challengeStats[cid].days.push(doc.data().totalDays);
+            });
 
-      const challengeEntries = await Promise.all(
-        Object.entries(challengeStats)
-          .sort(([, a], [, b]) => b.count - a.count)
-          .slice(0, 50)
-          .map(async ([challengeId, stats], index) => {
-            let title = "Unknown Challenge";
-            try {
-              const docs = await db.collectionGroup("challenges")
-                .whereEqualTo("challengeId", challengeId)
-                .limit(1)
-                .get();
-              if (!docs.empty) title = docs.docs[0].data().title ?? title;
-            } catch (_) {}
-            return {
-              rank:                 index + 1,
-              challengeId,
-              title,
-              completions:          stats.count,
-              averageCompletionDays: stats.days.length
-                ? stats.days.reduce((a, b) => a + b, 0) / stats.days.length
-                : 0,
-            };
-          })
-      );
+            const challengeEntries = await Promise.all(
+              Object.entries(challengeStats)
+                .sort(([, a], [, b]) => b.count - a.count)
+                .slice(0, 50)
+                .map(async ([challengeId, stats], index) => {
+                  let title = "Unknown Challenge";
+                  try {
+                    // FIX: regular collection lookup — collectionGroup + whereEqualTo is invalid here
+                    const cdoc = await db.collection("challenges").doc(challengeId).get();
+                    if (cdoc.exists) title = cdoc.data()?.title ?? title;
+                  } catch (_) {}
+                  return {
+                    rank:                 index + 1,
+                    challengeId,
+                    title,
+                    completions:          stats.count,
+                    averageCompletionDays: stats.days.length
+                      ? stats.days.reduce((a, b) => a + b, 0) / stats.days.length
+                      : 0,
+                  };
+                })
+            );
 
       await db.collection("leaderboard_snapshots").doc("challenges").set({
         entries:    challengeEntries,

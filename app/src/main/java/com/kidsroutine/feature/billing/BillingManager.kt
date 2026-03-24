@@ -115,9 +115,9 @@ class BillingManager @Inject constructor(
             .build()
 
         return suspendCancellableCoroutine { cont ->
-            billingClient.queryProductDetailsAsync(params) { result, details ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    val infos = details.mapNotNull { pd ->
+            billingClient.queryProductDetailsAsync(params) { billingResult, queryResult ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val infos = queryResult.productDetailsList.mapNotNull { pd ->
                         val offer = pd.subscriptionOfferDetails?.firstOrNull() ?: return@mapNotNull null
                         val pricing = offer.pricingPhases.pricingPhaseList.firstOrNull()
                             ?: return@mapNotNull null
@@ -131,10 +131,8 @@ class BillingManager @Inject constructor(
                         )
                     }
                     _products.value = infos
-                    Log.d(TAG, "Queried ${infos.size} products")
                     cont.resume(infos)
                 } else {
-                    Log.e(TAG, "Product query failed: ${result.debugMessage}")
                     cont.resume(emptyList())
                 }
             }
