@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.kidsroutine.feature.generation.data.TaskSaveRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kidsroutine.feature.daily.data.StoryArcRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class GenerationUiState(
@@ -42,7 +43,8 @@ class GenerationViewModel @Inject constructor(
     private val repository: GenerationRepository,
     private val taskSaveRepository: TaskSaveRepository,
     private val firestore: FirebaseFirestore,
-    private val entitlementsRepository: EntitlementsRepository   // ← NEW injection
+    private val entitlementsRepository: EntitlementsRepository,
+    private val storyArcRepository: StoryArcRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GenerationUiState())
@@ -247,6 +249,18 @@ class GenerationViewModel @Inject constructor(
                         quotaRemaining    = response.quotaRemaining
                     )
                     Log.d("GenerationVM", "Story arc generated: ${response.arc?.arcTitle}")
+
+                    // ── Persist arc so DailyViewModel can inject it ──────────────────
+                    response.arc?.let { arc ->
+                        viewModelScope.launch {
+                            try {
+                                storyArcRepository.saveArc(arc)
+                                Log.d("GenerationVM", "Story arc saved to Firestore: ${arc.arcId}")
+                            } catch (e: Exception) {
+                                Log.w("GenerationVM", "Could not save arc locally: ${e.message}")
+                            }
+                        }
+                    }
                 }
                 result.onFailure { error ->
                     _uiState.value = _uiState.value.copy(

@@ -60,6 +60,7 @@ object Routes {
     const val AVATAR_SHOP     = "avatar_shop"
     const val CONTENT_PACKS   = "content_packs"
     const val SEASONAL_THEME  = "seasonal_theme"   // informational screen (future)
+    const val UPGRADE = "upgrade"
 
     // ═══════════════════════════════════════════════════════════════════════
     // Helper functions for navigation with arguments

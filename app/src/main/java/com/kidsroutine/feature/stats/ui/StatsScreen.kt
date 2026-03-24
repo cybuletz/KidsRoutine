@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.stats.data.UserStatsModel
+import androidx.compose.ui.draw.clip
+import com.kidsroutine.core.model.WorldNode
+import com.kidsroutine.core.model.WorldNodeStatus
 
 private val GradientStart = Color(0xFF667EEA)
 private val GradientEnd = Color(0xFF764BA2)
@@ -40,6 +43,7 @@ fun StatsScreen(
         if (currentUser.familyId.isNotEmpty()) {
             viewModel.loadFamilyStats(currentUser.familyId)
         }
+        viewModel.loadWorldProgress(currentUser.xp)
     }
 
     Box(
@@ -131,6 +135,18 @@ fun StatsScreen(
                     // Monthly Progress
                     item {
                         MonthlyProgressCard(uiState.monthlyProgress)
+                    }
+
+                    item {
+                        val current = uiState.currentWorldNode
+                        val next    = uiState.nextWorldNode
+                        if (current != null) {
+                            WorldProgressCard(
+                                currentNode = current,
+                                nextNode    = next,
+                                userXp      = currentUser.xp
+                            )
+                        }
                     }
 
                     // Family Stats (if available)
@@ -439,6 +455,142 @@ private fun FamilyStatsCard(familyStats: com.kidsroutine.feature.stats.data.Fami
                     icon = "🔥",
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorldProgressCard(
+    currentNode: com.kidsroutine.core.model.WorldNode,
+    nextNode: com.kidsroutine.core.model.WorldNode?,
+    userXp: Int
+) {
+    val nodeColor = when (currentNode.status) {
+        com.kidsroutine.core.model.WorldNodeStatus.COMPLETED -> Color(0xFF2ECC71)
+        com.kidsroutine.core.model.WorldNodeStatus.UNLOCKED  -> Color(0xFFFF6B35)
+        else                                                  -> Color(0xFF4A4A6A)
+    }
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "🌍 World Journey",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Current node row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(nodeColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(currentNode.emoji, fontSize = 22.sp)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = currentNode.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = currentNode.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = nodeColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = when (currentNode.status) {
+                            com.kidsroutine.core.model.WorldNodeStatus.COMPLETED -> "✅ Done"
+                            com.kidsroutine.core.model.WorldNodeStatus.UNLOCKED  -> "🔓 Active"
+                            else -> "🔒 Locked"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = nodeColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // Progress to next node
+            if (nextNode != null) {
+                val xpNeeded = nextNode.requiredXp
+                val xpFrom   = currentNode.requiredXp
+                val progress = if (xpNeeded > xpFrom)
+                    ((userXp - xpFrom).toFloat() / (xpNeeded - xpFrom)).coerceIn(0f, 1f)
+                else 1f
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Next: ${nextNode.emoji} ${nextNode.title}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = "$userXp / ${nextNode.requiredXp} XP",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF667EEA)
+                        )
+                    }
+
+                    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue   = progress,
+                        animationSpec = androidx.compose.animation.core.tween(800),
+                        label         = "worldProgress"
+                    )
+
+                    LinearProgressIndicator(
+                        progress     = { animatedProgress },
+                        modifier     = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color        = Color(0xFF667EEA),
+                        trackColor   = Color(0xFFEEEEEE)
+                    )
+                }
+            } else {
+                // All nodes complete
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFE8F5E9)
+                ) {
+                    Text(
+                        text = "🏆 You've reached the top! All nodes complete!",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
         }
     }

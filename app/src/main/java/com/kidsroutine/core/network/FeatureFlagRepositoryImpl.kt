@@ -38,7 +38,8 @@ class FeatureFlagRepositoryImpl @Inject constructor(
                     seasonalThemesEnabled = data["seasonalThemesEnabled"] as? Boolean ?: false,
                     avatarShopEnabled    = data["avatarShopEnabled"]    as? Boolean ?: false,
                     contentPacksEnabled  = data["contentPacksEnabled"]  as? Boolean ?: false,
-                    weeklyPlannerEnabled = data["weeklyPlannerEnabled"] as? Boolean ?: false
+                    storyArcsEnabled     = data["storyArcsEnabled"]     as? Boolean ?: true,
+                    weeklyPlannerEnabled = data["weeklyPlannerEnabled"] as? Boolean ?: false,
                 )
                 Log.d("FeatureFlags", "Loaded: ${_flags.value}")
             }

@@ -59,6 +59,8 @@ fun ParentDashboardScreen(
     onSettingsClick: () -> Unit,
     onGenerationClick: () -> Unit,
     onWeeklyPlanClick: () -> Unit,
+    onUpgradeClick: () -> Unit = {},
+    onContentPacksClick: () -> Unit = {},
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -349,6 +351,45 @@ fun ParentDashboardScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
+
+                // ── PRO upgrade banner (only shown for FREE users) ────────────────────
+                if (currentUser.role == com.kidsroutine.core.model.Role.PARENT) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                            .clickable { onUpgradeClick() },
+                        shape  = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E3F))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "👑 Upgrade to PRO",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFFD700),
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    "Unlock story arcs, unlimited AI & more",
+                                    fontSize = 12.sp,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = "Upgrade",
+                                tint = Color(0xFFFFD700)
+                            )
+                        }
+                    }
+                }
 
                 // Action buttons
                 ActionButtonsSection(

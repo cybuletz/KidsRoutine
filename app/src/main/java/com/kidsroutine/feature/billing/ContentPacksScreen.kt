@@ -122,7 +122,7 @@ fun ContentPacksScreen(
                         isOwned   = pack.packId in uiState.unlockedPackIds,
                         canAfford = uiState.userXp >= pack.xpCost,
                         isPro     = isPro,
-                        onUnlock  = { viewModel.unlockPack(pack) }
+                        onUnlock  = { viewModel.unlockPack(pack, currentUser.userId) }
                     )
                 }
             }

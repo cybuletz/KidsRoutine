@@ -1,6 +1,7 @@
 package com.kidsroutine.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.NavController
@@ -37,6 +38,9 @@ import com.kidsroutine.feature.generation.ui.GenerationScreen
 import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
 import com.kidsroutine.feature.billing.ContentPacksScreen
+import com.kidsroutine.feature.billing.UpgradeScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.kidsroutine.core.model.EntitlementsRepository
 
 
 fun NavGraphBuilder.parentNavGraph(
@@ -65,6 +69,8 @@ fun NavGraphBuilder.parentNavGraph(
                 onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
                 onGenerationClick = { navController.navigate(Routes.GENERATION) },
                 onWeeklyPlanClick = { navController.navigate(Routes.WEEKLY_PLAN) },
+                onUpgradeClick      = { navController.navigate(Routes.UPGRADE) },
+                onContentPacksClick = { navController.navigate(Routes.CONTENT_PACKS) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -281,10 +287,33 @@ fun NavGraphBuilder.parentNavGraph(
         }
 
         composable(Routes.CONTENT_PACKS) {
+            val contentPacksViewModel: ContentPacksViewModel = hiltViewModel()
+            val contentUiState by contentPacksViewModel.uiState.collectAsState()
+
+            // Load entitlements + unlocked packs once
+            LaunchedEffect(currentUser.userId) {
+                contentPacksViewModel.loadForUser(
+                    userId = currentUser.userId,
+                    userXp = currentUser.xp
+                )
+            }
+
             ContentPacksScreen(
                 currentUser = currentUser,
-                isPro       = false,   // TODO: wire to EntitlementsRepository
-                onBackClick = { navController.popBackStack() }
+                isPro       = contentUiState.isPro,
+                onBackClick = { navController.popBackStack() },
+                viewModel   = contentPacksViewModel
+            )
+        }
+
+        composable(Routes.UPGRADE) {
+            UpgradeScreen(
+                currentUser      = currentUser,
+                onBackClick      = { navController.popBackStack() },
+                onUpgradeSuccess = { _ ->
+                    // Return to dashboard — the next screen load will re-read entitlements
+                    navController.popBackStack()
+                }
             )
         }
 

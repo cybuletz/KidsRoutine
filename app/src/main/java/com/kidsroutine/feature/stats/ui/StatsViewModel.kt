@@ -3,6 +3,7 @@ package com.kidsroutine.feature.stats.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kidsroutine.core.model.WorldNode
 import com.kidsroutine.feature.stats.data.FamilyStatsModel
 import com.kidsroutine.feature.stats.data.StatsRepository
 import com.kidsroutine.feature.stats.data.UserStatsModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.kidsroutine.feature.world.data.WorldRepository
 
 data class StatsUiState(
     val isLoading: Boolean = false,
@@ -19,12 +21,15 @@ data class StatsUiState(
     val familyStats: FamilyStatsModel? = null,
     val weeklyProgress: List<Int> = emptyList(),
     val monthlyProgress: List<Int> = emptyList(),
+    val currentWorldNode: WorldNode? = null,
+    val nextWorldNode: WorldNode? = null,
     val error: String? = null
 )
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
-    private val statsRepository: StatsRepository
+    private val statsRepository: StatsRepository,
+    private val worldRepository: WorldRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatsUiState())
@@ -70,6 +75,29 @@ class StatsViewModel @Inject constructor(
                 Log.d("StatsVM", "Family stats loaded: $familyStats")
             } catch (e: Exception) {
                 Log.e("StatsVM", "Error loading family stats", e)
+            }
+        }
+    }
+
+    fun loadWorldProgress(userXp: Int) {
+        viewModelScope.launch {
+            try {
+                val world = worldRepository.getWorld(userXp)
+                // Current node = last UNLOCKED or COMPLETED
+                val current = world.nodes
+                    .filter { it.status != com.kidsroutine.core.model.WorldNodeStatus.LOCKED }
+                    .maxByOrNull { it.requiredXp }
+                // Next node = first LOCKED
+                val next = world.nodes
+                    .filter { it.status == com.kidsroutine.core.model.WorldNodeStatus.LOCKED }
+                    .minByOrNull { it.requiredXp }
+
+                _uiState.update { it.copy(
+                    currentWorldNode = current,
+                    nextWorldNode    = next
+                )}
+            } catch (e: Exception) {
+                android.util.Log.w("StatsVM", "Could not load world progress: ${e.message}")
             }
         }
     }

@@ -29,6 +29,7 @@ firebase-messaging = "25.0.1"
 firebaseDatabaseKtx = "21.0.0"
 lifecycleProcess = "2.10.0"
 firebaseConfigKtx = "22.1.2"
+billingKtx = "8.3.0"
 
 
 [libraries]
@@ -79,6 +80,7 @@ androidx-compose-foundation = { group = "androidx.compose.foundation", name = "f
 firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebaseConfigKtx" }
+billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billingKtx" }
 
 [plugins]
 android-application      = { id = "com.android.application",                        version.ref = "agp" }

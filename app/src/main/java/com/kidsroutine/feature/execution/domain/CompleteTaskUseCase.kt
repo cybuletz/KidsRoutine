@@ -11,6 +11,7 @@ import com.kidsroutine.feature.daily.data.UserRepository
 import com.kidsroutine.feature.achievements.data.AchievementRepository
 import javax.inject.Inject
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kidsroutine.feature.daily.data.StoryArcRepository
 import kotlinx.coroutines.tasks.await
 
 class CompleteTaskUseCase @Inject constructor(
@@ -19,7 +20,8 @@ class CompleteTaskUseCase @Inject constructor(
     private val repository: TaskProgressRepository,
     private val userRepository: UserRepository,
     private val firestore: FirebaseFirestore,
-    private val achievementRepository: AchievementRepository
+    private val achievementRepository: AchievementRepository,
+    private val storyArcRepository: StoryArcRepository
 ) {
     suspend operator fun invoke(
         task: TaskModel,
@@ -112,6 +114,32 @@ class CompleteTaskUseCase @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("CompleteTaskUseCase", "Achievement check failed (non-fatal)", e)
+        }
+
+        // 5. ADVANCE STORY ARC (if this was a STORY task) ─────────────────
+        if (task.type == TaskType.STORY) {
+            try {
+                // task.id format: "story_{arcId}_day{N}"
+                val arcId = task.id
+                    .removePrefix("story_")
+                    .substringBeforeLast("_day")
+
+                if (arcId.isNotBlank() && task.familyId.isNotBlank()) {
+                    val arc = storyArcRepository.getActiveArc(task.familyId)
+                    if (arc != null && arc.arcId == arcId) {
+                        if (arc.currentDay >= arc.chapters.size) {
+                            storyArcRepository.completeArc(arcId)
+                            Log.d("CompleteTaskUseCase", "Story arc $arcId COMPLETED 🎉")
+                        } else {
+                            storyArcRepository.advanceDay(arcId)
+                            Log.d("CompleteTaskUseCase", "Story arc $arcId advanced to day ${arc.currentDay + 1}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Non-fatal — never block task completion
+                Log.w("CompleteTaskUseCase", "Could not advance story arc: ${e.message}")
+            }
         }
 
         Log.d("CompleteTaskUseCase", "=== TASK COMPLETION SUCCESS ===")
