@@ -32,7 +32,9 @@ data class GenerationUiState(
     val selectedGoals: Set<String> = setOf("🏃 Health"),
     val selectedAge: Int = 8,
     val generationHistory: List<GeneratedTask> = emptyList(),
-    val entitlements: UserEntitlements? = null   // ← NEW: loaded on first generate
+    val entitlements: UserEntitlements? = null,   // ← NEW: loaded on first generate
+    val generatedStoryArc: com.kidsroutine.core.model.StoryArc? = null,     // ← ADD
+    val isStoryArcLoading: Boolean = false                                    // ← ADD
 )
 
 @HiltViewModel
@@ -159,7 +161,11 @@ class GenerationViewModel @Inject constructor(
         childAge: Int
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                error = null,
+                generatedTasks = emptyList()    // clear old results immediately
+            )
 
             try {
                 Log.d("GenerationVM", "Generating challenges...")
@@ -215,6 +221,46 @@ class GenerationViewModel @Inject constructor(
                     error     = e.message ?: "Unknown error"
                 )
                 Log.e("GenerationVM", "Exception: ${e.message}", e)
+            }
+        }
+    }
+
+    fun generateStoryArc(currentUser: UserModel, childAge: Int) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isStoryArcLoading = true,
+                error             = null,
+                generatedStoryArc = null
+            )
+            try {
+                val tier = "FREE"
+                val result = repository.generateStoryArc(
+                    familyId = currentUser.familyId,
+                    childAge = childAge,
+                    tier     = tier
+                )
+                result.onSuccess { response ->
+                    _uiState.value = _uiState.value.copy(
+                        isStoryArcLoading = false,
+                        generatedStoryArc = response.arc,
+                        successMessage    = "📖 Story arc ready! ${response.arc?.arcTitle ?: ""}",
+                        quotaRemaining    = response.quotaRemaining
+                    )
+                    Log.d("GenerationVM", "Story arc generated: ${response.arc?.arcTitle}")
+                }
+                result.onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isStoryArcLoading = false,
+                        error             = error.message ?: "Failed to generate story arc"
+                    )
+                    Log.e("GenerationVM", "Story arc error: ${error.message}")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isStoryArcLoading = false,
+                    error             = e.message ?: "Unknown error"
+                )
+                Log.e("GenerationVM", "Story arc exception: ${e.message}", e)
             }
         }
     }

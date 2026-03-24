@@ -11,13 +11,15 @@ import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import com.kidsroutine.feature.daily.data.StoryArcRepository
 
 class GenerateDailyTasksUseCase @Inject constructor(
     private val taskEngine: TaskEngine,
     private val challengeRepository: ChallengeRepository,
     private val challengeEngine: ChallengeEngine,
     private val repository: DailyRepository,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val storyArcRepository: StoryArcRepository
 ) {
     /**
      * Generates exactly 5 tasks for today if not already generated.
@@ -67,6 +69,44 @@ class GenerateDailyTasksUseCase @Inject constructor(
             }
 
             Log.d("GenerateDailyTasks", "Generated ${challengeTasks.size} challenge tasks")
+
+            // ── STEP 2b: Inject today's story arc chapter (if active) ──────
+            val storyTasks = mutableListOf<TaskInstance>()
+            try {
+                val activeArc = storyArcRepository.getActiveArc(user.familyId)
+                if (activeArc != null && !activeArc.isComplete) {
+                    val chapter = activeArc.chapters.getOrNull(activeArc.currentDay - 1)
+                    if (chapter != null) {
+                        val storyTask = TaskModel(
+                            id          = "story_${activeArc.arcId}_day${activeArc.currentDay}",
+                            type        = TaskType.STORY,
+                            title       = chapter.taskTitle,
+                            description = chapter.taskDescription,
+                            category    = try { TaskCategory.valueOf(chapter.category) }
+                            catch (_: Exception) { TaskCategory.CREATIVITY },
+                            difficulty  = try { DifficultyLevel.valueOf(chapter.difficulty) }
+                            catch (_: Exception) { DifficultyLevel.MEDIUM },
+                            estimatedDurationSec = chapter.estimatedDurationSec,
+                            reward      = TaskReward(xp = chapter.xpReward),
+                            createdBy   = TaskCreator.SYSTEM,
+                            familyId    = user.familyId
+                        )
+                        storyTasks.add(
+                            TaskInstance(
+                                instanceId           = storyTask.id,
+                                templateId           = activeArc.arcId,
+                                task                 = storyTask,
+                                assignedDate         = date,
+                                userId               = user.userId,
+                                injectedByChallengeId = "story_${activeArc.arcId}"
+                            )
+                        )
+                        Log.d("GenerateDailyTasks", "Injected story task: ${chapter.taskTitle}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("GenerateDailyTasks", "Could not inject story task: ${e.message}")
+            }
 
             // STEP 3: Fetch parent-assigned tasks from Firestore
             Log.d("GenerateDailyTasks", "Fetching parent-assigned tasks for user: ${user.userId}")
@@ -119,7 +159,7 @@ class GenerateDailyTasksUseCase @Inject constructor(
             Log.d("GenerateDailyTasks", "Fetched ${templates.size} templates")
 
             // Calculate max regular tasks (5 total - challenge tasks - assigned tasks)
-            val maxRegularTasks = maxOf(0, 5 - challengeTasks.size - parentAssignedTasks.size)
+            val maxRegularTasks = maxOf(0, 5 - challengeTasks.size - storyTasks.size - parentAssignedTasks.size)
 
             val regularTasks = if (maxRegularTasks > 0 && templates.isNotEmpty()) {
                 // STEP 5: Generate regular tasks
@@ -143,7 +183,7 @@ class GenerateDailyTasksUseCase @Inject constructor(
             Log.d("GenerateDailyTasks", "Generated ${regularTasks.size} regular tasks")
 
             // STEP 6: Combine all tasks (challenges + parent-assigned + regular)
-            val allTasks = (challengeTasks + parentAssignedTasks + regularTasks).distinctBy { it.instanceId }
+            val allTasks = (challengeTasks + storyTasks + parentAssignedTasks + regularTasks).distinctBy { it.instanceId }
 
             Log.d("GenerateDailyTasks", "Total tasks generated: ${allTasks.size} (${challengeTasks.size} challenges + ${parentAssignedTasks.size} assigned + ${regularTasks.size} regular)")
 

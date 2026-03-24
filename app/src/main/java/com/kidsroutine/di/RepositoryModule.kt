@@ -12,6 +12,8 @@ import com.kidsroutine.feature.community.data.CommunityRepository
 import com.kidsroutine.feature.community.data.CommunityRepositoryImpl
 import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
+import com.kidsroutine.feature.daily.data.StoryArcRepository
+import com.kidsroutine.feature.daily.data.StoryArcRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.execution.data.TaskProgressRepositoryImpl
 import com.kidsroutine.feature.family.data.FamilyMessageRepository
@@ -72,6 +74,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindFeatureFlagRepository(impl: FeatureFlagRepositoryImpl): FeatureFlagRepository
+
+    @Binds @Singleton
+    abstract fun bindStoryArcRepository(impl: StoryArcRepositoryImpl): StoryArcRepository
 
     companion object {
 

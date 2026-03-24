@@ -13,11 +13,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.kidsroutine.feature.daily.data.StoryArcRepository
 
 data class DailyUiState(
     val isLoading: Boolean = true,
     val dailyState: DailyStateModel = DailyStateModel(),
     val currentUser: UserModel = UserModel(),
+    val activeStoryArc: com.kidsroutine.core.model.StoryArc? = null,
     val error: String? = null
 )
 
@@ -26,7 +28,8 @@ class DailyViewModel @Inject constructor(
     private val getDailyState: GetDailyStateUseCase,
     private val generateDailyTasks: GenerateDailyTasksUseCase,
     private val userRepository: UserRepository,
-    private val taskRepository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val storyArcRepository: StoryArcRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DailyUiState())
@@ -77,6 +80,21 @@ class DailyViewModel @Inject constructor(
                         currentUser = observedUser
                     ) }
                 }
+        }
+
+        loadActiveStoryArc(user.familyId)
+    }
+
+    private fun loadActiveStoryArc(familyId: String) {
+        if (familyId.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val arc = storyArcRepository.getActiveArc(familyId)
+                _uiState.update { it.copy(activeStoryArc = arc) }
+                Log.d("DailyViewModel", "Active story arc: ${arc?.arcTitle ?: "none"}")
+            } catch (e: Exception) {
+                Log.w("DailyViewModel", "Could not load story arc: ${e.message}")
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +143,24 @@ fun GenerationScreen(
                         )
                     }
                 }
+
+                GenerationTab.STORY_ARC -> {
+                    item {
+                        StoryArcGenerationContent(
+                            currentUser    = currentUser,
+                            uiState        = uiState,
+                            viewModel      = viewModel,
+                            onGenerateClick = {
+                                coroutineScope.launch {
+                                    viewModel.generateStoryArc(
+                                        currentUser = currentUser,
+                                        childAge    = uiState.selectedAge
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
             }
 
             // ──────── ERROR MESSAGE ────────
@@ -167,7 +187,7 @@ fun GenerationScreen(
 }
 
 enum class GenerationTab {
-    TASKS, CHALLENGES
+    TASKS, CHALLENGES, STORY_ARC
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -240,16 +260,21 @@ private fun TabSelector(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         TabButton(
-            label = "📋 Tasks",
+            label    = "📋 Tasks",
             isActive = activeTab == GenerationTab.TASKS,
-            onClick = { onTabChange(GenerationTab.TASKS) },
+            onClick  = { onTabChange(GenerationTab.TASKS) },
             modifier = Modifier.weight(1f)
         )
-
         TabButton(
-            label = "🏆 Challenges",
+            label    = "🏆 Challenges",
             isActive = activeTab == GenerationTab.CHALLENGES,
-            onClick = { onTabChange(GenerationTab.CHALLENGES) },
+            onClick  = { onTabChange(GenerationTab.CHALLENGES) },
+            modifier = Modifier.weight(1f)
+        )
+        TabButton(
+            label    = "📖 Story",
+            isActive = activeTab == GenerationTab.STORY_ARC,
+            onClick  = { onTabChange(GenerationTab.STORY_ARC) },
             modifier = Modifier.weight(1f)
         )
     }
@@ -1092,6 +1117,190 @@ private fun SuccessBanner(message: String, onDismiss: () -> Unit) {
             )
             IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
                 Icon(Icons.Default.Close, contentDescription = "Close", tint = SuccessGreen)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StoryArcGenerationContent(
+    currentUser: UserModel,
+    uiState: GenerationUiState,
+    viewModel: GenerationViewModel,
+    onGenerateClick: () -> Unit
+) {
+    val StoryViolet = Color(0xFF8B5CF6)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        // ── Info card ────────────────────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape    = RoundedCornerShape(16.dp),
+            colors   = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("📖 Story Arc Settings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+
+                // Age selector reuse
+                Text("Child Age", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    (7..18).forEach { age ->
+                        AgeChip(
+                            label      = "$age",
+                            isSelected = uiState.selectedAge == age,
+                            onClick    = { viewModel.setAge(age) }
+                        )
+                    }
+                }
+
+                Divider(color = Color(0xFFEEEEEE))
+
+                // What is a story arc
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = StoryViolet.copy(alpha = 0.08f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text("🔮 What is a Story Arc?", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = StoryViolet)
+                        Text(
+                            "A 3-day adventure that unfolds one chapter per day. Each chapter gives your child a real-life task that advances the story!",
+                            fontSize = 12.sp, color = Color.Gray, lineHeight = 18.sp
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Day 1 — Chapter 1", "Day 2 — Chapter 2", "Day 3 — Finale").forEach { label ->
+                                Surface(shape = RoundedCornerShape(6.dp), color = StoryViolet.copy(alpha = 0.12f)) {
+                                    Text(label, fontSize = 10.sp, color = StoryViolet, fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Generate button ───────────────────────────────────────────────
+        Button(
+            onClick  = onGenerateClick,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors   = ButtonDefaults.buttonColors(
+                containerColor         = StoryViolet,
+                disabledContainerColor = Color(0xFFCCCCCC)
+            ),
+            shape   = RoundedCornerShape(12.dp),
+            enabled = !uiState.isStoryArcLoading
+        ) {
+            if (uiState.isStoryArcLoading) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                    Text("Crafting story…", fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Text("📖 Generate Story Arc", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+
+        // ── Result card ───────────────────────────────────────────────────
+        val arc = uiState.generatedStoryArc
+        if (arc != null) {
+            GeneratedStoryArcCard(arc = arc)
+        }
+
+        Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun GeneratedStoryArcCard(arc: com.kidsroutine.core.model.StoryArc) {
+    val StoryViolet = Color(0xFF8B5CF6)
+
+    Card(
+        modifier  = Modifier.fillMaxWidth(),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Arc header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(arc.arcEmoji, fontSize = 32.sp)
+                Column {
+                    Text(arc.arcTitle, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                    Text(arc.theme, fontSize = 12.sp, color = StoryViolet, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Divider(color = Color(0xFFEEEEEE))
+
+            // Three chapters
+            arc.chapters.forEachIndexed { index, chapter ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // Day circle
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(StoryViolet.copy(alpha = if (index == 0) 1f else 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "D${chapter.day}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (index == 0) Color.White else StoryViolet
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(chapter.chapterTitle, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                        Text(chapter.narrative, fontSize = 11.sp, color = Color.Gray)
+                        Text(chapter.taskTitle, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = StoryViolet)
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            DetailBadge("⏱️", "${chapter.estimatedDurationSec}s")
+                            DetailBadge("⭐", "${chapter.xpReward} XP")
+                            DetailBadge("📂", chapter.category.take(4))
+                        }
+                    }
+                }
+
+                if (index < arc.chapters.size - 1) {
+                    // Connector line between chapters
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 17.dp)
+                            .width(2.dp)
+                            .height(12.dp)
+                            .background(StoryViolet.copy(alpha = 0.3f))
+                    )
+                }
             }
         }
     }

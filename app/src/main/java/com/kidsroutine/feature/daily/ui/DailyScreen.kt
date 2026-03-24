@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +28,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
 import com.kidsroutine.feature.stats.ui.StreakShieldCard
 import com.kidsroutine.feature.tasks.ui.RefreshEventManager
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import com.kidsroutine.core.model.StoryArc
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
 
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
@@ -95,7 +102,8 @@ private fun DailyContent(
     onAchievementsClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
-    onProfileClick: () -> Unit  // ← ADD THIS
+    onProfileClick: () -> Unit
+    // NOTE: uiState already contains activeStoryArc — no new param needed
 ) {
     Box(
         modifier = Modifier.fillMaxSize()
@@ -108,6 +116,12 @@ private fun DailyContent(
         ) {
             item { DailyHeader(uiState, onProfileClick) }
             item { ProgressSection(uiState.dailyState, uiState.currentUser) }
+            item {
+                val arc = uiState.activeStoryArc
+                if (arc != null && !arc.isComplete) {
+                    StoryArcBannerCard(arc = arc)
+                }
+            }
             item {
                 Text(
                     text = "Today's Tasks",
@@ -496,23 +510,120 @@ private fun DailyEmptyScreen() {
     }
 }
 
+/**
+ * Compact banner card shown on DailyScreen when a story arc is active.
+ * Shows the current chapter emoji, title, and narrative.
+ */
+@Composable
+fun StoryArcBannerCard(
+    arc: StoryArc,
+    modifier: Modifier = Modifier
+) {
+    val currentChapter = arc.chapters.getOrNull(arc.currentDay - 1) ?: return
+
+    // Subtle pulsing glow on the border
+    val infiniteTransition = rememberInfiniteTransition(label = "storyGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue  = 0.4f,
+        targetValue   = 0.9f,
+        animationSpec = infiniteRepeatable(
+            tween(1400, easing = FastOutSlowInEasing),
+            RepeatMode.Reverse
+        ),
+        label = "glowAlpha"
+    )
+
+    val storyColor = Color(0xFF8B5CF6)
+
+    Card(
+        modifier  = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = storyColor.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border    = BorderStroke(1.5.dp, storyColor.copy(alpha = glowAlpha))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Arc emoji
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(storyColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(arc.arcEmoji, fontSize = 24.sp)
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                // Chapter label
+                Text(
+                    text = "📖 ${arc.arcTitle} — Day ${arc.currentDay}/3",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = storyColor
+                )
+                // Chapter title
+                Text(
+                    text = currentChapter.chapterTitle,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                // Narrative context
+                Text(
+                    text = currentChapter.narrative,
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+
+            // XP badge
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = storyColor.copy(alpha = 0.15f)
+            ) {
+                Text(
+                    text = "⭐ ${currentChapter.xpReward}",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = storyColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
 // ── Visual helpers ─────────────────────────────────────────────────────────────
 fun taskTypeColor(type: TaskType): Color = when (type) {
-    TaskType.LOGIC -> LogicBlue
+    TaskType.LOGIC     -> LogicBlue
     TaskType.REAL_LIFE -> RealLifeGreen
-    TaskType.CO_OP -> CoopPurple
-    TaskType.CREATIVE -> Color(0xFFFF9F1C)
-    TaskType.LEARNING -> Color(0xFF4361EE)
+    TaskType.CO_OP     -> CoopPurple
+    TaskType.CREATIVE  -> Color(0xFFFF9F1C)
+    TaskType.LEARNING  -> Color(0xFF4361EE)
     TaskType.EMOTIONAL -> Color(0xFFEF476F)
-    TaskType.SOCIAL -> TealSecondary
+    TaskType.SOCIAL    -> TealSecondary
+    TaskType.STORY     -> Color(0xFF8B5CF6)
 }
 
 fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
-    TaskType.LOGIC -> Icons.Default.Psychology
+    TaskType.LOGIC     -> Icons.Default.Psychology
     TaskType.REAL_LIFE -> Icons.Default.Home
-    TaskType.CO_OP -> Icons.Default.People
-    TaskType.CREATIVE -> Icons.Default.Brush
-    TaskType.LEARNING -> Icons.Default.MenuBook
+    TaskType.CO_OP     -> Icons.Default.People
+    TaskType.CREATIVE  -> Icons.Default.Brush
+    TaskType.LEARNING  -> Icons.Default.MenuBook
     TaskType.EMOTIONAL -> Icons.Default.Favorite
-    TaskType.SOCIAL -> Icons.Default.EmojiPeople
+    TaskType.SOCIAL    -> Icons.Default.EmojiPeople
+    TaskType.STORY     -> Icons.Default.AutoStories
 }
