@@ -58,6 +58,7 @@ fun ParentDashboardScreen(
     onStatsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onGenerationClick: () -> Unit,
+    onWeeklyPlanClick: () -> Unit,
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -233,6 +234,66 @@ fun ParentDashboardScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
+
+
+                // SmartSuggestionsCard
+                SmartSuggestionsCard(
+                    family           = uiState.family!!,
+                    currentUser      = currentUser,
+                    aiQuotaUsed      = 0,   // TODO Batch 5: load from ai_quotas
+                    aiQuotaLimit     = 3,
+                    onGenerateClick  = onGenerationClick,
+                    onChallengesClick = onChallengesClick,
+                    onWeeklyPlanClick = onWeeklyPlanClick
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Weekly plan card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onWeeklyPlanClick() },
+                    shape  = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Row(
+                        modifier              = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Text("📅", fontSize = 28.sp)
+                            Column {
+                                Text(
+                                    "📅 Plan the Whole Week",
+                                    style      = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = TextDark
+                                )
+                                Text(
+                                    "AI 7-day family schedule ⭐ PRO",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = "Open",
+                            tint     = Color(0xFF11998E),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
 
                 // Members section
                 if (uiState.family!!.memberIds.isNotEmpty()) {

@@ -26,6 +26,8 @@ import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
+import androidx.compose.material.icons.filled.Language
+import com.kidsroutine.feature.moments.ui.MomentsScreen
 
 
 private val OrangePrimary = Color(0xFFFF6B35)
@@ -86,6 +88,24 @@ fun ChildMainScreen(
                     onBackClick = { innerNavController.navigate("daily") }
                 )
             }
+
+            composable("world") {
+                currentRoute = "world"
+                // World is a full-screen experience launched via parent nav
+                LaunchedEffect(Unit) {
+                    innerNavController.popBackStack()
+                    parentNavController.navigate(Routes.WORLD)
+                }
+                Box(modifier = Modifier.fillMaxSize())
+            }
+
+            composable("moments") {
+                currentRoute = "moments"
+                MomentsScreen(
+                    currentUser  = currentUser,
+                    onBackClick  = { innerNavController.navigate("daily") }
+                )
+            }
         }
 
         // Persistent Navigation Bar
@@ -108,7 +128,9 @@ private fun PersistentNavBar(
     onDailyClick: () -> Unit,
     onChallengesClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
+    onWorldClick: () -> Unit,
     onAchievementsClick: () -> Unit,
+    onMomentsClick: () -> Unit,
     onChatClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -151,6 +173,22 @@ private fun PersistentNavBar(
                     isSelected = currentRoute == "leaderboard",
                     onClick = onLeaderboardClick,
                     modifier = Modifier.weight(1f)
+                )
+
+                NavBarItemButton(
+                    icon = Icons.Default.Language,
+                    label = "World",
+                    isSelected = currentRoute == "world",
+                    onClick = onWorldClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                NavBarItemButton(
+                    icon      = Icons.Default.PhotoAlbum,
+                    label     = "Moments",
+                    isSelected = currentRoute == "moments",
+                    onClick    = onMomentsClick,
+                    modifier   = Modifier.weight(1f)
                 )
 
                 Box(modifier = Modifier.weight(1f)) {

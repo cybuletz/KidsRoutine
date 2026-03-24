@@ -16,6 +16,8 @@ const messaging = admin.messaging();
 //export const getFirestoreRules = firebaseSetup.setupFirestoreRules;
 export const generateTasksAI = aiGeneration.generateTasksAI;
 export const generateChallengesAI = aiGeneration.generateChallengesAI;
+export const generateDailyPlanAI = aiGeneration.generateDailyPlanAI;
+export const generateWeeklyPlanAI = aiGeneration.generateWeeklyPlanAI;
 
 // ===== TASK COMPLETION NOTIFICATIONS =====
 

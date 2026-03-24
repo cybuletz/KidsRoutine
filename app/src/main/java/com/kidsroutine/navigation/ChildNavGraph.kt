@@ -16,9 +16,12 @@ import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import com.kidsroutine.feature.daily.ui.ChildMainScreen
 import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
+import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
+import com.kidsroutine.feature.world.ui.WorldScreen
+
 
 object TaskPassthrough {
     var pendingTask: TaskModel? = null
@@ -146,6 +149,21 @@ fun NavGraphBuilder.childNavGraph(
         // Leaderboard
         composable(Routes.LEADERBOARD) {
             LeaderboardScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // World Map Screen
+        composable(Routes.WORLD) {
+            WorldScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.MOMENTS) {
+            MomentsScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

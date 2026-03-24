@@ -16,6 +16,7 @@ import com.kidsroutine.feature.celebrations.ui.CelebrationOverlay
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import com.kidsroutine.feature.lootbox.ui.LootBoxOverlay
 
 @Composable
 fun KidsRoutineNavGraph(currentUser: UserModel) {
@@ -53,5 +54,7 @@ fun KidsRoutineNavGraph(currentUser: UserModel) {
 
         // Celebration overlay - on TOP of everything
         CelebrationOverlay()
+
+        LootBoxOverlay()
     }
 }

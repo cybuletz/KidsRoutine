@@ -31,8 +31,10 @@ import com.kidsroutine.core.model.TaskModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.kidsroutine.feature.generation.ui.DailyPlanScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
 import com.kidsroutine.feature.generation.ui.GenerationScreen
+import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 
 
 fun NavGraphBuilder.parentNavGraph(
@@ -60,6 +62,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },
                 onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
                 onGenerationClick = { navController.navigate(Routes.GENERATION) },
+                onWeeklyPlanClick = { navController.navigate(Routes.WEEKLY_PLAN) },
                 onSettingsClick = { /* TODO */ }
             )
         }
@@ -248,6 +251,21 @@ fun NavGraphBuilder.parentNavGraph(
         // Stats Screen - Parent can view their own stats
         composable(Routes.PARENT_STATS) {
             StatsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.WEEKLY_PLAN) {
+            WeeklyPlanScreen(
+                currentUser     = currentUser,
+                familyChildren  = familyMembers,
+                onBackClick     = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.DAILY_PLAN) {
+            DailyPlanScreen(
                 currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )

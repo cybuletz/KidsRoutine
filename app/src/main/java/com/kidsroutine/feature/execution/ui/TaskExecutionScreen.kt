@@ -31,6 +31,7 @@ import com.kidsroutine.feature.execution.domain.CompletionResult
 import com.kidsroutine.feature.execution.ui.blocks.InteractionBlockRenderer
 import com.kidsroutine.feature.celebrations.ui.CelebrationViewModel
 import com.kidsroutine.core.model.GameType
+import com.kidsroutine.feature.lootbox.ui.LootBoxViewModel
 
 
 @Composable
@@ -65,6 +66,15 @@ fun TaskExecutionScreen(
                 kotlinx.coroutines.delay(500)
             } else {
                 kotlinx.coroutines.delay(500)
+            }
+
+            // Award a loot box every 5th task completion (check streak)
+            if (result.xpGained >= 50) {   // threshold — tune as needed
+                val box = com.kidsroutine.core.model.LootBox(
+                    earnedFor = "Task completed: ${task.title}"
+                )
+                lootBoxViewModel.presentBox(box)
+                kotlinx.coroutines.delay(800)  // let celebration clear first
             }
 
             onCompleted(result.xpGained)

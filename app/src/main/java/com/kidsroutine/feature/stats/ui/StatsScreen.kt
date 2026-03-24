@@ -117,6 +117,12 @@ fun StatsScreen(
                         }
                     }
 
+                    item {
+                        uiState.userStats?.let { stats ->
+                            BehaviourInsightCard(stats = stats)
+                        }
+                    }
+
                     // Weekly Progress
                     item {
                         WeeklyProgressCard(uiState.weeklyProgress)

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
+import com.kidsroutine.feature.stats.ui.StreakShieldCard
 import com.kidsroutine.feature.tasks.ui.RefreshEventManager
 
 
@@ -328,8 +329,11 @@ private fun DailyHeader(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                StreakBadge(streak = uiState.currentUser.streak)
-            }
+                StreakShieldCard(
+                    streak       = uiState.currentUser.streak,
+                    shieldActive = uiState.currentUser.streakShieldActive,
+                    showLabel    = false
+                )            }
         }
     }
 }

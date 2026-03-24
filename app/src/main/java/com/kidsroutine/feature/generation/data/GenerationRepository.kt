@@ -116,6 +116,183 @@ class GenerationRepository @Inject constructor(
         }
     }
 
+    /**
+     * Generate a full AI daily plan via Cloud Function.
+     * PRO tier only. Reuses same FirebaseFunctions instance.
+     */
+    suspend fun generateDailyPlan(
+        familyId: String,
+        childAge: Int,
+        preferences: List<String> = emptyList(),
+        goals: List<String> = emptyList(),
+        tier: String = "PRO",
+        mood: String = "NORMAL"
+    ): Result<DailyPlanResponse> {
+        return try {
+            Log.d("GenerationRepo", "⏳ Calling generateDailyPlanAI Cloud Function...")
+
+            val result = functions.getHttpsCallable("generateDailyPlanAI")
+                .call(mapOf(
+                    "familyId"    to familyId,
+                    "childAge"    to childAge,
+                    "preferences" to preferences,
+                    "goals"       to goals,
+                    "tier"        to tier,
+                    "mood"        to mood
+                ))
+                .await()
+
+            val data = result.data as? Map<*, *>
+                ?: throw Exception("Invalid response from Cloud Function")
+
+            val planMap = data["plan"] as? Map<*, *>
+                ?: throw Exception("Missing plan in response")
+
+            val tasksRaw = planMap["tasks"] as? List<*> ?: emptyList<Any>()
+            val tasks = tasksRaw.mapNotNull { t ->
+                (t as? Map<*, *>)?.let { parsePlanTaskMap(it) }
+            }
+
+            val plan = GeneratedDailyPlan(
+                theme    = planMap["theme"] as? String ?: "Adventure Day",
+                totalXp  = (planMap["totalXp"] as? Number)?.toInt() ?: tasks.sumOf { it.xpReward },
+                mood     = planMap["mood"] as? String ?: mood,
+                tasks    = tasks
+            )
+
+            val response = DailyPlanResponse(
+                success        = data["success"] as? Boolean ?: false,
+                plan           = plan,
+                cached         = data["cached"] as? Boolean ?: false,
+                quotaRemaining = (data["quotaRemaining"] as? Number)?.toInt() ?: 0
+            )
+
+            if (response.success) {
+                Log.d("GenerationRepo", "✅ Daily plan: \"${plan.theme}\", ${plan.tasks.size} tasks")
+                Result.success(response)
+            } else {
+                Result.failure(Exception("Failed to generate daily plan"))
+            }
+        } catch (e: Exception) {
+            Log.e("GenerationRepo", "❌ Error: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Generate a 7-day family plan via Cloud Function.
+     * PRO tier only. children = list of maps with "name" and "age".
+     */
+    suspend fun generateWeeklyPlan(
+        familyId: String,
+        children: List<Map<String, Any>>,
+        familyGoals: List<String> = emptyList(),
+        tier: String = "PRO",
+        weekTheme: String = "ADVENTURE"
+    ): Result<WeeklyPlanResponse> {
+        return try {
+            Log.d("GenerationRepo", "⏳ Calling generateWeeklyPlanAI...")
+
+            val result = functions.getHttpsCallable("generateWeeklyPlanAI")
+                .call(mapOf(
+                    "familyId"    to familyId,
+                    "children"    to children,
+                    "familyGoals" to familyGoals,
+                    "tier"        to tier,
+                    "weekTheme"   to weekTheme
+                ))
+                .await()
+
+            val data = result.data as? Map<*, *>
+                ?: throw Exception("Invalid response from Cloud Function")
+
+            val planMap = data["weeklyPlan"] as? Map<*, *>
+                ?: throw Exception("Missing weeklyPlan in response")
+
+            val daysRaw = planMap["days"] as? List<*> ?: emptyList<Any>()
+            val days = daysRaw.mapNotNull { d ->
+                (d as? Map<*, *>)?.let { parseWeeklyDayMap(it) }
+            }
+
+            val plan = GeneratedWeeklyPlan(
+                weekTheme      = planMap["weekTheme"] as? String ?: weekTheme,
+                totalFamilyXp  = (planMap["totalFamilyXp"] as? Number)?.toInt()
+                    ?: days.sumOf { day -> day.tasks.sumOf { it.xpReward } },
+                days           = days
+            )
+
+            val response = WeeklyPlanResponse(
+                success        = data["success"] as? Boolean ?: false,
+                weeklyPlan     = plan,
+                cached         = data["cached"] as? Boolean ?: false,
+                quotaRemaining = (data["quotaRemaining"] as? Number)?.toInt() ?: 0
+            )
+
+            if (response.success) {
+                Log.d("GenerationRepo", "✅ Weekly plan: ${plan.days.size} days, ${plan.totalFamilyXp} XP")
+                Result.success(response)
+            } else {
+                Result.failure(Exception("Failed to generate weekly plan"))
+            }
+        } catch (e: Exception) {
+            Log.e("GenerationRepo", "❌ Error: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun parseWeeklyDayMap(map: Map<*, *>): WeeklyDayPlan? {
+        return try {
+            val tasksRaw = map["tasks"] as? List<*> ?: emptyList<Any>()
+            val tasks = tasksRaw.mapNotNull { t ->
+                (t as? Map<*, *>)?.let { parseWeeklyTaskMap(it) }
+            }
+            WeeklyDayPlan(
+                dayName  = map["dayName"] as? String ?: "Day",
+                dayEmoji = map["dayEmoji"] as? String ?: "📅",
+                tasks    = tasks
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parseWeeklyTaskMap(map: Map<*, *>): WeeklyTask? {
+        return try {
+            WeeklyTask(
+                childName            = map["childName"] as? String ?: "",
+                title                = map["title"] as? String ?: return null,
+                description          = map["description"] as? String ?: "",
+                estimatedDurationSec = (map["estimatedDurationSec"] as? Number)?.toInt() ?: 30,
+                category             = map["category"] as? String ?: "HEALTH",
+                difficulty           = map["difficulty"] as? String ?: "EASY",
+                xpReward             = (map["xpReward"] as? Number)?.toInt() ?: 10,
+                type                 = map["type"] as? String ?: "REAL_LIFE",
+                requiresCoop         = map["requiresCoop"] as? Boolean ?: false
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun parsePlanTaskMap(map: Map<*, *>): GeneratedPlanTask? {
+        return try {
+            GeneratedPlanTask(
+                title                = map["title"] as? String ?: return null,
+                description          = map["description"] as? String ?: "",
+                estimatedDurationSec = (map["estimatedDurationSec"] as? Number)?.toInt() ?: 30,
+                category             = map["category"] as? String ?: "HEALTH",
+                difficulty           = map["difficulty"] as? String ?: "EASY",
+                xpReward             = (map["xpReward"] as? Number)?.toInt() ?: 10,
+                type                 = map["type"] as? String ?: "REAL_LIFE",
+                timeSlot             = map["timeSlot"] as? String ?: "MORNING",
+                requiresCoop         = map["requiresCoop"] as? Boolean ?: false
+            )
+        } catch (e: Exception) {
+            Log.e("GenerationRepo", "Failed to parse plan task: ${e.message}")
+            null
+        }
+    }
+
     // ── PRIVATE PARSING HELPERS ────────────────────────────────────────────────
 
     private fun parseTaskMap(map: Map<*, *>): GeneratedTask? {

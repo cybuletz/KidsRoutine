@@ -15,6 +15,10 @@ object Routes {
     const val CHILD_PROFILE = "child_profile"
     const val AVATAR_CUSTOMIZATION = "avatar_customization"
 
+    const val WORLD = "world"
+
+    const val MOMENTS = "moments"
+
     // ═══════════════════════════════════════════════════════════════════════
     // PARENT ROUTES
     // ═══════════════════════════════════════════════════════════════════════
@@ -33,6 +37,9 @@ object Routes {
     const val PARENT_STATS = "parent_stats"
 
     const val GENERATION = "generation"
+
+    const val DAILY_PLAN = "daily_plan"
+    const val WEEKLY_PLAN = "weekly_plan"
 
 
     // ═══════════════════════════════════════════════════════════════════════

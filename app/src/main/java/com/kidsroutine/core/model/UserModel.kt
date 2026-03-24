@@ -18,6 +18,7 @@ data class UserModel(
     val xp: Int = 0,
     val level: Int = 1,
     val streak: Int = 0,
+    val streakShieldActive: Boolean = false,
     val activeChallengeIds: List<String> = emptyList(),
     val preferences: UserPreferences = UserPreferences(),
     val badges: List<Badge> = emptyList(),
