@@ -7,5 +7,6 @@ enum class TaskType {
     LEARNING,
     EMOTIONAL,
     CO_OP,
-    SOCIAL
+    SOCIAL,
+    STORY
 }

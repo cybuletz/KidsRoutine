@@ -10,6 +10,7 @@ import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
+import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
@@ -134,6 +135,13 @@ fun NavGraphBuilder.childNavGraph(
             ChallengeDetailScreen(
                 currentUser = currentUser,
                 challengeId = challengeId,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.AVATAR_SHOP) {
+            AvatarShopScreen(
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() }
             )
         }

@@ -1,5 +1,11 @@
 package com.kidsroutine.feature.daily.ui
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -13,15 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.kidsroutine.core.engine.SeasonalThemeManager
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
@@ -29,10 +37,47 @@ import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
 import com.kidsroutine.feature.moments.ui.MomentsScreen
 
-
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight = Color(0xFFFFFBF0)
 
+// ── Seasonal banner — top-level composable ───────────────────────────────────
+@Composable
+fun SeasonalBanner(themeManager: SeasonalThemeManager) {
+    val theme = remember { themeManager.getActiveTheme() }
+    if (theme.bannerText.isBlank()) return
+
+    val infiniteTransition = rememberInfiniteTransition(label = "bannerPulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue  = 0.85f,
+        targetValue   = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(1200),
+            RepeatMode.Reverse
+        ),
+        label = "bannerAlpha"
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape  = RoundedCornerShape(12.dp),
+        color  = theme.primaryAccent.copy(alpha = 0.15f),
+        border = BorderStroke(1.dp, theme.primaryAccent.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text       = theme.bannerText,
+            fontSize   = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color      = theme.primaryAccent,
+            modifier   = Modifier
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .graphicsLayer { this.alpha = alpha }
+        )
+    }
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 @Composable
 fun ChildMainScreen(
     currentUser: UserModel,
@@ -43,33 +88,47 @@ fun ChildMainScreen(
     val innerNavController = rememberNavController()
     var currentRoute by remember { mutableStateOf("daily") }
 
+    // Seasonal banner — visible at the very top when on the daily tab
+    val themeManager = remember { SeasonalThemeManager() }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Navigation content
+
+        // ── Seasonal banner — shown above the NavHost when on "daily" tab ──
+        if (currentRoute == "daily") {
+            SeasonalBanner(
+                themeManager = themeManager,
+                modifier     = Modifier
+                    .align(Alignment.TopCenter)
+                    .zIndex(5f)
+            )
+        }
+
+        // ── Navigation content ────────────────────────────────────────────
         NavHost(
-            navController = innerNavController,
+            navController    = innerNavController,
             startDestination = "daily",
-            modifier = Modifier.fillMaxSize()
+            modifier         = Modifier.fillMaxSize()
         ) {
             composable("daily") {
                 currentRoute = "daily"
                 DailyScreen(
-                    currentUser = currentUser,
-                    onTaskClick = onTaskClick,
-                    onChallengesClick = { innerNavController.navigate("challenges") },
-                    onAchievementsClick = { innerNavController.navigate("achievements") },
+                    currentUser          = currentUser,
+                    onTaskClick          = onTaskClick,
+                    onChallengesClick    = { innerNavController.navigate("challenges") },
+                    onAchievementsClick  = { innerNavController.navigate("achievements") },
                     onFamilyMessagingClick = onFamilyMessagingClick,
-                    onStatsClick = { innerNavController.navigate("leaderboard") },
-                    onProfileClick = { parentNavController.navigate(Routes.CHILD_PROFILE) }
+                    onStatsClick         = { innerNavController.navigate("leaderboard") },
+                    onProfileClick       = { parentNavController.navigate(Routes.CHILD_PROFILE) }
                 )
             }
 
             composable("challenges") {
                 currentRoute = "challenges"
                 ActiveChallengesScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNavController.navigate("daily") },
+                    currentUser          = currentUser,
+                    onBackClick          = { innerNavController.navigate("daily") },
                     onStartChallengeClick = { innerNavController.navigate("challenges") },
-                    onChallengeClick = { /* Handle challenge click */ }
+                    onChallengeClick     = { }
                 )
             }
 
@@ -91,7 +150,6 @@ fun ChildMainScreen(
 
             composable("world") {
                 currentRoute = "world"
-                // World is a full-screen experience launched via parent nav
                 LaunchedEffect(Unit) {
                     innerNavController.popBackStack()
                     parentNavController.navigate(Routes.WORLD)
@@ -102,25 +160,66 @@ fun ChildMainScreen(
             composable("moments") {
                 currentRoute = "moments"
                 MomentsScreen(
-                    currentUser  = currentUser,
-                    onBackClick  = { innerNavController.navigate("daily") }
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
                 )
             }
         }
 
-        // Persistent Navigation Bar
+        // ── Persistent bottom nav bar ─────────────────────────────────────
         PersistentNavBar(
-            currentRoute = currentRoute,
-            currentUser = currentUser,
-            onDailyClick = { innerNavController.navigate("daily") { popUpTo("daily") } },
-            onChallengesClick = { innerNavController.navigate("challenges") { popUpTo("daily") } },
-            onLeaderboardClick = { innerNavController.navigate("leaderboard") { popUpTo("daily") } },
+            currentRoute        = currentRoute,
+            currentUser         = currentUser,
+            onDailyClick        = { innerNavController.navigate("daily") { popUpTo("daily") } },
+            onChallengesClick   = { innerNavController.navigate("challenges") { popUpTo("daily") } },
+            onLeaderboardClick  = { innerNavController.navigate("leaderboard") { popUpTo("daily") } },
+            onWorldClick        = { innerNavController.navigate("world") { popUpTo("daily") } },
             onAchievementsClick = { innerNavController.navigate("achievements") { popUpTo("daily") } },
-            onChatClick = onFamilyMessagingClick
+            onMomentsClick      = { innerNavController.navigate("moments") { popUpTo("daily") } },
+            onChatClick         = onFamilyMessagingClick
         )
     }
 }
 
+// ── Updated SeasonalBanner signature with optional modifier ──────────────────
+// (overload so the inline call above compiles cleanly)
+@Composable
+fun SeasonalBanner(
+    themeManager: SeasonalThemeManager,
+    modifier: Modifier = Modifier
+) {
+    val theme = remember { themeManager.getActiveTheme() }
+    if (theme.bannerText.isBlank()) return
+
+    val infiniteTransition = rememberInfiniteTransition(label = "bannerPulse2")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue  = 0.85f,
+        targetValue   = 1f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label         = "bannerAlpha2"
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape  = RoundedCornerShape(12.dp),
+        color  = theme.primaryAccent.copy(alpha = 0.15f),
+        border = BorderStroke(1.dp, theme.primaryAccent.copy(alpha = 0.4f))
+    ) {
+        Text(
+            text       = theme.bannerText,
+            fontSize   = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color      = theme.primaryAccent,
+            modifier   = Modifier
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .graphicsLayer { this.alpha = alpha }
+        )
+    }
+}
+
+// ── Nav bar ───────────────────────────────────────────────────────────────────
 @Composable
 private fun PersistentNavBar(
     currentRoute: String,
@@ -140,68 +239,64 @@ private fun PersistentNavBar(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding(),
-            color = Color.White,
+            color          = Color.White,
             shadowElevation = 12.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .padding(horizontal = 8.dp, vertical = 0.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 NavBarItemButton(
-                    icon = Icons.Default.Home,
-                    label = "Daily",
+                    icon       = Icons.Default.Home,
+                    label      = "Daily",
                     isSelected = currentRoute == "daily",
-                    onClick = onDailyClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onDailyClick,
+                    modifier   = Modifier.weight(1f)
                 )
-
                 NavBarItemButton(
-                    icon = Icons.Default.EmojiEvents,
-                    label = "Challenges",
+                    icon       = Icons.Default.EmojiEvents,
+                    label      = "Challenges",
                     isSelected = currentRoute == "challenges",
-                    onClick = onChallengesClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onChallengesClick,
+                    modifier   = Modifier.weight(1f)
                 )
-
                 NavBarItemButton(
-                    icon = Icons.Default.BarChart,
-                    label = "Leaderboard",
+                    icon       = Icons.Default.BarChart,
+                    label      = "Leaderboard",
                     isSelected = currentRoute == "leaderboard",
-                    onClick = onLeaderboardClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onLeaderboardClick,
+                    modifier   = Modifier.weight(1f)
                 )
-
                 NavBarItemButton(
-                    icon = Icons.Default.Language,
-                    label = "World",
+                    icon       = Icons.Default.Language,
+                    label      = "World",
                     isSelected = currentRoute == "world",
-                    onClick = onWorldClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onWorldClick,
+                    modifier   = Modifier.weight(1f)
                 )
-
                 NavBarItemButton(
-                    icon      = Icons.Default.PhotoAlbum,
-                    label     = "Moments",
+                    icon       = Icons.Default.PhotoAlbum,
+                    label      = "Moments",
                     isSelected = currentRoute == "moments",
                     onClick    = onMomentsClick,
                     modifier   = Modifier.weight(1f)
                 )
-
+                // Achievements with badge
                 Box(modifier = Modifier.weight(1f)) {
                     NavBarItemButton(
-                        icon = Icons.Default.EmojiEvents,
-                        label = "Achievements",
+                        icon       = Icons.Default.Star,
+                        label      = "Badges",
                         isSelected = currentRoute == "achievements",
-                        onClick = onAchievementsClick
+                        onClick    = onAchievementsClick
                     )
                     if (currentUser.badges.isNotEmpty()) {
                         Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFFF6B35),
+                            shape    = CircleShape,
+                            color    = OrangePrimary,
                             modifier = Modifier
                                 .size(18.dp)
                                 .align(Alignment.TopEnd)
@@ -209,13 +304,13 @@ private fun PersistentNavBar(
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
+                                modifier         = Modifier.fillMaxSize()
                             ) {
                                 Text(
-                                    text = "${currentUser.badges.size}",
-                                    color = Color.White,
+                                    text       = "${currentUser.badges.size}",
+                                    color      = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
+                                    fontSize   = 9.sp
                                 )
                             }
                         }
@@ -224,7 +319,7 @@ private fun PersistentNavBar(
             }
         }
 
-        // Chat Bubble
+        // Chat bubble
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -233,25 +328,22 @@ private fun PersistentNavBar(
                 .navigationBarsPadding()
         ) {
             Button(
-                onClick = onChatClick,
-                modifier = Modifier
-                    .size(width = 56.dp, height = 50.dp),
-                shape = RoundedCornerShape(
-                    topStart = 16.dp,
-                    topEnd = 16.dp,
+                onClick        = onChatClick,
+                modifier       = Modifier.size(width = 56.dp, height = 50.dp),
+                shape          = RoundedCornerShape(
+                    topStart    = 16.dp,
+                    topEnd      = 16.dp,
                     bottomStart = 16.dp,
-                    bottomEnd = 2.dp
+                    bottomEnd   = 2.dp
                 ),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEC407A)
-                ),
+                colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
                 contentPadding = PaddingValues(0.dp),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
                 Icon(
                     Icons.Default.Message,
                     contentDescription = "Chat",
-                    tint = Color.White,
+                    tint     = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -259,6 +351,7 @@ private fun PersistentNavBar(
     }
 }
 
+// ── Nav bar item button ───────────────────────────────────────────────────────
 @Composable
 private fun NavBarItemButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -274,21 +367,20 @@ private fun NavBarItemButton(
             .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
-            .padding(0.dp)
     ) {
         Icon(
             icon,
             contentDescription = label,
-            tint = if (isSelected) OrangePrimary else Color.Gray,
+            tint     = if (isSelected) OrangePrimary else Color.Gray,
             modifier = Modifier.size(24.dp)
         )
         Text(
-            text = label,
-            fontSize = 9.sp,
+            text       = label,
+            fontSize   = 9.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            color      = if (isSelected) OrangePrimary else Color.Gray,
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis,
             lineHeight = 10.sp
         )
     }

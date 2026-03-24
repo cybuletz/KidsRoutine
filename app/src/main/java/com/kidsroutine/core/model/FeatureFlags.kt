@@ -19,9 +19,11 @@ data class FeatureFlags(
     val lootBoxEnabled: Boolean = true,
     val momentsEnabled: Boolean = true,
 
-    // Future — off by default until built
-    val seasonalThemesEnabled: Boolean = false,
-    val avatarShopEnabled: Boolean = false,
-    val contentPacksEnabled: Boolean = false,
+    // Batch 5 — NOW ENABLED  ← changed from false
+    val seasonalThemesEnabled: Boolean = true,
+    val avatarShopEnabled: Boolean = true,
+    val contentPacksEnabled: Boolean = true,
+
+    // Still future
     val weeklyPlannerEnabled: Boolean = false
 )

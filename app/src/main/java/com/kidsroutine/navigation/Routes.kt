@@ -50,8 +50,16 @@ object Routes {
     const val MARKETPLACE_TASKS = "marketplace_tasks"
     const val MARKETPLACE_CHALLENGES = "marketplace_challenges"
     const val PUBLISH = "publish"
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GENERIC ROUTES
+    // ═══════════════════════════════════════════════════════════════════════
+
     const val MODERATION = "moderation"
     const val FAMILY_MESSAGING = "family_messaging"
+    const val AVATAR_SHOP     = "avatar_shop"
+    const val CONTENT_PACKS   = "content_packs"
+    const val SEASONAL_THEME  = "seasonal_theme"   // informational screen (future)
 
     // ═══════════════════════════════════════════════════════════════════════
     // Helper functions for navigation with arguments

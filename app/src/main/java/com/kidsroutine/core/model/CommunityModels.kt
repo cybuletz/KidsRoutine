@@ -92,7 +92,10 @@ data class ChildLeaderboardEntry(
     val familyId: String = "",
     val avatarUrl: String = "",
     val xp: Int = 0,
-    val rank: Int = 0
+    val rank: Int = 0,
+    val level: Int = 1,
+    val streak: Int = 0,
+    val badges: Int = 0
 )
 
 data class FamilyLeaderboardEntry(

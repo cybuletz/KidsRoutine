@@ -6,6 +6,8 @@ import com.kidsroutine.core.ai.AIGenerationService
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.kidsroutine.core.model.StoryArc
+import com.kidsroutine.core.model.StoryChapter
 
 /**
  * Repository for AI generation operations
@@ -112,6 +114,79 @@ class GenerationRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("GenerationRepo", "❌ Error: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Generate a 3-day story arc via Cloud Function.
+     */
+    suspend fun generateStoryArc(
+        familyId: String,
+        childAge: Int,
+        tier: String = "FREE"
+    ): Result<GeneratedStoryResponse> {
+        return try {
+            Log.d("GenerationRepo", "⏳ Calling generateStoryTaskAI Cloud Function...")
+
+            val result = functions.getHttpsCallable("generateStoryTaskAI")
+                .call(mapOf(
+                    "familyId"  to familyId,
+                    "childAge"  to childAge,
+                    "tier"      to tier
+                ))
+                .await()
+
+            val data = result.data as? Map<*, *>
+                ?: return Result.failure(Exception("Empty response"))
+
+            val success = data["success"] as? Boolean ?: false
+            if (!success) return Result.failure(Exception("Story generation failed"))
+
+            val arcMap      = data["arc"] as? Map<*, *> ?: return Result.failure(Exception("No arc in response"))
+            val chaptersRaw = arcMap["chapters"] as? List<*> ?: emptyList<Any>()
+
+            val chapters = chaptersRaw.mapNotNull { ch ->
+                (ch as? Map<*, *>)?.let { m ->
+                    com.kidsroutine.core.model.StoryChapter(
+                        day                  = (m["day"] as? Number)?.toInt() ?: 1,
+                        chapterTitle         = m["chapterTitle"] as? String ?: "",
+                        narrative            = m["narrative"]    as? String ?: "",
+                        taskTitle            = m["taskTitle"]    as? String ?: "",
+                        taskDescription      = m["taskDescription"] as? String ?: "",
+                        estimatedDurationSec = (m["estimatedDurationSec"] as? Number)?.toInt() ?: 60,
+                        category             = m["category"]    as? String ?: "CREATIVITY",
+                        difficulty           = m["difficulty"]  as? String ?: "MEDIUM",
+                        xpReward             = (m["xpReward"]   as? Number)?.toInt() ?: 50,
+                        type                 = "STORY"
+                    )
+                }
+            }
+
+            val arc = com.kidsroutine.core.model.StoryArc(
+                arcId      = arcMap["arcId"]      as? String ?: "",
+                arcTitle   = arcMap["arcTitle"]   as? String ?: "",
+                arcEmoji   = arcMap["arcEmoji"]   as? String ?: "📖",
+                theme      = arcMap["theme"]      as? String ?: "",
+                childAge   = (arcMap["childAge"]  as? Number)?.toInt() ?: childAge,
+                familyId   = arcMap["familyId"]   as? String ?: familyId,
+                chapters   = chapters,
+                startDate  = arcMap["startDate"]  as? String ?: "",
+                currentDay = (arcMap["currentDay"] as? Number)?.toInt() ?: 1,
+                isComplete = arcMap["isComplete"] as? Boolean ?: false,
+                createdAt  = (arcMap["createdAt"] as? Number)?.toLong() ?: 0L
+            )
+
+            Result.success(
+                GeneratedStoryResponse(
+                    success        = true,
+                    arc            = arc,
+                    cached         = data["cached"] as? Boolean ?: false,
+                    quotaRemaining = (data["quotaRemaining"] as? Number)?.toInt() ?: 0
+                )
+            )
+        } catch (e: Exception) {
+            Log.e("GenerationRepo", "❌ Story arc error: ${e.message}", e)
             Result.failure(e)
         }
     }

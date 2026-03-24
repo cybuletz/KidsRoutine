@@ -73,6 +73,7 @@ fun TaskExecutionScreen(
                 val box = com.kidsroutine.core.model.LootBox(
                     earnedFor = "Task completed: ${task.title}"
                 )
+
                 lootBoxViewModel.presentBox(box)
                 kotlinx.coroutines.delay(800)  // let celebration clear first
             }

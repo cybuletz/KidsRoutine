@@ -14,5 +14,7 @@ data class LeaderboardEntry(
 data class FamilyLeaderboard(
     val familyId: String = "",
     val week: String = "",  // "2025-W12" format
-    val entries: List<LeaderboardEntry> = emptyList()
+    val entries: List<LeaderboardEntry> = emptyList(),
+    val familyXp: Int = 0,
+    val rank: Int = 0
 )

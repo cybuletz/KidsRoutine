@@ -6,6 +6,8 @@ admin.initializeApp();
 
 // ✅ NOW import modules that need Firebase
 import * as aiGeneration from "./aiGeneration";
+import * as storyGeneration from "./storyGeneration";
+import * as leaderboardAggregation from "./leaderboardAggregation";
 //import * as firebaseSetup from "./setupFirestore";
 
 const db = admin.firestore();
@@ -18,6 +20,10 @@ export const generateTasksAI = aiGeneration.generateTasksAI;
 export const generateChallengesAI = aiGeneration.generateChallengesAI;
 export const generateDailyPlanAI = aiGeneration.generateDailyPlanAI;
 export const generateWeeklyPlanAI = aiGeneration.generateWeeklyPlanAI;
+export const generateStoryTaskAI    = storyGeneration.generateStoryTaskAI;
+
+// ===== Leaderboard aggregation =====
+export const aggregateLeaderboards  = leaderboardAggregation.aggregateLeaderboards;
 
 // ===== TASK COMPLETION NOTIFICATIONS =====
 

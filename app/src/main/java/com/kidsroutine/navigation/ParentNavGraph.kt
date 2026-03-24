@@ -35,6 +35,8 @@ import com.kidsroutine.feature.generation.ui.DailyPlanScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
 import com.kidsroutine.feature.generation.ui.GenerationScreen
 import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
+import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
+import com.kidsroutine.feature.billing.ContentPacksScreen
 
 
 fun NavGraphBuilder.parentNavGraph(
@@ -267,6 +269,21 @@ fun NavGraphBuilder.parentNavGraph(
         composable(Routes.DAILY_PLAN) {
             DailyPlanScreen(
                 currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.AVATAR_SHOP) {
+            AvatarShopScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CONTENT_PACKS) {
+            ContentPacksScreen(
+                currentUser = currentUser,
+                isPro       = false,   // TODO: wire to EntitlementsRepository
                 onBackClick = { navController.popBackStack() }
             )
         }
