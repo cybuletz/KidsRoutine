@@ -101,7 +101,9 @@ class GenerationViewModel @Inject constructor(
                     return@launch
                 }
 
-                val preferences = _uiState.value.selectedPreferences.toList()
+                // ✅ FIXED — translates emoji labels to backend codes first
+                val preferences = _uiState.value.selectedPreferences
+                    .mapNotNull { displayLabelToCategory(it) }
                 val tier = "FREE"  // TODO: Add tier field to UserModel
 
                 val result = repository.generateTasks(
@@ -159,7 +161,8 @@ class GenerationViewModel @Inject constructor(
             try {
                 Log.d("GenerationVM", "Generating challenges...")
 
-                val goals = _uiState.value.selectedGoals.toList()
+                val goals = _uiState.value.selectedGoals
+                    .mapNotNull { displayLabelToCategory(it) }
                 val tier = "PRO"  // Challenges require PRO
 
                 val result = repository.generateChallenges(
@@ -272,6 +275,25 @@ class GenerationViewModel @Inject constructor(
             error = null,
             successMessage = null
         )
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // LABEL MAPPING (converts screen labels → backend category codes)
+    // ════════════════════════════════════════════════════════════════════════
+
+    private fun displayLabelToCategory(label: String): String? = when (label) {
+        "🎨 Creative"        -> "CREATIVITY"
+        "📚 Learning"        -> "LEARNING"
+        "⚽ Sports"          -> "HEALTH"
+        "🏃 Health"          -> "HEALTH"
+        "🌙 Sleep"           -> "SLEEP"
+        "👥 Social"          -> "SOCIAL"
+        "🌿 Outdoor"         -> "OUTDOOR"
+        "🏠 Chores"          -> "CHORES"
+        "📱 Screen"          -> "SCREEN_TIME"
+        "☀️ Morning"        -> "MORNING_ROUTINE"
+        "👨‍👩‍👧 Family"   -> "FAMILY"
+        else                 -> null
     }
 
     fun saveChallengeToFamily(

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.*
+import com.kidsroutine.feature.tasks.ui.RefreshEventManager
 
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
@@ -54,7 +55,14 @@ fun DailyScreen(
     LaunchedEffect(currentUser.userId) {
         Log.d("DailyScreen", "Initializing with user: ${currentUser.userId}")
         viewModel.init(currentUser)
-        // ← REMOVED: childItemViewModel.loadChildItems()
+    }
+
+    // ← ADD THIS BLOCK: Listen for push notification refresh trigger
+    LaunchedEffect(Unit) {
+        RefreshEventManager.refreshEvent.collect {
+            Log.d("DailyScreen", "🔔 Refresh triggered by push notification!")
+            viewModel.init(currentUser)  // Reload all tasks
+        }
     }
 
     Box(

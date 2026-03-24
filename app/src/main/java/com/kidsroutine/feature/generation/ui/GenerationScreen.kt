@@ -591,7 +591,7 @@ private fun TaskCard(
     currentUser: com.kidsroutine.core.model.UserModel = com.kidsroutine.core.model.UserModel()
 ) {
     var showCustomizationModal by remember { mutableStateOf(false) }
-    var currentTask by remember { mutableStateOf(task) }
+    var currentTask by remember(task) { mutableStateOf(task) }
 
     AnimatedVisibility(
         visible = true,

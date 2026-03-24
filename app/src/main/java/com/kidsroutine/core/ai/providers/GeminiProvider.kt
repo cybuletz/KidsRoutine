@@ -55,7 +55,7 @@ class GeminiProvider @Inject constructor(
                 put("generationConfig", JSONObject().apply {
                     put("maxOutputTokens", maxTokens)
                     put("temperature", temperature)
-                    put("responseMimeType", "application/json")
+                    put("response_mime_type", "application/json")
                 })
                 put("safetySettings", JSONArray().apply {
                     put(JSONObject().apply {
