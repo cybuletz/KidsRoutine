@@ -16,6 +16,7 @@ import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import com.kidsroutine.feature.daily.ui.ChildMainScreen
 import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
+import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
@@ -166,6 +167,14 @@ fun NavGraphBuilder.childNavGraph(
         composable(Routes.WORLD) {
             WorldScreen(
                 currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CHILD_TASK_PROPOSAL) {
+            ChildTaskProposalScreen(
+                currentUser = currentUser,
+                onProposalSuccess = { navController.popBackStack() },
                 onBackClick = { navController.popBackStack() }
             )
         }

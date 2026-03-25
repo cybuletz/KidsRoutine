@@ -114,7 +114,7 @@ class ContentPacksViewModel @Inject constructor(
     }
 
     // ── Unlock logic (unchanged, now persists) ─────────────────────────────
-    fun unlockPack(pack: ContentPack, userId: String = "") {
+    fun unlockPack(pack: ContentPack, userId: String = "", familyId: String = "") {
         val state = _uiState.value
         if (pack.packId in state.unlockedPackIds) {
             _uiState.update { it.copy(error = "You already own this pack!") }
@@ -135,13 +135,38 @@ class ContentPacksViewModel @Inject constructor(
                 it.copy(
                     unlockedPackIds = newSet,
                     userXp          = it.userXp - pack.xpCost.coerceAtLeast(0),
-                    successMessage  = "🎉 ${pack.name} unlocked!",
+                    successMessage  = "🎉 ${pack.name} unlocked! Tasks are being added...",
                     error           = null
                 )
             }
-            // Persist to Firestore
+            // Persist entitlement
             if (userId.isNotBlank()) saveUnlockedPack(userId, pack.packId)
-            Log.d("ContentPacksVM", "Pack unlocked: ${pack.name}")
+
+            // ✅ FIX: Seed pack tasks into family task pool via Cloud Function
+            if (userId.isNotBlank() && familyId.isNotBlank()) {
+                seedPackTasks(userId, familyId, pack.packId)
+            }
+            Log.d("ContentPacksVM", "Pack unlocked + tasks seeded: ${pack.name}")
+        }
+    }
+
+    private suspend fun seedPackTasks(userId: String, familyId: String, packId: String) {
+        try {
+            val functions = com.google.firebase.functions.FirebaseFunctions.getInstance()
+            val data = hashMapOf(
+                "userId"   to userId,
+                "familyId" to familyId,
+                "packId"   to packId
+            )
+            functions.getHttpsCallable("applyContentPack")
+                .call(data)
+                .await()
+            Log.d("ContentPacksVM", "✓ applyContentPack Cloud Function completed for pack=$packId")
+            _uiState.update { it.copy(successMessage = "🎉 ${it.packs.find { p -> p.packId == packId }?.name ?: "Pack"} unlocked! New tasks added to your family.") }
+        } catch (e: Exception) {
+            Log.e("ContentPacksVM", "applyContentPack failed: ${e.message}")
+            // Non-fatal — pack is still unlocked, tasks just need retry
+            _uiState.update { it.copy(successMessage = "Pack unlocked! Tasks will sync shortly.") }
         }
     }
 

@@ -1,7 +1,10 @@
 package com.kidsroutine.feature.lootbox.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.LootBox
 import com.kidsroutine.core.model.LootBoxRarity
 import com.kidsroutine.core.model.LootBoxReward
@@ -12,48 +15,44 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-enum class LootBoxPhase {
-    IDLE,       // nothing showing
-    WAITING,    // box sitting on screen, shake loop
-    SHAKING,    // user tapped — violent shake
-    BURSTING,   // box explodes apart
-    REVEALING,  // reward card flies in
-    DONE        // dismiss
-}
+enum class LootBoxPhase { IDLE, WAITING, SHAKING, BURSTING, REVEALING, DONE }
 
 data class LootBoxUiState(
     val phase: LootBoxPhase = LootBoxPhase.IDLE,
     val lootBox: LootBox? = null,
-    val reward: LootBoxReward? = null
+    val reward: LootBoxReward? = null,
+    val userId: String = ""
 )
 
 @HiltViewModel
-class LootBoxViewModel @Inject constructor() : ViewModel() {
+class LootBoxViewModel @Inject constructor(
+    private val firestore: FirebaseFirestore
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LootBoxUiState())
     val uiState: StateFlow<LootBoxUiState> = _uiState.asStateFlow()
 
-    // ── Catalog of possible rewards ──────────────────────────────────────────
     private val rewardPool = listOf(
-        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.COMMON,    title = "XP Surge",        description = "+25 bonus XP added to your total!",   emoji = "⚡", xpValue = 25),
-        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.RARE,      title = "Double XP",       description = "+75 bonus XP — you're on fire!",        emoji = "🔥", xpValue = 75),
-        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.EPIC,      title = "XP Explosion",    description = "+150 XP mega bonus!",                  emoji = "💥", xpValue = 150),
-        LootBoxReward(type = LootBoxRewardType.STREAK_SHIELD, rarity = LootBoxRarity.RARE,      title = "Streak Shield",   description = "Your streak is protected for 1 day!", emoji = "🛡️", xpValue = 0),
-        LootBoxReward(type = LootBoxRewardType.BADGE,         rarity = LootBoxRarity.EPIC,      title = "Mystery Badge",   description = "A rare achievement badge!",            emoji = "🏅", xpValue = 0),
-        LootBoxReward(type = LootBoxRewardType.MYSTERY,       rarity = LootBoxRarity.LEGENDARY, title = "Legendary Drop",  description = "Something truly special — wow!",       emoji = "🌟", xpValue = 200),
-        LootBoxReward(type = LootBoxRewardType.AVATAR_ITEM,   rarity = LootBoxRarity.COMMON,    title = "Avatar Flair",    description = "A cool new avatar accessory!",         emoji = "🎨", xpValue = 0),
-        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.COMMON,    title = "Quick Boost",     description = "+10 XP to get you going!",             emoji = "✨", xpValue = 10),
+        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.COMMON,    title = "XP Surge",       description = "+25 bonus XP added to your total!",   emoji = "⚡", xpValue = 25),
+        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.RARE,      title = "Double XP",      description = "+75 bonus XP — you're on fire!",       emoji = "🔥", xpValue = 75),
+        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.EPIC,      title = "XP Explosion",   description = "+150 XP mega bonus!",                  emoji = "💥", xpValue = 150),
+        LootBoxReward(type = LootBoxRewardType.STREAK_SHIELD, rarity = LootBoxRarity.RARE,      title = "Streak Shield",  description = "Your streak is protected for 1 day!",  emoji = "🛡️", xpValue = 0),
+        LootBoxReward(type = LootBoxRewardType.BADGE,         rarity = LootBoxRarity.EPIC,      title = "Mystery Badge",  description = "A rare achievement badge!",             emoji = "🏅", xpValue = 0),
+        LootBoxReward(type = LootBoxRewardType.MYSTERY,       rarity = LootBoxRarity.LEGENDARY, title = "Legendary Drop", description = "Something truly special — wow!",        emoji = "🌟", xpValue = 200),
+        LootBoxReward(type = LootBoxRewardType.AVATAR_ITEM,   rarity = LootBoxRarity.COMMON,    title = "Avatar Flair",   description = "A cool new avatar accessory!",          emoji = "🎨", xpValue = 0),
+        LootBoxReward(type = LootBoxRewardType.XP_BOOST,      rarity = LootBoxRarity.COMMON,    title = "Quick Boost",    description = "+10 XP to get you going!",              emoji = "✨", xpValue = 10),
     )
 
-    fun presentBox(box: LootBox) {
-        // Assign a random reward weighted by rarity
+    fun presentBox(box: LootBox, userId: String = "") {
         val reward = rollReward()
         _uiState.value = LootBoxUiState(
             phase   = LootBoxPhase.WAITING,
             lootBox = box.copy(reward = reward),
-            reward  = reward
+            reward  = reward,
+            userId  = userId
         )
     }
 
@@ -69,6 +68,15 @@ class LootBoxViewModel @Inject constructor() : ViewModel() {
     }
 
     fun dismiss() {
+        val state = _uiState.value
+        val reward = state.reward
+        val userId = state.userId
+
+        // ✅ FIX: Persist reward to Firestore before clearing state
+        if (reward != null && userId.isNotBlank()) {
+            persistReward(userId, reward)
+        }
+
         _uiState.value = LootBoxUiState(phase = LootBoxPhase.DONE)
     }
 
@@ -76,8 +84,64 @@ class LootBoxViewModel @Inject constructor() : ViewModel() {
         _uiState.value = LootBoxUiState(phase = LootBoxPhase.IDLE)
     }
 
+    private fun persistReward(userId: String, reward: LootBoxReward) {
+        viewModelScope.launch {
+            try {
+                val userRef = firestore.collection("users").document(userId)
+                when (reward.type) {
+                    LootBoxRewardType.XP_BOOST, LootBoxRewardType.MYSTERY -> {
+                        if (reward.xpValue > 0) {
+                            userRef.update("xp", FieldValue.increment(reward.xpValue.toLong())).await()
+                            Log.d("LootBoxVM", "✓ XP persisted: +${reward.xpValue} for $userId")
+                        }
+                    }
+                    LootBoxRewardType.STREAK_SHIELD -> {
+                        userRef.update("streakShieldActive", true).await()
+                        Log.d("LootBoxVM", "✓ Streak shield activated for $userId")
+                    }
+                    LootBoxRewardType.BADGE -> {
+                        val badgeId = "lootbox_badge_${System.currentTimeMillis()}"
+                        userRef.collection("badges").document(badgeId)
+                            .set(mapOf(
+                                "badgeId"    to badgeId,
+                                "title"      to reward.title,
+                                "emoji"      to reward.emoji,
+                                "rarity"     to reward.rarity.name,
+                                "earnedAt"   to System.currentTimeMillis(),
+                                "source"     to "lootbox"
+                            )).await()
+                        Log.d("LootBoxVM", "✓ Badge saved: ${reward.title} for $userId")
+                    }
+                    LootBoxRewardType.AVATAR_ITEM -> {
+                        val itemId = "avatar_item_${System.currentTimeMillis()}"
+                        userRef.collection("avatar_items").document(itemId)
+                            .set(mapOf(
+                                "itemId"   to itemId,
+                                "title"    to reward.title,
+                                "emoji"    to reward.emoji,
+                                "rarity"   to reward.rarity.name,
+                                "earnedAt" to System.currentTimeMillis(),
+                                "source"   to "lootbox"
+                            )).await()
+                        Log.d("LootBoxVM", "✓ Avatar item saved: ${reward.title} for $userId")
+                    }
+                }
+                // Always write to loot_box_history
+                firestore.collection("loot_box_history").add(mapOf(
+                    "userId"      to userId,
+                    "rewardType"  to reward.type.name,
+                    "rewardTitle" to reward.title,
+                    "rarity"      to reward.rarity.name,
+                    "xpValue"     to reward.xpValue,
+                    "openedAt"    to System.currentTimeMillis()
+                )).await()
+            } catch (e: Exception) {
+                Log.e("LootBoxVM", "Failed to persist reward: ${e.message}")
+            }
+        }
+    }
+
     private fun rollReward(): LootBoxReward {
-        // Weighted probability: LEGENDARY 3%, EPIC 12%, RARE 25%, COMMON 60%
         val roll = (1..100).random()
         val rarity = when {
             roll <= 3  -> LootBoxRarity.LEGENDARY
@@ -85,7 +149,6 @@ class LootBoxViewModel @Inject constructor() : ViewModel() {
             roll <= 40 -> LootBoxRarity.RARE
             else       -> LootBoxRarity.COMMON
         }
-        return rewardPool.filter { it.rarity == rarity }.randomOrNull()
-            ?: rewardPool.first()
+        return rewardPool.filter { it.rarity == rarity }.randomOrNull() ?: rewardPool.first()
     }
 }

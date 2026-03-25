@@ -22,6 +22,7 @@ export const generateDailyPlanAI = aiGeneration.generateDailyPlanAI;
 export const generateWeeklyPlanAI = aiGeneration.generateWeeklyPlanAI;
 export const generateStoryTaskAI    = storyGeneration.generateStoryTaskAI;
 
+
 // ===== Leaderboard aggregation =====
 export const aggregateLeaderboards  = leaderboardAggregation.aggregateLeaderboards;
 
@@ -659,3 +660,59 @@ export const computeLeaderboardSnapshots = functions.pubsub
       console.error("[Leaderboard] ❌ Error computing snapshots:", error);
     }
   });
+
+
+    // Seed content pack tasks into family task pool after unlock
+export const applyContentPack = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Must be signed in.");
+    }
+
+    const { userId, familyId, packId } = data as {
+        userId: string;
+        familyId: string;
+        packId: string;
+    };
+
+    if (!userId || !familyId || !packId) {
+        throw new functions.https.HttpsError("invalid-argument", "userId, familyId, packId required.");
+    }
+
+    const db = admin.firestore();
+
+    // 1. Load the content pack's task definitions from Firestore
+    const packDoc = await db.collection("content_packs").doc(packId).get();
+    if (!packDoc.exists) {
+        throw new functions.https.HttpsError("not-found", `Content pack '${packId}' not found in Firestore.`);
+    }
+
+    const packData = packDoc.data()!;
+    const taskTemplates: any[] = packData.tasks || [];
+
+    if (taskTemplates.length === 0) {
+        console.log(`Pack ${packId} has no tasks to seed.`);
+        return { seeded: 0 };
+    }
+
+    // 2. Write each task into families/{familyId}/tasks
+    const batch = db.batch();
+    const familyTasksRef = db.collection("families").doc(familyId).collection("tasks");
+
+    taskTemplates.forEach((template: any) => {
+        const taskRef = familyTasksRef.doc(); // auto-ID
+        batch.set(taskRef, {
+            ...template,
+            taskId:    taskRef.id,
+            familyId:  familyId,
+            createdBy: userId,
+            source:    "content_pack",
+            packId:    packId,
+            isActive:  true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    });
+
+    await batch.commit();
+    console.log(`✓ Seeded ${taskTemplates.length} tasks from pack '${packId}' into family '${familyId}'`);
+    return { seeded: taskTemplates.length };
+});

@@ -19,6 +19,8 @@ object Routes {
 
     const val MOMENTS = "moments"
 
+    const val CHILD_TASK_PROPOSAL = "child_task_proposal"
+
     // ═══════════════════════════════════════════════════════════════════════
     // PARENT ROUTES
     // ═══════════════════════════════════════════════════════════════════════

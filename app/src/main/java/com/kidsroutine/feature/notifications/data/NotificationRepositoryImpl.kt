@@ -5,7 +5,9 @@ import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.AppNotification
 import com.kidsroutine.core.model.NotificationType
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -100,7 +102,7 @@ class NotificationRepositoryImpl @Inject constructor(
             Log.d("NotificationRepository", "Marking notification as read: $notificationId")
             firestore.collection("notifications")
                 .document(notificationId)
-                .update("isRead", true)
+                .set(mapOf("isRead" to true), com.google.firebase.firestore.SetOptions.merge()) // ← set+merge instead of update
                 .await()
             Log.d("NotificationRepository", "Marked as read ✓")
         } catch (e: Exception) {
@@ -108,6 +110,7 @@ class NotificationRepositoryImpl @Inject constructor(
             throw e
         }
     }
+
 
     override suspend fun deleteNotification(notificationId: String) {
         try {
@@ -123,48 +126,50 @@ class NotificationRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeUserNotifications(userId: String): Flow<List<AppNotification>> = flow {
-        try {
-            Log.d("NotificationRepository", "Observing notifications for user: $userId")
+    override fun observeUserNotifications(userId: String): Flow<List<AppNotification>> = callbackFlow {
+        Log.d("NotificationRepository", "Observing notifications for user: $userId")
 
-            firestore.collection("notifications")
-                .whereEqualTo("userId", userId)
-                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                .limit(50)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("NotificationRepository", "Error observing notifications", error)
-                        return@addSnapshotListener
-                    }
-
-                    val notifications = snapshot?.documents?.mapNotNull { doc ->
-                        try {
-                            val data = doc.data ?: return@mapNotNull null
-                            AppNotification(
-                                id = data["id"] as? String ?: "",
-                                userId = data["userId"] as? String ?: "",
-                                type = try {
-                                    NotificationType.valueOf(data["type"] as? String ?: "TASK_REMINDER")
-                                } catch (e: Exception) {
-                                    NotificationType.TASK_REMINDER
-                                },
-                                title = data["title"] as? String ?: "",
-                                body = data["body"] as? String ?: "",
-                                icon = data["icon"] as? String ?: "🔔",
-                                actionUrl = data["actionUrl"] as? String ?: "",
-                                isRead = data["isRead"] as? Boolean ?: false,
-                                createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L
-                            )
-                        } catch (e: Exception) {
-                            Log.e("NotificationRepository", "Error parsing notification", e)
-                            null
-                        }
-                    } ?: emptyList()
-
-                    Log.d("NotificationRepository", "Loaded ${notifications.size} notifications")
+        val registration = firestore.collection("notifications")
+            .whereEqualTo("userId", userId)
+            .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(50)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("NotificationRepository", "Error observing notifications", error)
+                    close(error)   // terminates the flow with the error
+                    return@addSnapshotListener
                 }
-        } catch (e: Exception) {
-            Log.e("NotificationRepository", "Error observing notifications", e)
+
+                val notifications = snapshot?.documents?.mapNotNull { doc ->
+                    try {
+                        val data = doc.data ?: return@mapNotNull null
+                        AppNotification(
+                            id        = doc.id,   // ← USE doc.id (real Firestore document ID), not data["id"]
+                            userId    = data["userId"] as? String ?: "",
+                            type      = try {
+                                NotificationType.valueOf(data["type"] as? String ?: "TASK_REMINDER")
+                            } catch (e: Exception) { NotificationType.TASK_REMINDER },
+                            title     = data["title"] as? String ?: "",
+                            body      = data["body"] as? String ?: "",
+                            icon      = data["icon"] as? String ?: "🔔",
+                            actionUrl = data["actionUrl"] as? String ?: "",
+                            isRead    = data["isRead"] as? Boolean ?: false,
+                            createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L
+                        )
+                    } catch (e: Exception) {
+                        Log.w("NotificationRepository", "Error parsing notification doc", e)
+                        null
+                    }
+                } ?: emptyList()
+
+                Log.d("NotificationRepository", "Emitting ${notifications.size} notifications")
+                trySend(notifications)  // ← THIS is what was missing — actually sends data into the flow
+            }
+
+        // Clean up the Firestore listener when the flow is cancelled
+        awaitClose {
+            Log.d("NotificationRepository", "Closing notification listener for $userId")
+            registration.remove()
         }
     }
 
