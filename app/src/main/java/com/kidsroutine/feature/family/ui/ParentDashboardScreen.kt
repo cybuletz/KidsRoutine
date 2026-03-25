@@ -123,14 +123,15 @@ fun ParentDashboardScreen(
             composable("discover") {
                 currentTab = "discover"
                 ParentDiscoverTab(
-                    currentUser        = currentUser,
-                    familyMembers      = familyMembers,
-                    onUpgradeClick     = onUpgradeClick,
-                    onGenerationClick  = { innerNav.navigate("generation") },
-                    onWeeklyPlanClick  = { innerNav.navigate("weekly_plan") },
-                    onMarketplaceClick = { innerNav.navigate("marketplace") },
-                    onPublishClick     = { innerNav.navigate("publish") },
-                    onModerationClick  = { innerNav.navigate("moderation") }
+                    currentUser         = currentUser,
+                    familyMembers       = familyMembers,
+                    onUpgradeClick      = onUpgradeClick,
+                    onGenerationClick   = { innerNav.navigate("generation") },
+                    onWeeklyPlanClick   = { innerNav.navigate("weekly_plan") },
+                    onMarketplaceClick  = { innerNav.navigate("marketplace") },
+                    onPublishClick      = { innerNav.navigate("publish") },
+                    onContentPacksClick = onContentPacksClick,
+                    onModerationClick   = { innerNav.navigate("moderation") }
                 )
             }
             composable("settings") {
@@ -718,11 +719,12 @@ private fun ParentDiscoverTab(
     currentUser: UserModel,
     familyMembers: List<UserModel>,
     onUpgradeClick: () -> Unit,
-    onGenerationClick: () -> Unit,        // ← new
-    onWeeklyPlanClick: () -> Unit,        // ← new
-    onMarketplaceClick: () -> Unit,       // ← new
-    onPublishClick: () -> Unit,           // ← new
-    onModerationClick: () -> Unit = {}    // ← new
+    onGenerationClick: () -> Unit,
+    onWeeklyPlanClick: () -> Unit,
+    onMarketplaceClick: () -> Unit,
+    onPublishClick: () -> Unit,
+    onContentPacksClick: () -> Unit = {},   // ← ADD THIS
+    onModerationClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -748,6 +750,7 @@ private fun ParentDiscoverTab(
         ) {
             DiscoverCard("✨", "AI Task Generator",    "Create personalised tasks using AI",             Color(0xFF4A90E2), onGenerationClick)
             DiscoverCard("📅", "Weekly Planner",       "AI 7-day family schedule · PRO",                 Color(0xFF11998E), onWeeklyPlanClick)
+            DiscoverCard("🎁", "Content Packs", "Browse & unlock themed task packs", Color(0xFF667EEA), onContentPacksClick)
             DiscoverCard("🌍", "Community Library",    "Browse tasks shared by other families",          Color(0xFF667EEA), onMarketplaceClick)
             DiscoverCard("📤", "Publish Content",      "Share your best tasks with the community",       Color(0xFFFF6B35), onPublishClick)
             if (currentUser.isAdmin) {

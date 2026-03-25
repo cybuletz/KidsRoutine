@@ -55,6 +55,7 @@ fun NavGraphBuilder.parentNavGraph(
     ) {
         // Parent dashboard (home)
         composable(Routes.PARENT_DASHBOARD) {
+            val authViewModel: com.kidsroutine.feature.auth.ui.AuthViewModel = hiltViewModel()
             ParentDashboardScreen(
                 currentUser           = currentUser,
                 familyMembers         = familyMembers,
@@ -63,11 +64,11 @@ fun NavGraphBuilder.parentNavGraph(
                 onContentPacksClick   = { navController.navigate(Routes.CONTENT_PACKS) },
                 onProfileClick        = { navController.navigate(Routes.PARENT_PROFILE) },
                 onSignOutClick        = {
-                    com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                    // Pop entire back stack back to root — MainActivity will detect signout via AuthState
-                    navController.navigate("parent_graph") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("users")
+                        .document(currentUser.userId)
+                        .update("isOnline", false)
+                    authViewModel.signOut()   // ← this sets _authState = Unauthenticated, MainContent reacts
                 }
             )
         }

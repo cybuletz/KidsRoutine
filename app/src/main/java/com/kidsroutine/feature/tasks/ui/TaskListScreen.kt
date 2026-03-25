@@ -51,13 +51,6 @@ fun TaskListScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // Gradient background
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.25f)
-                .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-        )
 
         Column(
             modifier = Modifier
@@ -77,7 +70,7 @@ fun TaskListScreen(
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White,
+                        tint = Color(0xFF2D3436),
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -85,14 +78,14 @@ fun TaskListScreen(
                     text = "Manage Tasks",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = Color(0xFF2D3436),
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onCreateTaskClick) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Create Task",
-                        tint = Color.White,
+                        tint = Color(0xFF2D3436),
                         modifier = Modifier.size(24.dp)
                     )
                 }
