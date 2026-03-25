@@ -122,6 +122,30 @@ fun TaskExecutionScreen(
                         }
                     }
                     if (task.requiresCoop) CoopBadge()
+
+                    // ── Description (shown in header if present) ──────────────────────────
+                    if (task.description.isNotEmpty()) {
+                        Surface(
+                            modifier      = Modifier.fillMaxWidth(),
+                            shape         = RoundedCornerShape(12.dp),
+                            color         = Color.White.copy(alpha = 0.18f)
+                        ) {
+                            Row(
+                                modifier              = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment     = Alignment.Top
+                            ) {
+                                Text("📋", fontSize = 16.sp)
+                                Text(
+                                    text       = task.description,
+                                    color      = Color.White.copy(alpha = 0.95f),
+                                    fontSize   = 13.sp,
+                                    lineHeight = 19.sp
+                                )
+                            }
+                        }
+                    }
+
                 }
             }
 

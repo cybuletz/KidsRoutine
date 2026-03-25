@@ -93,14 +93,15 @@ fun ParentDashboardScreen(
             composable("home") {
                 currentTab = "home"
                 ParentHomeTab(
-                    currentUser          = currentUser,
-                    familyMembers        = familyMembers.filter { it.userId != currentUser.userId },
-                    uiState              = uiState,
-                    unreadCount          = notifState.unreadCount,
-                    onNotificationsClick = { innerNav.navigate("notifications") },
-                    onProfileClick       = onProfileClick,
-                    onPendingClick       = { innerNav.navigate("tasks") },
-                    onCreateTaskClick    = { innerNav.navigate("tasks") }
+                    currentUser            = currentUser,
+                    familyMembers          = familyMembers.filter { it.userId != currentUser.userId },
+                    uiState                = uiState,
+                    unreadCount            = notifState.unreadCount,
+                    onNotificationsClick   = { innerNav.navigate("notifications") },
+                    onProfileClick         = onProfileClick,
+                    onPendingClick         = { innerNav.navigate("tasks") },
+                    onFamilyMessagingClick = onFamilyMessagingClick,
+                    onCreateTaskClick      = { innerNav.navigate("tasks") }
                 )
             }
             composable("tasks") {
@@ -193,8 +194,11 @@ private fun ParentHomeTab(
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onPendingClick: () -> Unit,
-    onCreateTaskClick: () -> Unit
+    onFamilyMessagingClick: () -> Unit,
+    onCreateTaskClick: () -> Unit,
 ) {
+    var selectedChild by remember { mutableStateOf<UserModel?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -315,7 +319,10 @@ private fun ParentHomeTab(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(familyMembers) { child ->
-                    ChildSummaryCard(child = child)
+                    ChildSummaryCard(
+                        child   = child,
+                        onClick = { selectedChild = child }
+                    )
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -358,6 +365,15 @@ private fun ParentHomeTab(
         }
 
         Spacer(Modifier.height(32.dp))
+    }
+
+    // ── Child detail bottom sheet ──────────────────────────────────────────
+    selectedChild?.let { child ->
+        ChildDetailSheet(
+            child          = child,
+            onDismiss      = { selectedChild = null },
+            onMessageClick = onFamilyMessagingClick
+        )
     }
 
     // ── Onboarding wizard — shown once when family has no children ─────────
@@ -863,7 +879,7 @@ private fun ActionRequiredBanner(message: String, onClick: () -> Unit, modifier:
 }
 
 @Composable
-private fun ChildSummaryCard(child: UserModel) {
+private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
     var isOnline by remember { mutableStateOf(false) }
     LaunchedEffect(child.userId) {
         FirebaseFirestore.getInstance().collection("users").document(child.userId)
@@ -872,7 +888,7 @@ private fun ChildSummaryCard(child: UserModel) {
             }
     }
     Card(
-        modifier  = Modifier.width(140.dp),
+        modifier  = Modifier.width(140.dp).clickable(onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
@@ -1005,6 +1021,163 @@ private fun DiscoverCard(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChildDetailSheet(
+    child: UserModel,
+    onDismiss: () -> Unit,
+    onMessageClick: () -> Unit
+) {
+    var isOnline by remember { mutableStateOf(false) }
+    LaunchedEffect(child.userId) {
+        FirebaseFirestore.getInstance().collection("users").document(child.userId)
+            .addSnapshotListener { snap, _ ->
+                isOnline = snap?.getBoolean("isOnline") ?: false
+            }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest  = onDismiss,
+        containerColor    = Color.White,
+        shape             = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier            = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Avatar + name
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape    = CircleShape,
+                color    = OrangePrimary.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("👤", fontSize = 36.sp)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    child.displayName,
+                    fontSize   = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = TextDark
+                )
+                Surface(
+                    modifier = Modifier.size(10.dp),
+                    shape    = CircleShape,
+                    color    = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)
+                ) {}
+            }
+            Text(
+                "Level ${child.level}",
+                fontSize = 14.sp,
+                color    = OrangePrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // Stats row
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ChildStatItem("⭐", "${child.xp}", "Total XP")
+                ChildStatItem("🔥", "${child.streak}", "Day Streak")
+                ChildStatItem("🏆", "Lv ${child.level}", "Level")
+            }
+
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider(color = Color(0xFFF0F0F0))
+            Spacer(Modifier.height(20.dp))
+
+            // Today's tasks placeholder
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text("Today's Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = OrangePrimary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        "View all",
+                        fontSize = 12.sp,
+                        color    = OrangePrimary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Placeholder — in future replace with real task list from ViewModel
+            Surface(
+                modifier      = Modifier.fillMaxWidth(),
+                shape         = RoundedCornerShape(12.dp),
+                color         = Color(0xFFF9F9F9),
+                tonalElevation = 0.dp
+            ) {
+                Box(
+                    modifier         = Modifier.fillMaxWidth().padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Open the Tasks tab to see ${child.displayName.split(" ").first()}'s tasks",
+                        fontSize  = 13.sp,
+                        color     = Color.Gray,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Message button
+            Button(
+                onClick  = {
+                    onDismiss()
+                    onMessageClick()
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape    = RoundedCornerShape(14.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = PinkChat)
+            ) {
+                Icon(Icons.Default.Message, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Message ${child.displayName.split(" ").first()}",
+                    color      = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChildStatItem(emoji: String, value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(emoji, fontSize = 22.sp)
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextDark)
+        Text(label, fontSize = 11.sp, color = Color.Gray)
+    }
+}
+
 
 private fun timeOfDayGreeting(): String {
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
