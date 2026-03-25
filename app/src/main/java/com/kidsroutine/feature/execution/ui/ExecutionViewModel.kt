@@ -23,7 +23,8 @@ data class ExecutionUiState(
     val isCompleting: Boolean = false,
     val result: CompletionResult? = null,
     val showSuccessAnim: Boolean = false,
-    val newBadgesUnlocked: List<Badge> = emptyList()  // ← ADD THIS
+    val newBadgesUnlocked: List<Badge> = emptyList(),
+    val celebrationMessage: String = ""
 )
 
 sealed class ExecutionEvent {

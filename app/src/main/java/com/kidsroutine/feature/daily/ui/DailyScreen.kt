@@ -37,7 +37,11 @@ import com.kidsroutine.core.model.StoryArc
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.draw.alpha
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kidsroutine.core.engine.SeasonalThemeManager
+import com.kidsroutine.feature.daily.ui.AiSuggestionCard
+
+
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 private val YellowPrimary  = Color(0xFFFFD93D)
@@ -66,8 +70,8 @@ fun DailyScreen(
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit = {},
     onWorldClick: () -> Unit = {},           // ← NEW: for "X XP away" nudge tap
-    viewModel: DailyViewModel = hiltViewModel()
-) {
+    viewModel: DailyViewModel = hiltViewModel(),
+    ) {
     val uiState by viewModel.uiState.collectAsState()
 
     // PERFORMANCE FIX: guard key lives in DailyViewModel.init() — safe to call every recomposition
@@ -102,8 +106,9 @@ fun DailyScreen(
                 onProfileClick         = onProfileClick,
                 onNotificationsClick   = onNotificationsClick,
                 onLootBoxClick         = onLootBoxClick,
-                onWorldClick           = onWorldClick
-            )
+                onWorldClick           = onWorldClick,
+                viewModel = viewModel
+                )
         }
     }
 }
@@ -122,7 +127,8 @@ private fun DailyContent(
     onProfileClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit,
-    onWorldClick: () -> Unit
+    onWorldClick: () -> Unit,
+    viewModel: DailyViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -152,6 +158,18 @@ private fun DailyContent(
                 if (arc != null && !arc.isComplete) {
                     StoryArcBannerCard(arc = arc)
                 }
+            }
+
+            item {
+                AiSuggestionCard(
+                    currentChild        = uiState.currentUser,
+                    completedTaskTitles = uiState.dailyState.tasks
+                        .filter { it.status == TaskStatus.COMPLETED }
+                        .map { it.task.title },
+                    onAccept = { task ->
+                        viewModel.addSuggestedTask(task)
+                    }
+                )
             }
 
             item {

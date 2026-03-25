@@ -79,7 +79,6 @@ class TaskRepository @Inject constructor(
             Log.d("TaskRepository", "Deleting task: $taskId and all its assignments")
             val batch = firestore.batch()
 
-            // 1. Delete the task document itself
             val taskRef = firestore
                 .collection("families")
                 .document(familyId)
@@ -87,7 +86,6 @@ class TaskRepository @Inject constructor(
                 .document(taskId)
             batch.delete(taskRef)
 
-            // 2. Find and delete all taskAssignments for this task
             val assignments = firestore
                 .collection("taskAssignments")
                 .whereEqualTo("taskId", taskId)
@@ -99,7 +97,6 @@ class TaskRepository @Inject constructor(
                 batch.delete(doc.reference)
             }
 
-            // 3. Commit everything atomically
             batch.commit().await()
             Log.d("TaskRepository", "Task and ${assignments.size()} assignments deleted successfully")
         } catch (e: Exception) {
@@ -107,7 +104,6 @@ class TaskRepository @Inject constructor(
             throw e
         }
     }
-
 
     suspend fun getTaskById(familyId: String, taskId: String): TaskModel? {
         return try {
@@ -128,7 +124,44 @@ class TaskRepository @Inject constructor(
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // REAL-TIME LISTENER FOR CHILD'S ASSIGNED TASKS ← NEW!
+    // REAL-TIME LISTENER — PARENT SIDE: all tasks for a family
+    // ════════════════════════════════════════════════════════════════════════
+    fun observeFamilyTasks(familyId: String): Flow<List<TaskModel>> =
+        callbackFlow {
+            Log.d("TaskRepository", "Starting real-time family tasks listener for: $familyId")
+
+            val listener = firestore
+                .collection("families")
+                .document(familyId)
+                .collection("tasks")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Log.e("TaskRepository", "Family tasks listener error: ${error.message}")
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val tasks = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                doc.toObject(TaskModel::class.java)?.copy(id = doc.id)
+                            } catch (e: Exception) {
+                                Log.w("TaskRepository", "Error parsing task doc", e)
+                                null
+                            }
+                        }
+                        Log.d("TaskRepository", "Family tasks update: ${tasks.size} tasks")
+                        trySend(tasks).isSuccess
+                    }
+                }
+
+            awaitClose {
+                Log.d("TaskRepository", "Closing family tasks listener")
+                listener.remove()
+            }
+        }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // REAL-TIME LISTENER — CHILD SIDE: assigned tasks for one child
     // ════════════════════════════════════════════════════════════════════════
     fun observeChildAssignedTasks(childId: String, familyId: String): Flow<List<TaskModel>> =
         callbackFlow {
@@ -157,7 +190,6 @@ class TaskRepository @Inject constructor(
                                 return@addSnapshotListener
                             }
 
-                            // Fetch actual task documents from root "tasks" collection
                             firestore.collection("tasks")
                                 .whereIn("id", taskIds)
                                 .addSnapshotListener { taskSnapshot, taskError ->
@@ -196,9 +228,9 @@ class TaskRepository @Inject constructor(
         }
 
     // ════════════════════════════════════════════════════════════════════════
-    // REAL-TIME LISTENER FOR CHILD'S ASSIGNED CHALLENGES ← NEW!
+    // REAL-TIME LISTENER — CHILD CHALLENGES
     // ════════════════════════════════════════════════════════════════════════
-    fun observeChildAssignedChallenges(childId: String, familyId: String): Flow<List<com.kidsroutine.feature.generation.data.GeneratedChallenge>> =
+    fun observeChildAssignedChallenges(childId: String, familyId: String): Flow<List<GeneratedChallenge>> =
         callbackFlow {
             Log.d("TaskRepository", "Starting real-time listener for child challenges: $childId")
 
@@ -225,7 +257,6 @@ class TaskRepository @Inject constructor(
                                 return@addSnapshotListener
                             }
 
-                            // Fetch actual challenge documents from root "challenges" collection
                             firestore.collection("challenges")
                                 .whereIn("id", challengeIds)
                                 .addSnapshotListener { challengeSnapshot, challengeError ->
@@ -238,9 +269,7 @@ class TaskRepository @Inject constructor(
                                         try {
                                             val challenges = challengeSnapshot.documents.mapNotNull { doc ->
                                                 try {
-                                                    val challenge = doc.toObject(com.kidsroutine.feature.generation.data.GeneratedChallenge::class.java)
-                                                    // Don't use .copy(id = doc.id), just return the challenge as-is
-                                                    challenge
+                                                    doc.toObject(GeneratedChallenge::class.java)
                                                 } catch (e: Exception) {
                                                     Log.w("TaskRepository", "Error parsing challenge", e)
                                                     null

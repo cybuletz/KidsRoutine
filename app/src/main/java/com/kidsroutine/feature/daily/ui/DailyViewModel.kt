@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.kidsroutine.feature.daily.data.StoryArcRepository
+import com.kidsroutine.feature.generation.data.GeneratedTask
+import com.kidsroutine.feature.generation.data.TaskSaveRepository
+
 
 data class DailyUiState(
     val isLoading: Boolean = true,
@@ -29,7 +32,8 @@ class DailyViewModel @Inject constructor(
     private val generateDailyTasks: GenerateDailyTasksUseCase,
     private val userRepository: UserRepository,
     private val taskRepository: TaskRepository,
-    private val storyArcRepository: StoryArcRepository
+    private val storyArcRepository: StoryArcRepository,
+    private val taskSaveRepository: TaskSaveRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DailyUiState())
@@ -113,6 +117,32 @@ class DailyViewModel @Inject constructor(
         init(user)
     }
 
+    fun addSuggestedTask(task: GeneratedTask) {
+        val user = _uiState.value.currentUser
+        if (user.userId.isBlank()) return
+
+        viewModelScope.launch {
+            try {
+                val result = taskSaveRepository.saveAndAssignToFamily(
+                    generatedTask = task,
+                    familyId      = user.familyId,
+                    childrenIds   = listOf(user.userId)
+                )
+                result.onSuccess {
+                    Log.d("DailyVM", "AI suggested task added: ${task.title}")
+                    // The existing combine() pipeline observes taskRepository,
+                    // which will pick up the new task automatically — no manual reload needed.
+                }
+                result.onFailure { e ->
+                    Log.e("DailyVM", "Failed to add suggested task: ${e.message}")
+                    _uiState.update { it.copy(error = "Couldn't add task: ${e.message}") }
+                }
+            } catch (e: Exception) {
+                Log.e("DailyVM", "Exception adding suggested task", e)
+            }
+        }
+    }
+
 
     private fun loadActiveStoryArc(familyId: String) {
         if (familyId.isEmpty()) return
@@ -125,4 +155,5 @@ class DailyViewModel @Inject constructor(
             }
         }
     }
+
 }

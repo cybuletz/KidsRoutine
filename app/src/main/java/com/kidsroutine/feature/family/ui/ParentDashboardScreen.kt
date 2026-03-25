@@ -1,6 +1,9 @@
 package com.kidsroutine.feature.family.ui
 
 import android.util.Log
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,8 +21,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +62,8 @@ private val GradientEnd   = Color(0xFFFFD93D)
 private val BgLight       = Color(0xFFFFFBF0)
 private val TextDark      = Color(0xFF2D3436)
 private val PinkChat      = Color(0xFFEC407A)
+private val RingDone      = Color(0xFF06D6A0)   // ← completion ring filled color
+private val RingTrack     = Color(0xFFE0E0E0)   // ← ring track color
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 @Composable
@@ -83,13 +92,12 @@ fun ParentDashboardScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // ── Inner NavHost ──────────────────────────────────────────────────
         NavHost(
             navController    = innerNav,
             startDestination = "home",
             modifier         = Modifier
                 .fillMaxSize()
-                .padding(bottom = 72.dp) // space for nav bar
+                .padding(bottom = 72.dp)
         ) {
             composable("home") {
                 currentTab = "home"
@@ -109,16 +117,16 @@ fun ParentDashboardScreen(
             composable("tasks") {
                 currentTab = "tasks"
                 ParentTasksTab(
-                    currentUser       = currentUser,
-                    onUpgradeClick    = onUpgradeClick
+                    currentUser    = currentUser,
+                    onUpgradeClick = onUpgradeClick
                 )
             }
             composable("family") {
                 currentTab = "family"
                 ParentFamilyTab(
-                    currentUser   = currentUser,
-                    familyMembers = familyMembers.filter { it.userId != currentUser.userId },
-                    uiState       = uiState,
+                    currentUser       = currentUser,
+                    familyMembers     = familyMembers.filter { it.userId != currentUser.userId },
+                    uiState           = uiState,
                     onChallengesClick = { innerNav.navigate("discover") }
                 )
             }
@@ -139,10 +147,10 @@ fun ParentDashboardScreen(
             composable("settings") {
                 currentTab = "settings"
                 SettingsScreen(
-                    currentUser       = currentUser,
-                    familyInviteCode  = uiState.inviteCode,
-                    onSignOutClick    = onSignOutClick,
-                    onUpgradeClick    = onUpgradeClick,
+                    currentUser         = currentUser,
+                    familyInviteCode    = uiState.inviteCode,
+                    onSignOutClick      = onSignOutClick,
+                    onUpgradeClick      = onUpgradeClick,
                     onContentPacksClick = onContentPacksClick
                 )
             }
@@ -178,7 +186,6 @@ fun ParentDashboardScreen(
             }
         }
 
-        // ── Bottom Nav Bar ─────────────────────────────────────────────────
         ParentNavBar(
             currentTab          = currentTab,
             unreadNotifications = notifState.unreadCount,
@@ -190,7 +197,6 @@ fun ParentDashboardScreen(
             modifier            = Modifier.align(Alignment.BottomCenter)
         )
 
-        // ── Chat Bubble ────────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -236,7 +242,6 @@ private fun ParentHomeTab(
             .background(BgLight)
             .verticalScroll(rememberScrollState())
     ) {
-        // ── Gradient header ────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -252,54 +257,31 @@ private fun ParentHomeTab(
                     verticalAlignment     = Alignment.Top
                 ) {
                     Column {
-                        Text(
-                            "Good ${timeOfDayGreeting()} 👋",
-                            fontSize = 14.sp,
-                            color    = Color.White.copy(alpha = 0.85f)
-                        )
-                        Text(
-                            currentUser.displayName,
-                            fontSize   = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color      = Color.White
-                        )
+                        Text("Good ${timeOfDayGreeting()} 👋", fontSize = 14.sp, color = Color.White.copy(alpha = 0.85f))
+                        Text(currentUser.displayName, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         if (uiState.family != null) {
-                            Text(
-                                uiState.family.familyName,
-                                fontSize = 13.sp,
-                                color    = Color.White.copy(alpha = 0.7f)
-                            )
+                            Text(uiState.family.familyName, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Notification bell
                         Box {
                             IconButton(
                                 onClick  = onNotificationsClick,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                                modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
                             ) {
                                 Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                             if (unreadCount > 0) {
-                                Surface(
-                                    shape    = CircleShape,
-                                    color    = Color(0xFFE74C3C),
-                                    modifier = Modifier.size(16.dp).align(Alignment.TopEnd)
-                                ) {
+                                Surface(shape = CircleShape, color = Color(0xFFE74C3C), modifier = Modifier.size(16.dp).align(Alignment.TopEnd)) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                         Text(if (unreadCount > 9) "9+" else "$unreadCount", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
                         }
-                        // Profile avatar
                         IconButton(
                             onClick  = onProfileClick,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                            modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.2f), CircleShape)
                         ) {
                             Icon(Icons.Default.Person, contentDescription = "Profile", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
@@ -308,24 +290,19 @@ private fun ParentHomeTab(
             }
         }
 
-        // ── Family stat chips (slim row) ───────────────────────────────────
         if (uiState.family != null) {
             Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .offset(y = (-16).dp),
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 20.dp).offset(y = (-16).dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                StatChip("⭐", "${uiState.family.familyXp} XP",    Modifier.weight(1f))
-                StatChip("🔥", "${uiState.family.familyStreak}d",  Modifier.weight(1f))
-                StatChip("👥", "${uiState.family.memberIds.size}",  Modifier.weight(1f))
+                StatChip("⭐", "${uiState.family.familyXp} XP",   Modifier.weight(1f))
+                StatChip("🔥", "${uiState.family.familyStreak}d", Modifier.weight(1f))
+                StatChip("👥", "${uiState.family.memberIds.size}", Modifier.weight(1f))
             }
         }
 
         Spacer(Modifier.height(4.dp))
 
-        // ── Action Required banner (conditional) ──────────────────────────
         if (unreadCount > 0) {
             ActionRequiredBanner(
                 message = "$unreadCount item${if (unreadCount > 1) "s" else ""} need your attention",
@@ -335,15 +312,8 @@ private fun ParentHomeTab(
             Spacer(Modifier.height(16.dp))
         }
 
-        // ── Children horizontal scroll ─────────────────────────────────────
         if (familyMembers.isNotEmpty()) {
-            Text(
-                "Your Children",
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color      = TextDark,
-                modifier   = Modifier.padding(horizontal = 20.dp)
-            )
+            Text("Your Children", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(12.dp))
             LazyRow(
                 contentPadding        = PaddingValues(horizontal = 20.dp),
@@ -359,74 +329,32 @@ private fun ParentHomeTab(
             Spacer(Modifier.height(24.dp))
         }
 
-        // ── Quick actions (contextual, max 3) ─────────────────────────────
-        Text(
-            "Quick Actions",
-            fontSize   = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color      = TextDark,
-            modifier   = Modifier.padding(horizontal = 20.dp)
-        )
+        Text("Quick Actions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(Modifier.height(12.dp))
-        Column(
-            modifier              = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement   = Arrangement.spacedBy(10.dp)
-        ) {
-            QuickActionRow(
-                icon    = Icons.Default.Add,
-                color   = Color(0xFF4A90E2),
-                title   = "Create a Task",
-                subtitle = "Assign a new task to your children",
-                onClick = onCreateTaskClick
-            )
-            QuickActionRow(
-                icon    = Icons.Default.Pending,
-                color   = Color(0xFFFF9800),
-                title   = "Child Proposals",
-                subtitle = "Tasks your children want to do",
-                onClick = onPendingClick
-            )
-            QuickActionRow(
-                icon     = Icons.Default.EmojiEvents,
-                color    = Color(0xFF9B59B6),
-                title    = "Start a Challenge",
-                subtitle = "Set a family-wide goal",
-                onClick  = onPendingClick
-            )
-            QuickActionRow(
-                icon     = Icons.Default.Shield,
-                color    = Color(0xFF06D6A0),
-                title    = "Privilege Approvals",
-                subtitle = "Review requests from your children",
-                onClick  = onPrivilegeApprovalsClick
-            )
+        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            QuickActionRow(Icons.Default.Add,          Color(0xFF4A90E2), "Create a Task",       "Assign a new task to your children",   onCreateTaskClick)
+            QuickActionRow(Icons.Default.Pending,      Color(0xFFFF9800), "Child Proposals",     "Tasks your children want to do",       onPendingClick)
+            QuickActionRow(Icons.Default.EmojiEvents,  Color(0xFF9B59B6), "Start a Challenge",   "Set a family-wide goal",               onPendingClick)
+            QuickActionRow(Icons.Default.Shield,       Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",   onPrivilegeApprovalsClick)
         }
 
         Spacer(Modifier.height(32.dp))
     }
 
-    // ── Child detail bottom sheet ──────────────────────────────────────────
     selectedChild?.let { child ->
-        ChildDetailSheet(
-            child          = child,
-            onDismiss      = { selectedChild = null },
-            onMessageClick = onFamilyMessagingClick
-        )
+        ChildDetailSheet(child = child, onDismiss = { selectedChild = null }, onMessageClick = onFamilyMessagingClick)
     }
 
-    // ── Onboarding wizard — shown once when family has no children ─────────
     val context = LocalContext.current
-    val prefs   = remember {
-        context.getSharedPreferences("parent_prefs", android.content.Context.MODE_PRIVATE)
-    }
-    val wizardSeen  = remember { prefs.getBoolean("wizard_seen", false) }
-    var showWizard  by remember { mutableStateOf(!wizardSeen && familyMembers.isEmpty()) }
+    val prefs   = remember { context.getSharedPreferences("parent_prefs", android.content.Context.MODE_PRIVATE) }
+    val wizardSeen = remember { prefs.getBoolean("wizard_seen", false) }
+    var showWizard by remember { mutableStateOf(!wizardSeen && familyMembers.isEmpty()) }
 
     if (showWizard && uiState.family != null) {
         ParentOnboardingWizard(
-            parentName  = currentUser.displayName,
-            inviteCode  = uiState.inviteCode,
-            onDismiss   = {
+            parentName = currentUser.displayName,
+            inviteCode = uiState.inviteCode,
+            onDismiss  = {
                 prefs.edit().putBoolean("wizard_seen", true).apply()
                 showWizard = false
             }
@@ -434,11 +362,151 @@ private fun ParentHomeTab(
     }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CHILD SUMMARY CARD — with completion ring
+// ══════════════════════════════════════════════════════════════════════════════
 @Composable
-private fun ParentTasksTab(
-    currentUser: UserModel,
-    onUpgradeClick: () -> Unit
-) {
+private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
+    var isOnline by remember { mutableStateOf(false) }
+
+    // Real-time: how many task_instances are COMPLETED today vs total assigned today
+    var completedToday by remember { mutableStateOf(0) }
+    var totalToday     by remember { mutableStateOf(0) }
+
+    val today = remember {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        sdf.format(java.util.Date())
+    }
+
+    LaunchedEffect(child.userId) {
+        val db = FirebaseFirestore.getInstance()
+
+        // Online presence
+        db.collection("users").document(child.userId)
+            .addSnapshotListener { snap, _ ->
+                isOnline = snap?.getBoolean("isOnline") ?: false
+            }
+
+        // Today's task_instances for this child
+        db.collection("task_instances")
+            .whereEqualTo("childId", child.userId)
+            .whereEqualTo("date", today)
+            .addSnapshotListener { snap, err ->
+                if (err != null || snap == null) return@addSnapshotListener
+                totalToday     = snap.size()
+                completedToday = snap.documents.count { doc ->
+                    doc.getString("status") == "COMPLETED"
+                }
+            }
+    }
+
+    // Animate the arc sweep — 0° → (completedToday/totalToday * 360°)
+    val sweepTarget = if (totalToday > 0) (completedToday.toFloat() / totalToday.toFloat()) * 360f else 0f
+    val animatedSweep by animateFloatAsState(
+        targetValue   = sweepTarget,
+        animationSpec = tween(800),
+        label         = "ringSwipe_${child.userId}"
+    )
+
+    val ringColor = when {
+        totalToday == 0           -> Color.LightGray          // no tasks yet — gray
+        completedToday == totalToday -> RingDone              // all done — green
+        completedToday > 0        -> OrangePrimary            // partial — orange
+        else                      -> Color(0xFFE0E0E0)        // none done — light gray
+    }
+
+    Card(
+        modifier  = Modifier.width(140.dp).clickable(onClick = onClick),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier            = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // ── Avatar + ring ──────────────────────────────────────────────
+            Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+
+                // Track ring (full circle, faint)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawArc(
+                        color      = RingTrack,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter  = false,
+                        style      = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+                        topLeft    = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
+                        size       = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx())
+                    )
+                }
+
+                // Filled arc — animates from 0 to sweep
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    if (animatedSweep > 0f) {
+                        drawArc(
+                            color      = ringColor,
+                            startAngle = -90f,
+                            sweepAngle = animatedSweep,
+                            useCenter  = false,
+                            style      = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+                            topLeft    = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
+                            size       = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx())
+                        )
+                    }
+                }
+
+                // Avatar circle inside the ring
+                Surface(
+                    modifier = Modifier.size(52.dp),
+                    shape    = CircleShape,
+                    color    = OrangePrimary.copy(alpha = 0.15f)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("👤", fontSize = 26.sp)
+                    }
+                }
+
+                // Online dot
+                if (isOnline) {
+                    Surface(
+                        modifier = Modifier.size(12.dp).align(Alignment.BottomEnd),
+                        shape    = CircleShape,
+                        color    = Color(0xFF4CAF50)
+                    ) {}
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text(
+                child.displayName.split(" ").first(),
+                fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            Text("Lv ${child.level}", fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+
+            // Completion label below the card — "3/5 done" or "No tasks"
+            if (totalToday > 0) {
+                Text(
+                    "$completedToday/$totalToday done",
+                    fontSize   = 10.sp,
+                    color      = ringColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            } else {
+                Text("${child.xp} XP", fontSize = 11.sp, color = Color.Gray)
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// All other composables — identical to committed version
+// ══════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit) {
     var selectedSegment by remember { mutableStateOf(0) }
     var showCreateTask by remember { mutableStateOf(false) }
     var createdTask by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
@@ -472,32 +540,20 @@ private fun ParentTasksTab(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgLight)
-    ) {
-        // ── Header ────────────────────────────────────────────────────────
+    Column(modifier = Modifier.fillMaxSize().background(BgLight)) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                // + button only on My Tasks tab
                 if (selectedSegment == 0) {
                     IconButton(onClick = { showCreateTask = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Create Task", tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
-                // Start challenge button only on Challenges tab
                 if (selectedSegment == 2) {
                     IconButton(onClick = { showStartChallenge = true }) {
                         Icon(Icons.Default.Add, contentDescription = "New Challenge", tint = Color.White, modifier = Modifier.size(24.dp))
@@ -506,13 +562,9 @@ private fun ParentTasksTab(
             }
         }
 
-        // ── Segmented control — 3 tabs ─────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .background(Color(0xFFEEEEEE), RoundedCornerShape(12.dp))
-                .padding(4.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                .background(Color(0xFFEEEEEE), RoundedCornerShape(12.dp)).padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             listOf("My Tasks", "Proposals", "Challenges").forEachIndexed { index, label ->
@@ -523,92 +575,37 @@ private fun ParentTasksTab(
                     shadowElevation = if (selectedSegment == index) 2.dp else 0.dp
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
-                        Text(
-                            text       = label,
-                            fontSize   = 13.sp,
-                            fontWeight = if (selectedSegment == index) FontWeight.Bold else FontWeight.Medium,
-                            color      = if (selectedSegment == index) OrangePrimary else Color.Gray
-                        )
+                        Text(label, fontSize = 13.sp, fontWeight = if (selectedSegment == index) FontWeight.Bold else FontWeight.Medium, color = if (selectedSegment == index) OrangePrimary else Color.Gray)
                     }
                 }
             }
         }
 
-        // ── Content ────────────────────────────────────────────────────────
         when (selectedSegment) {
-            0 -> com.kidsroutine.feature.tasks.ui.TaskListScreen(
-                currentUser       = currentUser,
-                onCreateTaskClick = { showCreateTask = true },
-                onBackClick       = { }
-            )
-            1 -> com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen(
-                currentUser = currentUser,
-                onBackClick = { }
-            )
-            2 -> com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen(
-                currentUser           = currentUser,
-                onBackClick           = { },
-                onStartChallengeClick = { showStartChallenge = true },
-                onChallengeClick      = { /* detail nav not available inside tab — tap navigates inline */ }
-            )
+            0 -> com.kidsroutine.feature.tasks.ui.TaskListScreen(currentUser = currentUser, onCreateTaskClick = { showCreateTask = true }, onBackClick = { })
+            1 -> com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen(currentUser = currentUser, onBackClick = { })
+            2 -> com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen(currentUser = currentUser, onBackClick = { }, onStartChallengeClick = { showStartChallenge = true }, onChallengeClick = { })
         }
     }
 }
 
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TAB 3 — FAMILY
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
-private fun ParentFamilyTab(
-    currentUser: UserModel,
-    familyMembers: List<UserModel>,
-    uiState: ParentDashboardUiState,
-    onChallengesClick: () -> Unit
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgLight),
-        contentPadding = PaddingValues(bottom = 32.dp)
-    ) {
-        // ── Header ────────────────────────────────────────────────────────
+private fun ParentFamilyTab(currentUser: UserModel, familyMembers: List<UserModel>, uiState: ParentDashboardUiState, onChallengesClick: () -> Unit) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(BgLight), contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
                 Text("Family", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
             Spacer(Modifier.height(20.dp))
         }
-
-        // ── Children section header ───────────────────────────────────────
         item {
-            Text(
-                "Children",
-                fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
+            Text("Children", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(12.dp))
         }
-
-        // ── Children list ─────────────────────────────────────────────────
         if (familyMembers.isEmpty()) {
             item {
-                Card(
-                    modifier  = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
-                    Column(
-                        modifier            = Modifier.fillMaxWidth().padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("👶", fontSize = 40.sp)
                         Spacer(Modifier.height(12.dp))
                         Text("No children yet", fontWeight = FontWeight.Bold, color = TextDark)
@@ -618,70 +615,31 @@ private fun ParentFamilyTab(
             }
         } else {
             item {
-                Card(
-                    modifier  = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(2.dp)
-                ) {
+                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
                     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                         familyMembers.forEachIndexed { index, child ->
                             FamilyMemberRow(child = child)
                             if (index < familyMembers.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color    = Color(0xFFF0F0F0)
-                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF0F0F0))
                             }
                         }
                     }
                 }
             }
         }
-
-        // ── Challenges header ─────────────────────────────────────────────
         item {
             Spacer(Modifier.height(24.dp))
-            Row(
-                modifier              = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Challenges", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                TextButton(onClick = onChallengesClick) {
-                    Text("Manage", color = OrangePrimary, fontSize = 13.sp)
-                }
+                TextButton(onClick = onChallengesClick) { Text("Manage", color = OrangePrimary, fontSize = 13.sp) }
             }
             Spacer(Modifier.height(8.dp))
         }
-
-        // ── Challenges — rendered as plain cards, no nested LazyColumn ────
         item {
-            // Direct composable call — ActiveChallengesScreen internally uses LazyColumn
-            // so we replace it here with a simple non-scrolling card placeholder
-            // that navigates to the full screen on tap
-            Card(
-                modifier  = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .clickable(onClick = onChallengesClick),
-                shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp)
-            ) {
-                Row(
-                    modifier              = Modifier.fillMaxWidth().padding(20.dp),
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier.size(46.dp),
-                        shape    = RoundedCornerShape(13.dp),
-                        color    = Color(0xFF9B59B6).copy(alpha = 0.12f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Text("🏆", fontSize = 22.sp)
-                        }
+            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).clickable(onClick = onChallengesClick), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Surface(modifier = Modifier.size(46.dp), shape = RoundedCornerShape(13.dp), color = Color(0xFF9B59B6).copy(alpha = 0.12f)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("🏆", fontSize = 22.sp) }
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text("View Challenges", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
@@ -691,86 +649,32 @@ private fun ParentFamilyTab(
                 }
             }
         }
-
-        // ── Leaderboard header ────────────────────────────────────────────
         item {
             Spacer(Modifier.height(24.dp))
-            Text(
-                "Family Leaderboard",
-                fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
+            Text("Family Leaderboard", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(8.dp))
         }
-
-        // ── Leaderboard — same pattern, card that navigates ───────────────
         item {
-            Card(
-                modifier  = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                shape     = RoundedCornerShape(16.dp),
-                colors    = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(2.dp)
-            ) {
-                // Render family members ranked by XP inline — no LazyColumn
+            Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
                 Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                     val ranked = familyMembers.sortedByDescending { it.xp }
                     if (ranked.isEmpty()) {
-                        Box(
-                            modifier            = Modifier.fillMaxWidth().padding(24.dp),
-                            contentAlignment    = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                             Text("No members to rank yet", color = Color.Gray, fontSize = 13.sp)
                         }
                     } else {
                         ranked.forEachIndexed { index, member ->
-                            Row(
-                                modifier              = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment     = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Rank badge
-                                Surface(
-                                    modifier = Modifier.size(28.dp),
-                                    shape    = CircleShape,
-                                    color    = when (index) {
-                                        0    -> Color(0xFFFFD700)
-                                        1    -> Color(0xFFB0BEC5)
-                                        2    -> Color(0xFFCD7F32)
-                                        else -> Color(0xFFEEEEEE)
-                                    }
-                                ) {
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Surface(modifier = Modifier.size(28.dp), shape = CircleShape, color = when (index) { 0 -> Color(0xFFFFD700); 1 -> Color(0xFFB0BEC5); 2 -> Color(0xFFCD7F32); else -> Color(0xFFEEEEEE) }) {
                                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                        Text(
-                                            "${index + 1}",
-                                            fontSize   = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color      = if (index < 3) Color.White else Color.Gray
-                                        )
+                                        Text("${index + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (index < 3) Color.White else Color.Gray)
                                     }
                                 }
-                                Text(
-                                    member.displayName,
-                                    fontSize   = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color      = TextDark,
-                                    modifier   = Modifier.weight(1f)
-                                )
-                                Text(
-                                    "${member.xp} XP",
-                                    fontSize   = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color      = OrangePrimary
-                                )
+                                Text(member.displayName, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextDark, modifier = Modifier.weight(1f))
+                                Text("${member.xp} XP", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = OrangePrimary)
                             }
                             if (index < ranked.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color    = Color(0xFFF0F0F0)
-                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF0F0F0))
                             }
                         }
                     }
@@ -780,10 +684,6 @@ private fun ParentFamilyTab(
     }
 }
 
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TAB 4 — DISCOVER
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
 private fun ParentDiscoverTab(
     currentUser: UserModel,
@@ -793,73 +693,33 @@ private fun ParentDiscoverTab(
     onWeeklyPlanClick: () -> Unit,
     onMarketplaceClick: () -> Unit,
     onPublishClick: () -> Unit,
-    onContentPacksClick: () -> Unit = {},   // ← ADD THIS
+    onContentPacksClick: () -> Unit = {},
     onModerationClick: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BgLight)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 20.dp)
-        ) {
+    Column(modifier = Modifier.fillMaxSize().background(BgLight).verticalScroll(rememberScrollState())) {
+        Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
             Text("Discover", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
-
         Spacer(Modifier.height(20.dp))
-
-        Column(
-            modifier            = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            DiscoverCard("✨", "AI Task Generator",    "Create personalised tasks using AI",             Color(0xFF4A90E2), onGenerationClick)
-            DiscoverCard("📅", "Weekly Planner",       "AI 7-day family schedule · PRO",                 Color(0xFF11998E), onWeeklyPlanClick)
-            DiscoverCard("🎁", "Content Packs", "Browse & unlock themed task packs", Color(0xFF667EEA), onContentPacksClick)
-            DiscoverCard("🌍", "Community Library",    "Browse tasks shared by other families",          Color(0xFF667EEA), onMarketplaceClick)
-            DiscoverCard("📤", "Publish Content",      "Share your best tasks with the community",       Color(0xFFFF6B35), onPublishClick)
+        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DiscoverCard("✨", "AI Task Generator",    "Create personalised tasks using AI",          Color(0xFF4A90E2), onGenerationClick)
+            DiscoverCard("📅", "Weekly Planner",       "AI 7-day family schedule · PRO",              Color(0xFF11998E), onWeeklyPlanClick)
+            DiscoverCard("🎁", "Content Packs",        "Browse & unlock themed task packs",           Color(0xFF667EEA), onContentPacksClick)
+            DiscoverCard("🌍", "Community Library",    "Browse tasks shared by other families",       Color(0xFF667EEA), onMarketplaceClick)
+            DiscoverCard("📤", "Publish Content",      "Share your best tasks with the community",    Color(0xFFFF6B35), onPublishClick)
             if (currentUser.isAdmin) {
-                DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",         Color(0xFFE74C3C), onModerationClick)
+                DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",      Color(0xFFE74C3C), onModerationClick)
             }
         }
-
         Spacer(Modifier.height(32.dp))
     }
 }
 
-
-// ══════════════════════════════════════════════════════════════════════════════
-// BOTTOM NAV BAR
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
-private fun ParentNavBar(
-    currentTab: String,
-    unreadNotifications: Int,
-    onHomeClick: () -> Unit,
-    onTasksClick: () -> Unit,
-    onFamilyClick: () -> Unit,
-    onDiscoverClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier        = modifier.fillMaxWidth(),
-        color           = Color.White,
-        shadowElevation = 12.dp
-    ) {
+private fun ParentNavBar(currentTab: String, unreadNotifications: Int, onHomeClick: () -> Unit, onTasksClick: () -> Unit, onFamilyClick: () -> Unit, onDiscoverClick: () -> Unit, onSettingsClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier.fillMaxWidth(), color = Color.White, shadowElevation = 12.dp) {
         Column {
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().height(64.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
                 ParentNavItem(Icons.Default.Home,        "Home",     currentTab == "home",     onHomeClick)
                 ParentNavItem(Icons.Default.CheckCircle, "Tasks",    currentTab == "tasks",    onTasksClick)
                 ParentNavItem(Icons.Default.People,      "Family",   currentTab == "family",   onFamilyClick)
@@ -872,54 +732,22 @@ private fun ParentNavBar(
 }
 
 @Composable
-private fun ParentNavItem(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
+private fun ParentNavItem(icon: ImageVector, label: String, isSelected: Boolean, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier            = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+        modifier            = Modifier.clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint     = if (isSelected) OrangePrimary else Color.Gray,
-            modifier = Modifier.size(24.dp)
-        )
+        Icon(icon, contentDescription = label, tint = if (isSelected) OrangePrimary else Color.Gray, modifier = Modifier.size(24.dp))
         Spacer(Modifier.height(2.dp))
-        Text(
-            label,
-            fontSize   = 10.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color      = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis
-        )
+        Text(label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) OrangePrimary else Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// REUSABLE COMPONENTS
-// ══════════════════════════════════════════════════════════════════════════════
-
 @Composable
 private fun StatChip(emoji: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier  = modifier,
-        shape     = RoundedCornerShape(12.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
+    Card(modifier = modifier, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Text(emoji, fontSize = 14.sp)
             Spacer(Modifier.width(6.dp))
             Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -929,58 +757,11 @@ private fun StatChip(emoji: String, value: String, modifier: Modifier = Modifier
 
 @Composable
 private fun ActionRequiredBanner(message: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier  = modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape     = RoundedCornerShape(14.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier          = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+    Card(modifier = modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD)), elevation = CardDefaults.cardElevation(2.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("⚠️", fontSize = 20.sp)
             Text(message, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF856404), modifier = Modifier.weight(1f))
             Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color(0xFF856404), modifier = Modifier.size(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
-    var isOnline by remember { mutableStateOf(false) }
-    LaunchedEffect(child.userId) {
-        FirebaseFirestore.getInstance().collection("users").document(child.userId)
-            .addSnapshotListener { snap, _ ->
-                isOnline = snap?.getBoolean("isOnline") ?: false
-            }
-    }
-    Card(
-        modifier  = Modifier.width(140.dp).clickable(onClick = onClick),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(
-            modifier            = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box {
-                Surface(modifier = Modifier.size(52.dp), shape = CircleShape, color = OrangePrimary.copy(alpha = 0.15f)) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("👤", fontSize = 26.sp)
-                    }
-                }
-                if (isOnline) {
-                    Surface(modifier = Modifier.size(12.dp).align(Alignment.BottomEnd), shape = CircleShape, color = Color(0xFF4CAF50)) {}
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(child.displayName.split(" ").first(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Lv ${child.level}", fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-            Text("${child.xp} XP", fontSize = 11.sp, color = Color.Gray)
         }
     }
 }
@@ -998,11 +779,7 @@ private fun FamilyMemberRow(child: UserModel) {
                 }
             }
     }
-    Row(
-        modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment     = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(12.dp), color = OrangePrimary.copy(alpha = 0.15f)) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 22.sp) }
         }
@@ -1018,28 +795,11 @@ private fun FamilyMemberRow(child: UserModel) {
 }
 
 @Composable
-private fun QuickActionRow(
-    icon: ImageVector,
-    color: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier  = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape     = RoundedCornerShape(14.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+private fun QuickActionRow(icon: ImageVector, color: Color, title: String, subtitle: String, onClick: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Surface(modifier = Modifier.size(42.dp), shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.12f)) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-                }
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp)) }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextDark)
@@ -1051,190 +811,67 @@ private fun QuickActionRow(
 }
 
 @Composable
-private fun DiscoverCard(
-    emoji: String,
-    title: String,
-    subtitle: String,
-    color: Color,
-    onClick: () -> Unit              // ← replaces content: @Composable () -> Unit
-) {
-    Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(3.dp)
-    ) {
-        Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(18.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Surface(
-                modifier = Modifier.size(46.dp),
-                shape    = RoundedCornerShape(13.dp),
-                color    = color.copy(alpha = 0.12f)
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text(emoji, fontSize = 22.sp)
-                }
+private fun DiscoverCard(emoji: String, title: String, subtitle: String, color: Color, onClick: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(3.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Surface(modifier = Modifier.size(46.dp), shape = RoundedCornerShape(13.dp), color = color.copy(alpha = 0.12f)) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text(emoji, fontSize = 22.sp) }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
                 Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
-            Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = null,
-                tint     = Color.LightGray,
-                modifier = Modifier.size(20.dp)
-            )
+            Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChildDetailSheet(
-    child: UserModel,
-    onDismiss: () -> Unit,
-    onMessageClick: () -> Unit
-) {
+private fun ChildDetailSheet(child: UserModel, onDismiss: () -> Unit, onMessageClick: () -> Unit) {
     var isOnline by remember { mutableStateOf(false) }
     LaunchedEffect(child.userId) {
         FirebaseFirestore.getInstance().collection("users").document(child.userId)
-            .addSnapshotListener { snap, _ ->
-                isOnline = snap?.getBoolean("isOnline") ?: false
-            }
+            .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
     }
 
-    ModalBottomSheet(
-        onDismissRequest  = onDismiss,
-        containerColor    = Color.White,
-        shape             = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier            = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Avatar + name
-            Surface(
-                modifier = Modifier.size(72.dp),
-                shape    = CircleShape,
-                color    = OrangePrimary.copy(alpha = 0.15f)
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text("👤", fontSize = 36.sp)
-                }
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = OrangePrimary.copy(alpha = 0.15f)) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 36.sp) }
             }
             Spacer(Modifier.height(12.dp))
-
-            Row(
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    child.displayName,
-                    fontSize   = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = TextDark
-                )
-                Surface(
-                    modifier = Modifier.size(10.dp),
-                    shape    = CircleShape,
-                    color    = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)
-                ) {}
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(child.displayName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)) {}
             }
-            Text(
-                "Level ${child.level}",
-                fontSize = 14.sp,
-                color    = OrangePrimary,
-                fontWeight = FontWeight.SemiBold
-            )
-
+            Text("Level ${child.level}", fontSize = 14.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(20.dp))
-
-            // Stats row
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 ChildStatItem("⭐", "${child.xp}", "Total XP")
                 ChildStatItem("🔥", "${child.streak}", "Day Streak")
                 ChildStatItem("🏆", "Lv ${child.level}", "Level")
             }
-
             Spacer(Modifier.height(24.dp))
             HorizontalDivider(color = Color(0xFFF0F0F0))
             Spacer(Modifier.height(20.dp))
-
-            // Today's tasks placeholder
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Today's Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = OrangePrimary.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        "View all",
-                        fontSize = 12.sp,
-                        color    = OrangePrimary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                Surface(shape = RoundedCornerShape(8.dp), color = OrangePrimary.copy(alpha = 0.12f)) {
+                    Text("View all", fontSize = 12.sp, color = OrangePrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
             }
-
             Spacer(Modifier.height(12.dp))
-
-            // Placeholder — in future replace with real task list from ViewModel
-            Surface(
-                modifier      = Modifier.fillMaxWidth(),
-                shape         = RoundedCornerShape(12.dp),
-                color         = Color(0xFFF9F9F9),
-                tonalElevation = 0.dp
-            ) {
-                Box(
-                    modifier         = Modifier.fillMaxWidth().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Open the Tasks tab to see ${child.displayName.split(" ").first()}'s tasks",
-                        fontSize  = 13.sp,
-                        color     = Color.Gray,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
+            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFF9F9F9), tonalElevation = 0.dp) {
+                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("Open the Tasks tab to see ${child.displayName.split(" ").first()}'s tasks", fontSize = 13.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
-
             Spacer(Modifier.height(20.dp))
-
-            // Message button
-            Button(
-                onClick  = {
-                    onDismiss()
-                    onMessageClick()
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape    = RoundedCornerShape(14.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = PinkChat)
-            ) {
+            Button(onClick = { onDismiss(); onMessageClick() }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = PinkChat)) {
                 Icon(Icons.Default.Message, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    "Message ${child.displayName.split(" ").first()}",
-                    color      = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Message ${child.displayName.split(" ").first()}", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1242,16 +879,12 @@ private fun ChildDetailSheet(
 
 @Composable
 private fun ChildStatItem(emoji: String, value: String, label: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(emoji, fontSize = 22.sp)
         Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = TextDark)
         Text(label, fontSize = 11.sp, color = Color.Gray)
     }
 }
-
 
 private fun timeOfDayGreeting(): String {
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
@@ -1262,7 +895,6 @@ private fun timeOfDayGreeting(): String {
     }
 }
 
-// Keep this data class here if it's not already in ParentDashboardViewModel.kt
 data class ParentDashboardUiState(
     val isLoading: Boolean = false,
     val family: com.kidsroutine.core.model.FamilyModel? = null,
