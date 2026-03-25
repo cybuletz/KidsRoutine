@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +28,12 @@ import com.kidsroutine.core.model.UserModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.platform.LocalClipboard
+import com.kidsroutine.feature.avatar.data.AvatarShopSeeder
+import kotlinx.coroutines.launch
+import android.content.ClipData
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
 
 
 private val OrangePrimary = Color(0xFFFF6B35)
@@ -83,7 +91,7 @@ fun SettingsScreen(
         }
     )
 
-// Add dialogs at the end of the composable (before final Spacer):
+    // Add dialogs at the end of the composable (before final Spacer):
     if (showEditNameDialog) {
         var nameInput by remember { mutableStateOf(currentUser.displayName) }
         AlertDialog(
@@ -202,7 +210,11 @@ fun SettingsScreen(
                     if (familyInviteCode.isNotEmpty()) {
                         IconButton(
                             onClick = {
-                                clipboardManager.setText(AnnotatedString(familyInviteCode))
+                                clipboardManager.setClip(
+                                    ClipEntry(
+                                        ClipData.newPlainText("Invite Code", familyInviteCode)
+                                    )
+                                )
                                 codeCopied = true
                             },
                             modifier = Modifier.size(36.dp)
@@ -257,7 +269,7 @@ fun SettingsScreen(
             )
             SettingsDivider()
             SettingsToggleRow(
-                icon = Icons.Default.Message,
+                icon = Icons.AutoMirrored.Filled.Message,
                 iconColor = Color(0xFFEC407A),
                 title = "Family Messages",
                 checked = familyMessages,
@@ -287,6 +299,13 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        val scope = rememberCoroutineScope()
+        if (currentUser.isAdmin) {
+            Button(onClick = { scope.launch { AvatarShopSeeder.seed() } }) {
+                Text("Seed Avatar Shop (run once)")
+            }
+        }
 
         // ── About ─────────────────────────────────────────────────────────
         SettingsSection(title = "About") {
@@ -320,7 +339,7 @@ fun SettingsScreen(
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE74C3C))
         ) {
             Icon(
-                Icons.Default.Logout,
+                Icons.AutoMirrored.Filled.Logout,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(18.dp)

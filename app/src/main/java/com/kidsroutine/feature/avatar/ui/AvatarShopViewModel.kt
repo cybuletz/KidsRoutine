@@ -3,6 +3,7 @@ package com.kidsroutine.feature.avatar.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kidsroutine.core.model.AvatarCustomization
 import com.kidsroutine.core.model.AvatarItem
 import com.kidsroutine.core.model.AvatarRarity
 import com.kidsroutine.feature.avatar.data.AvatarRepository
@@ -19,7 +20,7 @@ data class AvatarShopUiState(
     val items: List<AvatarItem> = emptyList(),
     val unlockedItemIds: List<String> = emptyList(),
     val userXp: Int = 0,
-    val selectedRarityFilter: AvatarRarity? = null,   // null = show all
+    val selectedRarityFilter: AvatarRarity? = null,
     val purchaseSuccess: String? = null,
     val error: String? = null
 )
@@ -32,16 +33,19 @@ class AvatarShopViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AvatarShopUiState())
     val uiState: StateFlow<AvatarShopUiState> = _uiState.asStateFlow()
 
+    private var currentCustomization = AvatarCustomization()
+
     fun init(userId: String, userXp: Int) {
         _uiState.update { it.copy(isLoading = true, userXp = userXp) }
         viewModelScope.launch {
             try {
-                val allItems   = avatarRepository.getAllAvatarItems()
+                val allItems      = avatarRepository.getAllAvatarItems()
                 val customization = avatarRepository.getUserAvatarCustomization(userId)
+                currentCustomization = customization
                 _uiState.update {
                     it.copy(
-                        isLoading = false,
-                        items = allItems,
+                        isLoading       = false,
+                        items           = allItems,
                         unlockedItemIds = customization.unlockedItemIds
                     )
                 }
@@ -68,7 +72,12 @@ class AvatarShopViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                avatarRepository.unlockAvatarItem(userId, item.itemId)
+                avatarRepository.unlockAvatarItem(userId, item.itemId, currentCustomization)
+
+                currentCustomization = currentCustomization.copy(
+                    unlockedItemIds = currentCustomization.unlockedItemIds + item.itemId
+                )
+
                 _uiState.update {
                     it.copy(
                         unlockedItemIds = it.unlockedItemIds + item.itemId,

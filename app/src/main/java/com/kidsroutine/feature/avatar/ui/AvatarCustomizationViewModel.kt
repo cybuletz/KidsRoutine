@@ -36,18 +36,12 @@ class AvatarCustomizationViewModel @Inject constructor(
 
     fun init(userId: String, userXp: Int) {
         _uiState.update { it.copy(isLoading = true, userXp = userXp) }
-
         viewModelScope.launch {
             try {
                 val customization = avatarRepository.getUserAvatarCustomization(userId)
                 val allItems = avatarRepository.getAllAvatarItems()
-
                 _uiState.update {
-                    it.copy(
-                        customization = customization,
-                        allItems = allItems,
-                        isLoading = false
-                    )
+                    it.copy(customization = customization, allItems = allItems, isLoading = false)
                 }
                 Log.d("AvatarCustomizationVM", "Loaded ${allItems.size} avatar items")
             } catch (e: Exception) {
@@ -62,59 +56,53 @@ class AvatarCustomizationViewModel @Inject constructor(
     }
 
     fun selectItem(itemId: String) {
-        val currentState = _uiState.value
-        val category = currentState.selectedCategory
-
-        val updated = when(category) {
-            AvatarCategory.BODY -> currentState.customization.copy(body = currentState.customization.body.copy(selectedItemId = itemId))
-            AvatarCategory.EYES -> currentState.customization.copy(eyes = currentState.customization.eyes.copy(selectedItemId = itemId))
-            AvatarCategory.MOUTH -> currentState.customization.copy(mouth = currentState.customization.mouth.copy(selectedItemId = itemId))
-            AvatarCategory.HAIRSTYLE -> currentState.customization.copy(hairstyle = currentState.customization.hairstyle.copy(selectedItemId = itemId))
-            AvatarCategory.ACCESSORIES -> currentState.customization.copy(accessories = currentState.customization.accessories.copy(selectedItemId = itemId))
-            AvatarCategory.CLOTHING -> currentState.customization.copy(clothing = currentState.customization.clothing.copy(selectedItemId = itemId))
-            AvatarCategory.BACKGROUND -> currentState.customization.copy(background = currentState.customization.background.copy(selectedItemId = itemId))
+        val state = _uiState.value
+        val updated = when (state.selectedCategory) {
+            AvatarCategory.BODY        -> state.customization.copy(body        = state.customization.body.copy(selectedItemId = itemId))
+            AvatarCategory.EYES        -> state.customization.copy(eyes        = state.customization.eyes.copy(selectedItemId = itemId))
+            AvatarCategory.MOUTH       -> state.customization.copy(mouth       = state.customization.mouth.copy(selectedItemId = itemId))
+            AvatarCategory.HAIRSTYLE   -> state.customization.copy(hairstyle   = state.customization.hairstyle.copy(selectedItemId = itemId))
+            AvatarCategory.ACCESSORIES -> state.customization.copy(accessories = state.customization.accessories.copy(selectedItemId = itemId))
+            AvatarCategory.CLOTHING    -> state.customization.copy(clothing    = state.customization.clothing.copy(selectedItemId = itemId))
+            AvatarCategory.BACKGROUND  -> state.customization.copy(background  = state.customization.background.copy(selectedItemId = itemId))
         }
-
         _uiState.update { it.copy(customization = updated) }
     }
 
     fun changeItemColor(newColor: String) {
-        val currentState = _uiState.value
-        val category = currentState.selectedCategory
-
-        val updated = when(category) {
-            AvatarCategory.BODY -> currentState.customization.copy(body = currentState.customization.body.copy(selectedColor = newColor))
-            AvatarCategory.EYES -> currentState.customization.copy(eyes = currentState.customization.eyes.copy(selectedColor = newColor))
-            AvatarCategory.MOUTH -> currentState.customization.copy(mouth = currentState.customization.mouth.copy(selectedColor = newColor))
-            AvatarCategory.HAIRSTYLE -> currentState.customization.copy(hairstyle = currentState.customization.hairstyle.copy(selectedColor = newColor))
-            AvatarCategory.ACCESSORIES -> currentState.customization.copy(accessories = currentState.customization.accessories.copy(selectedColor = newColor))
-            AvatarCategory.CLOTHING -> currentState.customization.copy(clothing = currentState.customization.clothing.copy(selectedColor = newColor))
-            AvatarCategory.BACKGROUND -> currentState.customization.copy(background = currentState.customization.background.copy(selectedColor = newColor))
+        val state = _uiState.value
+        val updated = when (state.selectedCategory) {
+            AvatarCategory.BODY        -> state.customization.copy(body        = state.customization.body.copy(selectedColor = newColor))
+            AvatarCategory.EYES        -> state.customization.copy(eyes        = state.customization.eyes.copy(selectedColor = newColor))
+            AvatarCategory.MOUTH       -> state.customization.copy(mouth       = state.customization.mouth.copy(selectedColor = newColor))
+            AvatarCategory.HAIRSTYLE   -> state.customization.copy(hairstyle   = state.customization.hairstyle.copy(selectedColor = newColor))
+            AvatarCategory.ACCESSORIES -> state.customization.copy(accessories = state.customization.accessories.copy(selectedColor = newColor))
+            AvatarCategory.CLOTHING    -> state.customization.copy(clothing    = state.customization.clothing.copy(selectedColor = newColor))
+            AvatarCategory.BACKGROUND  -> state.customization.copy(background  = state.customization.background.copy(selectedColor = newColor))
         }
-
         _uiState.update { it.copy(customization = updated) }
     }
 
     fun unlockAndSelectItem(userId: String, item: AvatarItem) {
-        val xpCost = item.xpCost
-        val userXp = _uiState.value.userXp
-
-        if (userXp < xpCost) {
-            _uiState.update { it.copy(error = "Not enough XP! Need ${xpCost - userXp} more") }
+        val state = _uiState.value
+        if (state.userXp < item.xpCost) {
+            _uiState.update { it.copy(error = "Not enough XP! Need ${item.xpCost - state.userXp} more") }
             return
         }
-
         _uiState.update { it.copy(isSaving = true) }
-
         viewModelScope.launch {
             try {
-                avatarRepository.unlockAvatarItem(userId, item.itemId)
+                // ← pass current in-memory customization — no stale DB re-read
+                avatarRepository.unlockAvatarItem(userId, item.itemId, state.customization)
                 selectItem(item.itemId)
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        success = "Item unlocked!",
-                        userXp = userXp - xpCost
+                        success  = "✅ ${item.name} unlocked!",
+                        userXp   = it.userXp - item.xpCost,
+                        customization = it.customization.copy(
+                            unlockedItemIds = it.customization.unlockedItemIds + item.itemId
+                        )
                     )
                 }
             } catch (e: Exception) {
@@ -126,7 +114,6 @@ class AvatarCustomizationViewModel @Inject constructor(
 
     fun saveCustomization(userId: String) {
         _uiState.update { it.copy(isSaving = true) }
-
         viewModelScope.launch {
             try {
                 avatarRepository.updateAvatarCustomization(userId, _uiState.value.customization)

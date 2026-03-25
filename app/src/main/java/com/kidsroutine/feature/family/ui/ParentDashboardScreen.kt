@@ -417,9 +417,6 @@ private fun ParentHomeTab(
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TAB 2 — TASKS
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
 private fun ParentTasksTab(
     currentUser: UserModel,
@@ -428,8 +425,8 @@ private fun ParentTasksTab(
     var selectedSegment by remember { mutableStateOf(0) }
     var showCreateTask by remember { mutableStateOf(false) }
     var createdTask by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
+    var showStartChallenge by remember { mutableStateOf(false) }
 
-    // Handle the Create → Assign children flow inline
     when {
         createdTask != null -> {
             com.kidsroutine.feature.tasks.ui.SelectChildrenScreen(
@@ -448,6 +445,14 @@ private fun ParentTasksTab(
             )
             return
         }
+        showStartChallenge -> {
+            com.kidsroutine.feature.challenges.ui.StartChallengesScreen(
+                currentUser        = currentUser,
+                onBackClick        = { showStartChallenge = false },
+                onChallengeStarted = { showStartChallenge = false }
+            )
+            return
+        }
     }
 
     Column(
@@ -455,7 +460,7 @@ private fun ParentTasksTab(
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // ── Header with + button ───────────────────────────────────────────
+        // ── Header ────────────────────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -468,27 +473,23 @@ private fun ParentTasksTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text(
-                    text       = "Tasks",
-                    fontSize   = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color      = Color.White
-                )
-                // Show + only on My Tasks tab
+                Text("Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                // + button only on My Tasks tab
                 if (selectedSegment == 0) {
                     IconButton(onClick = { showCreateTask = true }) {
-                        Icon(
-                            imageVector        = Icons.Default.Add,
-                            contentDescription = "Create Task",
-                            tint               = Color.White,
-                            modifier           = Modifier.size(24.dp)
-                        )
+                        Icon(Icons.Default.Add, contentDescription = "Create Task", tint = Color.White, modifier = Modifier.size(24.dp))
+                    }
+                }
+                // Start challenge button only on Challenges tab
+                if (selectedSegment == 2) {
+                    IconButton(onClick = { showStartChallenge = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "New Challenge", tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
             }
         }
 
-        // ── Segmented control ──────────────────────────────────────────────
+        // ── Segmented control — 3 tabs ─────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -497,20 +498,17 @@ private fun ParentTasksTab(
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            listOf("My Tasks", "Proposals").forEachIndexed { index, label ->
+            listOf("My Tasks", "Proposals", "Challenges").forEachIndexed { index, label ->
                 Surface(
                     modifier        = Modifier.weight(1f).clickable { selectedSegment = index },
                     shape           = RoundedCornerShape(10.dp),
                     color           = if (selectedSegment == index) Color.White else Color.Transparent,
                     shadowElevation = if (selectedSegment == index) 2.dp else 0.dp
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier         = Modifier.padding(vertical = 10.dp)
-                    ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
                         Text(
                             text       = label,
-                            fontSize   = 14.sp,
+                            fontSize   = 13.sp,
                             fontWeight = if (selectedSegment == index) FontWeight.Bold else FontWeight.Medium,
                             color      = if (selectedSegment == index) OrangePrimary else Color.Gray
                         )
@@ -524,11 +522,17 @@ private fun ParentTasksTab(
             0 -> com.kidsroutine.feature.tasks.ui.TaskListScreen(
                 currentUser       = currentUser,
                 onCreateTaskClick = { showCreateTask = true },
-                onBackClick       = { }  // no-op: navigation handled by bottom nav bar
+                onBackClick       = { }
             )
             1 -> com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen(
                 currentUser = currentUser,
-                onBackClick = { }   // no-op: navigation handled by bottom nav bar
+                onBackClick = { }
+            )
+            2 -> com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen(
+                currentUser           = currentUser,
+                onBackClick           = { },
+                onStartChallengeClick = { showStartChallenge = true },
+                onChallengeClick      = { /* detail nav not available inside tab — tap navigates inline */ }
             )
         }
     }

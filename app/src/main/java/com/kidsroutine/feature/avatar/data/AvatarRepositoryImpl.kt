@@ -52,10 +52,8 @@ class AvatarRepositoryImpl @Inject constructor(
                 Log.d("AvatarRepository", "Got customization from local DB")
                 return local.toCustomization()
             }
-
             val doc = firestore.collection("users").document(userId)
                 .collection("avatar").document("customization").get().await()
-
             val customization = doc.toObject(AvatarCustomization::class.java) ?: AvatarCustomization()
             avatarDao.insertCustomization(AvatarEntity.fromCustomization(userId, customization))
             customization
@@ -67,15 +65,11 @@ class AvatarRepositoryImpl @Inject constructor(
 
     override suspend fun updateAvatarCustomization(userId: String, customization: AvatarCustomization) {
         try {
-            // Update local
             avatarDao.insertCustomization(AvatarEntity.fromCustomization(userId, customization))
-
-            // Update Firestore
             firestore.collection("users").document(userId)
                 .collection("avatar").document("customization")
                 .set(customization.copy(lastUpdated = System.currentTimeMillis()))
                 .await()
-
             Log.d("AvatarRepository", "Avatar customization updated")
         } catch (e: Exception) {
             Log.e("AvatarRepository", "Error updating customization", e)
@@ -83,11 +77,14 @@ class AvatarRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun unlockAvatarItem(userId: String, itemId: String) {
+    override suspend fun unlockAvatarItem(
+        userId: String,
+        itemId: String,
+        currentCustomization: AvatarCustomization
+    ) {
         try {
-            val customization = getUserAvatarCustomization(userId)
-            val updated = customization.copy(
-                unlockedItemIds = customization.unlockedItemIds + itemId
+            val updated = currentCustomization.copy(
+                unlockedItemIds = currentCustomization.unlockedItemIds + itemId
             )
             updateAvatarCustomization(userId, updated)
             Log.d("AvatarRepository", "Item unlocked: $itemId")
@@ -97,7 +94,11 @@ class AvatarRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveAvatarPreset(userId: String, presetName: String, customization: AvatarCustomization) {
+    override suspend fun saveAvatarPreset(
+        userId: String,
+        presetName: String,
+        customization: AvatarCustomization
+    ) {
         try {
             firestore.collection("users").document(userId)
                 .collection("avatar_presets").document(presetName)

@@ -9,7 +9,7 @@ interface AvatarRepository {
     suspend fun getAvatarItemsByCategory(category: String): List<AvatarItem>
     suspend fun getUserAvatarCustomization(userId: String): AvatarCustomization
     suspend fun updateAvatarCustomization(userId: String, customization: AvatarCustomization)
-    suspend fun unlockAvatarItem(userId: String, itemId: String)
+    suspend fun unlockAvatarItem(userId: String, itemId: String, currentCustomization: AvatarCustomization)
     suspend fun saveAvatarPreset(userId: String, presetName: String, customization: AvatarCustomization)
     fun observeAvatarCustomization(userId: String): Flow<AvatarCustomization>
 }
