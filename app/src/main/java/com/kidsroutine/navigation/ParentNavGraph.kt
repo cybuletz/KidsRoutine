@@ -47,68 +47,53 @@ import com.kidsroutine.core.model.TaskModel
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
     familyMembers: List<UserModel>,
-    navController: NavController
+    navController: NavController,
+    onSignOut: () -> Unit          // ← NEW
 ) {
     navigation(
-        route = "parent_graph",
+        route            = "parent_graph",
         startDestination = Routes.PARENT_DASHBOARD
     ) {
-        // Parent dashboard (home)
         composable(Routes.PARENT_DASHBOARD) {
-            val authViewModel: com.kidsroutine.feature.auth.ui.AuthViewModel = hiltViewModel()
             ParentDashboardScreen(
-                currentUser           = currentUser,
-                familyMembers         = familyMembers,
+                currentUser            = currentUser,
+                familyMembers          = familyMembers,
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
-                onUpgradeClick        = { navController.navigate(Routes.UPGRADE) },
-                onContentPacksClick   = { navController.navigate(Routes.CONTENT_PACKS) },
-                onProfileClick        = { navController.navigate(Routes.PARENT_PROFILE) },
-                onSignOutClick        = {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        .collection("users")
-                        .document(currentUser.userId)
-                        .update("isOnline", false)
-                    authViewModel.signOut()   // ← this sets _authState = Unauthenticated, MainContent reacts
-                }
+                onUpgradeClick         = { navController.navigate(Routes.UPGRADE) },
+                onContentPacksClick    = { navController.navigate(Routes.CONTENT_PACKS) },
+                onProfileClick         = { navController.navigate(Routes.PARENT_PROFILE) },
+                onSignOutClick         = onSignOut   // ← uses the real callback
             )
         }
 
-        // Parent Profile Screen
         composable(Routes.PARENT_PROFILE) {
-            // Filter out the parent from family members (only show children)
             val childrenOnly = familyMembers.filter { it.userId != currentUser.userId }
-
             ParentProfileScreen(
-                user = currentUser,
-                familyMembers = childrenOnly,  // ← Use filtered list
-                onBackClick = { navController.popBackStack() },
-                onAddChildClick = { navController.navigate(Routes.INVITE_CHILDREN) },
-                onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
-                onSettingsClick = { navController.popBackStack() },
-                onChildClick = { child ->
-                    navController.navigate(Routes.CHILD_PROFILE)
-                },
+                user              = currentUser,
+                familyMembers     = childrenOnly,
+                onBackClick       = { navController.popBackStack() },
+                onAddChildClick   = { navController.navigate(Routes.INVITE_CHILDREN) },
+                onStatsClick      = { navController.navigate(Routes.PARENT_STATS) },
+                onSettingsClick   = { navController.popBackStack() },
+                onChildClick      = { navController.navigate(Routes.CHILD_PROFILE) },
                 onChildStatsClick = { navController.navigate(Routes.STATS) }
             )
         }
 
-        // Child Profile Screen - Accessible from Parent Profile
         composable(Routes.CHILD_PROFILE) {
             val selectedChild = remember { mutableStateOf<UserModel?>(null) }
             val childToDisplay = selectedChild.value ?: familyMembers.firstOrNull()
-
             if (childToDisplay != null) {
                 ChildProfileScreen(
-                    user = childToDisplay,
-                    onBackClick = { navController.popBackStack() },
+                    user                  = childToDisplay,
+                    onBackClick           = { navController.popBackStack() },
                     onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
-                    onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
-                    onSettingsClick = { navController.popBackStack() },
-                    )
+                    onStatsClick          = { navController.navigate(Routes.PARENT_STATS) },
+                    onSettingsClick       = { navController.popBackStack() }
+                )
             }
         }
 
-        // Avatar Customization Screen (NEW - for viewing child's avatar)
         composable(Routes.AVATAR_CUSTOMIZATION) {
             val childToDisplay = familyMembers.firstOrNull()
             if (childToDisplay != null) {
@@ -119,7 +104,6 @@ fun NavGraphBuilder.parentNavGraph(
             }
         }
 
-        // Invite children
         composable(Routes.INVITE_CHILDREN) {
             InviteChildrenScreen(
                 currentUser = currentUser,
@@ -127,51 +111,36 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Task management
         composable(Routes.TASK_LIST) {
             var showCreateTaskScreen by remember { mutableStateOf(false) }
             var createdTask by remember { mutableStateOf<TaskModel?>(null) }
 
             when {
                 createdTask != null -> {
-                    // Show child selection screen after task creation
                     SelectChildrenScreen(
-                        task = createdTask!!,
-                        currentUser = currentUser,
-                        onBackClick = {
-                            createdTask = null
-                            showCreateTaskScreen = false
-                        },
-                        onAssignmentComplete = {
-                            createdTask = null
-                            showCreateTaskScreen = false
-                        }
+                        task         = createdTask!!,
+                        currentUser  = currentUser,
+                        onBackClick  = { createdTask = null; showCreateTaskScreen = false },
+                        onAssignmentComplete = { createdTask = null; showCreateTaskScreen = false }
                     )
                 }
                 showCreateTaskScreen -> {
-                    // Show task creation screen
                     CreateTaskScreen(
-                        currentUser = currentUser,
-                        onTaskCreated = { task ->
-                            createdTask = task
-                        },
-                        onBackClick = {
-                            showCreateTaskScreen = false
-                        }
+                        currentUser  = currentUser,
+                        onTaskCreated = { task -> createdTask = task },
+                        onBackClick  = { showCreateTaskScreen = false }
                     )
                 }
                 else -> {
-                    // Show task list
                     TaskListScreen(
-                        currentUser = currentUser,
+                        currentUser       = currentUser,
                         onCreateTaskClick = { showCreateTaskScreen = true },
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick       = { navController.popBackStack() }
                     )
                 }
             }
         }
 
-        // Pending child tasks
         composable(Routes.PENDING_TASKS) {
             ParentPendingTasksScreen(
                 currentUser = currentUser,
@@ -179,31 +148,28 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Parent challenges
         composable(Routes.PARENT_CHALLENGES) {
             val showStartChallengeScreen = remember { mutableStateOf(false) }
-
             if (showStartChallengeScreen.value) {
                 StartChallengesScreen(
-                    currentUser = currentUser,
-                    onBackClick = { showStartChallengeScreen.value = false },
+                    currentUser      = currentUser,
+                    onBackClick      = { showStartChallengeScreen.value = false },
                     onChallengeStarted = { showStartChallengeScreen.value = false }
                 )
             } else {
                 ActiveChallengesScreen(
-                    currentUser = currentUser,
-                    onBackClick = { navController.popBackStack() },
+                    currentUser          = currentUser,
+                    onBackClick          = { navController.popBackStack() },
                     onStartChallengeClick = { showStartChallengeScreen.value = true },
-                    onChallengeClick = { challenge ->
+                    onChallengeClick     = { challenge ->
                         navController.navigate(Routes.parentChallengeDetail(challenge.challengeId))
                     }
                 )
             }
         }
 
-        // Challenge detail (for parents)
         composable(
-            route = Routes.PARENT_CHALLENGE_DETAIL,
+            route     = Routes.PARENT_CHALLENGE_DETAIL,
             arguments = listOf(navArgument("challengeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val challengeId = backStackEntry.arguments?.getString("challengeId") ?: return@composable
@@ -214,7 +180,6 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // Family messaging
         composable(Routes.FAMILY_MESSAGING) {
             FamilyMessagingScreen(
                 currentUser = currentUser,
@@ -222,87 +187,52 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // AI Task/Challenge Generation Screen
         composable(Routes.GENERATION) {
-            GenerationScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            GenerationScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // Marketplace
         composable(Routes.MARKETPLACE) {
-            MarketplaceScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            MarketplaceScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // Publish
         composable(Routes.PUBLISH) {
-            PublishScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            PublishScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // Leaderboard
         composable(Routes.LEADERBOARD) {
-            LeaderboardScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            LeaderboardScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // Stats Screen - Parent can view their own stats
         composable(Routes.PARENT_STATS) {
-            StatsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            StatsScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
         composable(Routes.NOTIFICATIONS) {
-            NotificationsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            NotificationsScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
         composable(Routes.WEEKLY_PLAN) {
             WeeklyPlanScreen(
-                currentUser     = currentUser,
-                familyChildren  = familyMembers,
-                onBackClick     = { navController.popBackStack() }
+                currentUser    = currentUser,
+                familyChildren = familyMembers,
+                onBackClick    = { navController.popBackStack() }
             )
         }
 
         composable(Routes.DAILY_PLAN) {
-            DailyPlanScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            DailyPlanScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
         composable(Routes.AVATAR_SHOP) {
-            AvatarShopScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            AvatarShopScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
         composable(Routes.CONTENT_PACKS) {
             val contentPacksViewModel: ContentPacksViewModel = hiltViewModel()
             val contentUiState by contentPacksViewModel.uiState.collectAsState()
-
-            // Load entitlements + unlocked packs once
             LaunchedEffect(currentUser.userId) {
-                contentPacksViewModel.loadForUser(
-                    userId = currentUser.userId,
-                    userXp = currentUser.xp
-                )
+                contentPacksViewModel.loadForUser(userId = currentUser.userId, userXp = currentUser.xp)
             }
-
             ContentPacksScreen(
                 currentUser = currentUser,
                 isPro       = contentUiState.isPro,
@@ -315,18 +245,12 @@ fun NavGraphBuilder.parentNavGraph(
             UpgradeScreen(
                 currentUser      = currentUser,
                 onBackClick      = { navController.popBackStack() },
-                onUpgradeSuccess = { _ ->
-                    // Return to dashboard — the next screen load will re-read entitlements
-                    navController.popBackStack()
-                }
+                onUpgradeSuccess = { _ -> navController.popBackStack() }
             )
         }
 
-        // Moderation panel (admin only)
         composable(Routes.MODERATION) {
-            ModerationScreen(
-                onBackClick = { navController.popBackStack() }
-            )
+            ModerationScreen(onBackClick = { navController.popBackStack() })
         }
     }
 }

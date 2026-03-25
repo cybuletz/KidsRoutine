@@ -426,13 +426,36 @@ private fun ParentTasksTab(
     onUpgradeClick: () -> Unit
 ) {
     var selectedSegment by remember { mutableStateOf(0) }
+    var showCreateTask by remember { mutableStateOf(false) }
+    var createdTask by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
+
+    // Handle the Create → Assign children flow inline
+    when {
+        createdTask != null -> {
+            com.kidsroutine.feature.tasks.ui.SelectChildrenScreen(
+                task                 = createdTask!!,
+                currentUser          = currentUser,
+                onBackClick          = { createdTask = null },
+                onAssignmentComplete = { createdTask = null }
+            )
+            return
+        }
+        showCreateTask -> {
+            com.kidsroutine.feature.tasks.ui.CreateTaskScreen(
+                currentUser   = currentUser,
+                onTaskCreated = { task -> createdTask = task },
+                onBackClick   = { showCreateTask = false }
+            )
+            return
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // Header
+        // ── Header with + button ───────────────────────────────────────────
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -440,10 +463,32 @@ private fun ParentTasksTab(
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 20.dp)
         ) {
-            Text("Tasks", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                Text(
+                    text       = "Tasks",
+                    fontSize   = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White
+                )
+                // Show + only on My Tasks tab
+                if (selectedSegment == 0) {
+                    IconButton(onClick = { showCreateTask = true }) {
+                        Icon(
+                            imageVector        = Icons.Default.Add,
+                            contentDescription = "Create Task",
+                            tint               = Color.White,
+                            modifier           = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
         }
 
-        // Segmented control
+        // ── Segmented control ──────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -454,14 +499,17 @@ private fun ParentTasksTab(
         ) {
             listOf("My Tasks", "Proposals").forEachIndexed { index, label ->
                 Surface(
-                    modifier  = Modifier.weight(1f).clickable { selectedSegment = index },
-                    shape     = RoundedCornerShape(10.dp),
-                    color     = if (selectedSegment == index) Color.White else Color.Transparent,
+                    modifier        = Modifier.weight(1f).clickable { selectedSegment = index },
+                    shape           = RoundedCornerShape(10.dp),
+                    color           = if (selectedSegment == index) Color.White else Color.Transparent,
                     shadowElevation = if (selectedSegment == index) 2.dp else 0.dp
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 10.dp)) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier         = Modifier.padding(vertical = 10.dp)
+                    ) {
                         Text(
-                            label,
+                            text       = label,
                             fontSize   = 14.sp,
                             fontWeight = if (selectedSegment == index) FontWeight.Bold else FontWeight.Medium,
                             color      = if (selectedSegment == index) OrangePrimary else Color.Gray
@@ -471,20 +519,21 @@ private fun ParentTasksTab(
             }
         }
 
-        // Content
+        // ── Content ────────────────────────────────────────────────────────
         when (selectedSegment) {
-            0 -> TaskListScreen(
+            0 -> com.kidsroutine.feature.tasks.ui.TaskListScreen(
                 currentUser       = currentUser,
-                onCreateTaskClick = { },
-                onBackClick       = { }
+                onCreateTaskClick = { showCreateTask = true },
+                onBackClick       = { }  // no-op: navigation handled by bottom nav bar
             )
-            1 -> ParentPendingTasksScreen(
+            1 -> com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen(
                 currentUser = currentUser,
-                onBackClick = { }
+                onBackClick = { }   // no-op: navigation handled by bottom nav bar
             )
         }
     }
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB 3 — FAMILY

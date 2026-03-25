@@ -7,17 +7,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,7 +24,6 @@ import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 
 private val GradientStart = Color(0xFF4A90E2)
-private val GradientEnd = Color(0xFF357ABD)
 private val BgLight = Color(0xFFFFFBF0)
 
 @Composable
@@ -51,127 +47,72 @@ fun TaskListScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-
-        ) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color(0xFF2D3436),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(
-                    text = "Manage Tasks",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2D3436),
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onCreateTaskClick) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Create Task",
-                        tint = Color(0xFF2D3436),
-                        modifier = Modifier.size(24.dp)
-                    )
+                CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("⚠️", fontSize = 40.sp)
+                    Spacer(Modifier.height(16.dp))
+                    Text(uiState.error!!, style = MaterialTheme.typography.bodyMedium)
                 }
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.error != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+        } else if (uiState.tasks.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📝", fontSize = 48.sp)
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "No tasks yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Create your first task to get started!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    Button(
+                        onClick = onCreateTaskClick,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GradientStart)
                     ) {
-                        Text("⚠️", fontSize = 40.sp)
-                        Spacer(Modifier.height(16.dp))
-                        Text(uiState.error!!, style = MaterialTheme.typography.bodyMedium)
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Create Task")
                     }
                 }
-            } else if (uiState.tasks.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("📝", fontSize = 48.sp)
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            "No tasks yet",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Create your first task to get started!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
-                        )
-                        Spacer(Modifier.height(24.dp))
-                        Button(
-                            onClick = onCreateTaskClick,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = GradientStart
-                            )
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Create Task")
-                        }
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 20.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.tasks) { task ->
-                        TaskCard(
-                            task = task,
-                            onDeleteClick = { showDeleteDialog = task }
-                        )
-                    }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.tasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onDeleteClick = { showDeleteDialog = task }
+                    )
                 }
             }
         }
 
-        // Delete confirmation dialog
         if (showDeleteDialog != null) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = null },
@@ -183,17 +124,13 @@ fun TaskListScreen(
                             viewModel.deleteTask(currentUser.familyId, showDeleteDialog!!.id)
                             showDeleteDialog = null
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336)
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
                     ) {
                         Text("Delete")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = null }) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
                 }
             )
         }
@@ -208,19 +145,14 @@ private fun TaskCard(
     var expanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier  = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
+        modifier  = Modifier.fillMaxWidth().clickable { expanded = !expanded },
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // ── Main row (always visible) ──────────────────────────────────
             Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier              = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
@@ -251,7 +183,6 @@ private fun TaskCard(
                             fontWeight = FontWeight.Bold,
                             color      = Color(0xFF2D3436)
                         )
-                        // Show truncated description when collapsed
                         if (task.description.isNotEmpty() && !expanded) {
                             Text(
                                 text     = task.description,
@@ -282,7 +213,6 @@ private fun TaskCard(
                         }
                     }
                 }
-                // Expand chevron + delete
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector        = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -301,7 +231,6 @@ private fun TaskCard(
                 }
             }
 
-            // ── Expanded description panel ─────────────────────────────────
             if (expanded && task.description.isNotEmpty()) {
                 HorizontalDivider(color = Color(0xFFF0F0F0))
                 Column(
@@ -312,26 +241,23 @@ private fun TaskCard(
                 ) {
                     Text(
                         "Description",
-                        fontSize   = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.Gray,
+                        fontSize      = 11.sp,
+                        fontWeight    = FontWeight.Bold,
+                        color         = Color.Gray,
                         letterSpacing = 0.6.sp
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text  = task.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF2D3436),
+                        text       = task.description,
+                        style      = MaterialTheme.typography.bodyMedium,
+                        color      = Color(0xFF2D3436),
                         lineHeight = 22.sp
                     )
                 }
             } else if (expanded && task.description.isEmpty()) {
                 HorizontalDivider(color = Color(0xFFF0F0F0))
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFAFAFA))
-                        .padding(16.dp),
+                    modifier         = Modifier.fillMaxWidth().background(Color(0xFFFAFAFA)).padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("No description provided.", fontSize = 13.sp, color = Color.Gray)

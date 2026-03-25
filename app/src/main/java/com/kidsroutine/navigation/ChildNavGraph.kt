@@ -31,39 +31,35 @@ object TaskPassthrough {
 
 fun NavGraphBuilder.childNavGraph(
     currentUser: UserModel,
-    navController: NavController
+    navController: NavController,
+    onSignOut: () -> Unit          // ← NEW
 ) {
     navigation(
-        route = "child_graph",
+        route            = "child_graph",
         startDestination = Routes.DAILY
     ) {
-        // Daily tasks with persistent nav bar
         composable(Routes.DAILY) {
             ChildMainScreen(
-                currentUser = currentUser,
-                onTaskClick = { instance ->
+                currentUser            = currentUser,
+                onTaskClick            = { instance ->
                     TaskPassthrough.pendingTask = instance.task
                     navController.navigate(Routes.execution(instance.instanceId))
                 },
-                onFamilyMessagingClick = {
-                    navController.navigate(Routes.FAMILY_MESSAGING)
-                },
-                parentNavController = navController
+                onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
+                parentNavController    = navController
             )
         }
 
-        // Child Profile Screen
         composable(Routes.CHILD_PROFILE) {
             ChildProfileScreen(
-                user = currentUser,
-                onBackClick = { navController.popBackStack() },
+                user                  = currentUser,
+                onBackClick           = { navController.popBackStack() },
                 onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
-                onStatsClick = { navController.navigate(Routes.STATS) },
-                onSettingsClick = { navController.popBackStack() }
+                onStatsClick          = { navController.navigate(Routes.STATS) },
+                onSettingsClick       = { navController.popBackStack() }
             )
         }
 
-        // Avatar Customization Screen
         composable(Routes.AVATAR_CUSTOMIZATION) {
             AvatarCustomizationScreen(
                 currentUser = currentUser,
@@ -71,7 +67,6 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Achievements Screen
         composable(Routes.ACHIEVEMENTS) {
             AchievementsScreen(
                 currentUser = currentUser,
@@ -79,7 +74,6 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Notifications Screen
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(
                 currentUser = currentUser,
@@ -87,16 +81,15 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Task Execution
         composable(
-            route = Routes.EXECUTION,
+            route     = Routes.EXECUTION,
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) {
             val task = TaskPassthrough.pendingTask
             if (task != null) {
                 TaskExecutionScreen(
-                    task = task,
-                    onBack = { navController.popBackStack() },
+                    task      = task,
+                    onBack    = { navController.popBackStack() },
                     onCompleted = { _ ->
                         TaskPassthrough.pendingTask = null
                         navController.popBackStack()
@@ -105,21 +98,17 @@ fun NavGraphBuilder.childNavGraph(
             }
         }
 
-        // Active Challenges
         composable(Routes.CHALLENGES) {
             ActiveChallengesScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() },
-                onStartChallengeClick = {
-                    navController.navigate(Routes.CHALLENGES)
-                },
-                onChallengeClick = { challenge ->
+                currentUser          = currentUser,
+                onBackClick          = { navController.popBackStack() },
+                onStartChallengeClick = { navController.navigate(Routes.CHALLENGES) },
+                onChallengeClick     = { challenge ->
                     navController.navigate(Routes.challengeDetail(challenge.challengeId))
                 }
             )
         }
 
-        // Family Messaging
         composable(Routes.FAMILY_MESSAGING) {
             FamilyMessagingScreen(
                 currentUser = currentUser,
@@ -127,9 +116,8 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Challenge Detail
         composable(
-            route = Routes.CHALLENGE_DETAIL,
+            route     = Routes.CHALLENGE_DETAIL,
             arguments = listOf(navArgument("challengeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val challengeId = backStackEntry.arguments?.getString("challengeId") ?: return@composable
@@ -147,43 +135,28 @@ fun NavGraphBuilder.childNavGraph(
             )
         }
 
-        // Stats Screen - Child views own progress
         composable(Routes.STATS) {
-            StatsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            StatsScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // Leaderboard
         composable(Routes.LEADERBOARD) {
-            LeaderboardScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            LeaderboardScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
-        // World Map Screen
         composable(Routes.WORLD) {
-            WorldScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            WorldScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
 
         composable(Routes.CHILD_TASK_PROPOSAL) {
             ChildTaskProposalScreen(
-                currentUser = currentUser,
+                currentUser       = currentUser,
                 onProposalSuccess = { navController.popBackStack() },
-                onBackClick = { navController.popBackStack() }
+                onBackClick       = { navController.popBackStack() }
             )
         }
 
         composable(Routes.MOMENTS) {
-            MomentsScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            MomentsScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
         }
     }
 }

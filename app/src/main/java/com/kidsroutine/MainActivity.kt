@@ -52,7 +52,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Request notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     this,
@@ -67,13 +66,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Save FCM token when app starts
         saveFCMToken()
-
-        // Setup app lifecycle listener for online/offline status
         setupAppLifecycleListener()
-
-        // Initialize sound system
         SoundManager.initialize(this)
 
         enableEdgeToEdge()
@@ -87,50 +81,30 @@ class MainActivity : ComponentActivity() {
     private fun setupAppLifecycleListener() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
-                // App moved to foreground
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
                     Log.d("AppLifecycle", "App moved to foreground - setting online for $userId")
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(userId)
-                        .update(
-                            mapOf(
-                                "isOnline" to true,
-                                "lastActiveAt" to System.currentTimeMillis()
-                            )
-                        )
-                        .addOnSuccessListener {
-                            Log.d("AppLifecycle", "Successfully set online ✓")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("AppLifecycle", "Failed to set online", e)
-                        }
+                        .update(mapOf("isOnline" to true, "lastActiveAt" to System.currentTimeMillis()))
+                        .addOnSuccessListener { Log.d("AppLifecycle", "Successfully set online ✓") }
+                        .addOnFailureListener { e -> Log.e("AppLifecycle", "Failed to set online", e) }
                 } else {
                     Log.d("AppLifecycle", "No user logged in on foreground")
                 }
             }
 
             override fun onStop(owner: LifecycleOwner) {
-                // App moved to background
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
                     Log.d("AppLifecycle", "App moved to background - setting offline for $userId")
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(userId)
-                        .update(
-                            mapOf(
-                                "isOnline" to false,
-                                "lastActiveAt" to System.currentTimeMillis()
-                            )
-                        )
-                        .addOnSuccessListener {
-                            Log.d("AppLifecycle", "Successfully set offline ✓")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("AppLifecycle", "Failed to set offline", e)
-                        }
+                        .update(mapOf("isOnline" to false, "lastActiveAt" to System.currentTimeMillis()))
+                        .addOnSuccessListener { Log.d("AppLifecycle", "Successfully set offline ✓") }
+                        .addOnFailureListener { e -> Log.e("AppLifecycle", "Failed to set offline", e) }
                 } else {
                     Log.d("AppLifecycle", "No user logged in on background")
                 }
@@ -144,7 +118,6 @@ class MainActivity : ComponentActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
         if (requestCode == NOTIFICATION_PERMISSION_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d("PERMISSIONS", "Notification permission granted ✓")
@@ -159,30 +132,20 @@ class MainActivity : ComponentActivity() {
             if (task.isSuccessful) {
                 val token = task.result
                 Log.d("FCM_TOKEN", "Token: $token")
-
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
                     FirebaseFirestore.getInstance()
                         .collection("users")
                         .document(userId)
-                        .update(
-                            mapOf(
-                                "fcmToken" to token,
-                                "isOnline" to true
-                            )
-                        )
-                        .addOnSuccessListener {
-                            Log.d("FCM", "Token & online status saved to Firestore ✓")
-                        }
+                        .update(mapOf("fcmToken" to token, "isOnline" to true))
+                        .addOnSuccessListener { Log.d("FCM", "Token & online status saved to Firestore ✓") }
                 }
             }
         }
     }
 
-
     override fun onDestroy() {
         super.onDestroy()
-        // Mark user as offline when app is destroyed (killed, closed, etc)
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             try {
@@ -190,12 +153,8 @@ class MainActivity : ComponentActivity() {
                     .collection("users")
                     .document(userId)
                     .update("isOnline", false)
-                    .addOnSuccessListener {
-                        Log.d("MainActivity", "User marked offline on destroy")
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("MainActivity", "Failed to set offline on destroy", e)
-                    }
+                    .addOnSuccessListener { Log.d("MainActivity", "User marked offline on destroy") }
+                    .addOnFailureListener { e -> Log.e("MainActivity", "Failed to set offline on destroy", e) }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error in onDestroy", e)
             }
@@ -222,50 +181,35 @@ fun MainContent() {
     val authState by authViewModel.authState.collectAsState()
     var currentScreen by remember { mutableStateOf<AppScreen>(AppScreen.Loading) }
 
-    // ← ADD THIS: Check if user is already logged in
     LaunchedEffect(Unit) {
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser != null) {
             Log.d("MainContent", "User already logged in: ${currentUser.uid}")
-            // Don't do anything - let authState handle it
         } else {
             Log.d("MainContent", "No user logged in")
         }
     }
 
-    // Update screen based on auth state
     LaunchedEffect(authState) {
         currentScreen = when (authState) {
             is AuthState.Loading -> AppScreen.Loading
             is AuthState.Unauthenticated -> AppScreen.RoleSelection
             is AuthState.Authenticated -> {
                 val user = (authState as AuthState.Authenticated).user
-
                 when {
-                    user.role == Role.PARENT && user.familyId.isEmpty() -> {
-                        AppScreen.FamilySetup(user)
-                    }
-                    user.role == Role.CHILD && user.familyId.isEmpty() -> {
-                        AppScreen.JoinFamily(user)
-                    }
-                    else -> {
-                        AppScreen.MainApp(user)
-                    }
+                    user.role == Role.PARENT && user.familyId.isEmpty() -> AppScreen.FamilySetup(user)
+                    user.role == Role.CHILD && user.familyId.isEmpty() -> AppScreen.JoinFamily(user)
+                    else -> AppScreen.MainApp(user)
                 }
             }
-            is AuthState.Error -> {
-                AppScreen.Error((authState as AuthState.Error).message)
-            }
+            is AuthState.Error -> AppScreen.Error((authState as AuthState.Error).message)
         }
     }
 
-    // Render based on current screen
     when (currentScreen) {
         is AppScreen.Loading -> {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White),
+                modifier = Modifier.fillMaxSize().background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
@@ -281,36 +225,28 @@ fun MainContent() {
 
         is AppScreen.ParentLogin -> {
             ParentLoginScreen(
-                onLoginSuccess = { user ->
-                    currentScreen = AppScreen.MainApp(user)
-                },
+                onLoginSuccess = { user -> currentScreen = AppScreen.MainApp(user) },
                 onSignUpClick = { currentScreen = AppScreen.ParentSignUp }
             )
         }
 
         is AppScreen.ParentSignUp -> {
             ParentSignUpScreen(
-                onSignUpSuccess = { user ->
-                    currentScreen = AppScreen.MainApp(user)
-                },
+                onSignUpSuccess = { user -> currentScreen = AppScreen.MainApp(user) },
                 onBackClick = { currentScreen = AppScreen.ParentLogin }
             )
         }
 
         is AppScreen.ChildLogin -> {
             ChildLoginScreen(
-                onLoginSuccess = { user ->
-                    currentScreen = AppScreen.MainApp(user)
-                },
+                onLoginSuccess = { user -> currentScreen = AppScreen.MainApp(user) },
                 onSignUpClick = { currentScreen = AppScreen.ChildSignUp }
             )
         }
 
         is AppScreen.ChildSignUp -> {
             ChildSignUpScreen(
-                onSignUpSuccess = { user ->
-                    currentScreen = AppScreen.MainApp(user)
-                },
+                onSignUpSuccess = { user -> currentScreen = AppScreen.MainApp(user) },
                 onBackClick = { currentScreen = AppScreen.ChildLogin }
             )
         }
@@ -319,9 +255,7 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.FamilySetup).user
             FamilySetupScreen(
                 currentUser = user,
-                onFamilyCreated = { _ ->
-                    currentScreen = AppScreen.MainApp(user.copy(familyId = "created"))
-                }
+                onFamilyCreated = { _ -> currentScreen = AppScreen.MainApp(user.copy(familyId = "created")) }
             )
         }
 
@@ -329,24 +263,24 @@ fun MainContent() {
             val user = (currentScreen as AppScreen.JoinFamily).user
             JoinFamilyScreen(
                 currentUser = user,
-                onJoinSuccess = { familyId ->
-                    currentScreen = AppScreen.MainApp(user.copy(familyId = familyId))
-                },
+                onJoinSuccess = { familyId -> currentScreen = AppScreen.MainApp(user.copy(familyId = familyId)) },
                 onBackClick = { currentScreen = AppScreen.RoleSelection }
             )
         }
 
         is AppScreen.MainApp -> {
             val user = (currentScreen as AppScreen.MainApp).user
-            KidsRoutineNavGraph(user)
+            // ← Pass signOut lambda — authViewModel.signOut() sets authState = Unauthenticated
+            // which triggers the LaunchedEffect above and sets currentScreen = RoleSelection
+            KidsRoutineNavGraph(
+                currentUser = user,
+                onSignOut = { authViewModel.signOut() }
+            )
         }
 
         is AppScreen.Error -> {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.White)
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
