@@ -2,8 +2,10 @@ package com.kidsroutine.core.model
 
 enum class WorldNodeStatus { LOCKED, UNLOCKED, COMPLETED }
 
+// Extended to 10 themes — used by WorldLevelData for procedural generation
 enum class WorldTheme {
-    JUNGLE, OCEAN, SPACE, VOLCANO, ARCTIC, NEON_CITY
+    JUNGLE, OCEAN, SPACE, VOLCANO, ARCTIC, NEON_CITY,
+    CRYSTAL, CLOUD, DESERT, COSMOS
 }
 
 data class WorldNode(
@@ -13,11 +15,12 @@ data class WorldNode(
     val emoji: String = "⭐",
     val requiredXp: Int = 0,
     val status: WorldNodeStatus = WorldNodeStatus.LOCKED,
-    val positionX: Float = 0.5f,   // 0.0–1.0 fraction of container width
-    val positionY: Float = 0.5f,   // 0.0–1.0 fraction of container height
+    val positionX: Float = 0.5f,
+    val positionY: Float = 0.5f,
     val rewardXp: Int = 50,
     val theme: WorldTheme = WorldTheme.JUNGLE,
-    val isSpecial: Boolean = false  // boss node / milestone
+    val isSpecial: Boolean = false,   // boss/milestone node
+    val levelNumber: Int = 0          // global level index 1–500
 )
 
 data class WorldModel(

@@ -8,5 +8,6 @@ data class TaskInstance(
     val assignedDate: String = "",   // yyyy-MM-dd
     val userId: String = "",
     val injectedByChallengeId: String? = null,  // null = regular task
-    val status: TaskStatus = TaskStatus.PENDING
+    val status: TaskStatus = TaskStatus.PENDING,
+    val completedAt: Long = 0L       // epoch ms — set when status → COMPLETED
 )

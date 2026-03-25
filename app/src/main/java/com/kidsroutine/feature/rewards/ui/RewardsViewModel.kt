@@ -92,22 +92,33 @@ class RewardsViewModel @Inject constructor(
         }
     }
 
+    // ── Cancel / dismiss a privilege request ────────────────────────────────────
+// PENDING  → deletes the Firestore document (also removes it from parent queue)
+// APPROVED/REJECTED → removes from local state only (keeps Firestore record)
     fun cancelRequest(requestId: String) {
         viewModelScope.launch {
-            try {
-                firestore.collection("privilege_requests")
-                    .document(requestId)
-                    .delete()
-                    .await()
-                // Remove from local state immediately
-                _uiState.value = _uiState.value.copy(
-                    myRequests = _uiState.value.myRequests.filter { it.requestId != requestId }
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = e.message)
+            val req = _uiState.value.myRequests.find { it.requestId == requestId }
+                ?: return@launch
+
+            if (req.status == com.kidsroutine.core.model.PrivilegeRequestStatus.PENDING) {
+                try {
+                    firestore.collection("privilege_requests")
+                        .document(requestId)
+                        .delete()
+                        .await()
+                } catch (e: Exception) {
+                    _uiState.value = _uiState.value.copy(errorMessage = "Could not cancel request: ${e.message}")
+                    return@launch
+                }
             }
+
+            // Remove from local list regardless of status
+            _uiState.value = _uiState.value.copy(
+                myRequests = _uiState.value.myRequests.filter { it.requestId != requestId }
+            )
         }
     }
+
 
 
     fun clearMessages() {

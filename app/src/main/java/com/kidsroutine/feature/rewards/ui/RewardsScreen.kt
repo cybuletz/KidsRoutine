@@ -32,7 +32,7 @@ private val PurpleAccent  = Color(0xFF9B5DE5)
 private val TealAccent    = Color(0xFF4ECDC4)
 private val GreenDone     = Color(0xFF06D6A0)
 
-// ── Privilege data model ───────────────────────────────────────────────────
+// ── Privilege data model ────────────────────────────────────────────────────
 data class Privilege(
     val id: String,
     val emoji: String,
@@ -60,7 +60,17 @@ val defaultPrivileges = listOf(
     Privilege("book_choice",  "📚", "Choose next book",       "Pick the next family read-aloud",    40,  PrivilegeCategory.SOCIAL),
 )
 
-// ── Main screen ────────────────────────────────────────────────────────────
+// ── EMOJI options for custom privilege picker ───────────────────────────────
+private val customEmojiOptions = listOf(
+    "🎯","🎪","🎭","🎨","🎬","🎤","🎵","🎶","🎸","🎺","🎻","🥁",
+    "🏀","⚽","🏈","🎾","🏊","🚴","🧗","🛹","🎿","🏂","🥋","🎣",
+    "🍰","🍩","🍪","🍫","🧁","🍭","🥤","🧃","🍿","🍜",
+    "🌈","🦄","🐶","🐱","🦁","🐯","🦊","🐼","🐨","🐸",
+    "🚗","✈️","🚀","🛸","🎠","🎡","🎢","🏰","🏖️","🌴",
+    "💎","👑","🌟","✨","🎁","🎀","🎊","🎉","🏆","🥇"
+)
+
+// ── Main screen ─────────────────────────────────────────────────────────────
 @Composable
 fun RewardsScreen(
     currentUser: UserModel,
@@ -74,7 +84,6 @@ fun RewardsScreen(
         viewModel.loadMyRequests(currentUser.userId)
     }
 
-    // Auto-clear success toast
     LaunchedEffect(uiState.successMessage) {
         if (uiState.successMessage != null) {
             kotlinx.coroutines.delay(3000)
@@ -82,17 +91,18 @@ fun RewardsScreen(
         }
     }
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab       by remember { mutableIntStateOf(0) }
     val tabs = listOf("🛍️ Privileges", "📋 My Requests", "🏆 Achievements", "🎨 Avatar")
 
-    var pendingPrivilege by remember { mutableStateOf<Privilege?>(null) }
+    var pendingPrivilege  by remember { mutableStateOf<Privilege?>(null) }
+    var showCustomDialog  by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(BgLight)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            // ── Header ──────────────────────────────────────────────────
+            // ── Header ────────────────────────────────────────────────────
             item {
                 Box(
                     modifier = Modifier
@@ -143,7 +153,7 @@ fun RewardsScreen(
                 }
             }
 
-            // ── Tabs ────────────────────────────────────────────────────
+            // ── Tabs ──────────────────────────────────────────────────────
             item {
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
@@ -167,7 +177,7 @@ fun RewardsScreen(
                 }
             }
 
-            // ── Success / error toast ───────────────────────────────────
+            // ── Toast messages ────────────────────────────────────────────
             if (uiState.successMessage != null) {
                 item {
                     Surface(
@@ -187,7 +197,6 @@ fun RewardsScreen(
                     }
                 }
             }
-
             if (uiState.errorMessage != null) {
                 item {
                     Surface(
@@ -206,7 +215,7 @@ fun RewardsScreen(
                 }
             }
 
-            // ── Tab content ─────────────────────────────────────────────
+            // ── Tab content ───────────────────────────────────────────────
             when (selectedTab) {
                 0 -> {
                     item {
@@ -224,6 +233,46 @@ fun RewardsScreen(
                             onSpend   = { pendingPrivilege = it }
                         )
                     }
+                    // ── Custom privilege card at the bottom ───────────────
+                    item { Spacer(Modifier.height(8.dp)) }
+                    item {
+                        Card(
+                            modifier  = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 6.dp)
+                                .clickable { showCustomDialog = true },
+                            shape     = RoundedCornerShape(20.dp),
+                            colors    = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            border    = BorderStroke(1.5.dp, OrangePrimary.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier  = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(OrangePrimary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("➕", fontSize = 26.sp)
+                                }
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    Text(
+                                        "Create your own request",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize   = 15.sp,
+                                        color      = Color(0xFF2D3436)
+                                    )
+                                    Text("Have something specific in mind? Ask for it!", fontSize = 12.sp, color = Color.Gray)
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = OrangePrimary)
+                            }
+                        }
+                    }
                 }
                 1 -> {
                     if (uiState.isLoading) {
@@ -237,40 +286,226 @@ fun RewardsScreen(
                     } else {
                         items(uiState.myRequests, key = { it.requestId }) { req ->
                             MyRequestCard(
-                                req = req,
+                                req      = req,
                                 onCancel = { viewModel.cancelRequest(it.requestId) }
                             )
                         }
                     }
                 }
-                2 -> {
-                    item { AchievementsGrid(currentUser) }
-                }
-                3 -> {
-                    item { AvatarShortcut(onAvatarShopClick) }
-                }
+                2 -> { item { AchievementsGrid(currentUser) } }
+                3 -> { item { AvatarShortcut(onAvatarShopClick) } }
             }
         }
 
-        // ── Confirmation dialog ─────────────────────────────────────────
+        // ── Confirmation dialog (default privileges) ──────────────────────
         pendingPrivilege?.let { priv ->
             PrivilegePurchaseDialog(
                 privilege = priv,
                 userXp    = currentUser.xp,
                 onConfirm = {
                     viewModel.requestPrivilege(
-                        familyId   = currentUser.familyId,
-                        userId     = currentUser.userId,
-                        childName  = currentUser.displayName,
-                        privilege  = priv
+                        familyId  = currentUser.familyId,
+                        userId    = currentUser.userId,
+                        childName = currentUser.displayName,
+                        privilege = priv
                     )
                     pendingPrivilege = null
-                    selectedTab = 1   // jump to "My Requests" tab
+                    selectedTab = 1
                 },
                 onDismiss = { pendingPrivilege = null }
             )
         }
+
+        // ── Custom privilege creation dialog ──────────────────────────────
+        if (showCustomDialog) {
+            CustomPrivilegeDialog(
+                userXp    = currentUser.xp,
+                onConfirm = { customPrivilege ->
+                    viewModel.requestPrivilege(
+                        familyId  = currentUser.familyId,
+                        userId    = currentUser.userId,
+                        childName = currentUser.displayName,
+                        privilege = customPrivilege
+                    )
+                    showCustomDialog = false
+                    selectedTab = 1
+                },
+                onDismiss = { showCustomDialog = false }
+            )
+        }
     }
+}
+
+// ── Custom privilege creation dialog ────────────────────────────────────────
+@Composable
+private fun CustomPrivilegeDialog(
+    userXp: Int,
+    onConfirm: (Privilege) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var title       by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var xpCost      by remember { mutableIntStateOf(50) }
+    var selectedEmoji by remember { mutableStateOf("🎯") }
+    var showEmojiPicker by remember { mutableStateOf(false) }
+
+    val canSubmit = title.isNotBlank() && xpCost in 10..500 && userXp >= xpCost
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = Color.White,
+        shape            = RoundedCornerShape(24.dp),
+        title = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier            = Modifier.fillMaxWidth()
+            ) {
+                Text("✏️ Create Your Request", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                modifier            = Modifier.fillMaxWidth()
+            ) {
+                // Emoji picker row
+                Text("Pick an emoji:", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                if (!showEmojiPicker) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(OrangePrimary.copy(alpha = 0.08f))
+                            .clickable { showEmojiPicker = true }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(selectedEmoji, fontSize = 32.sp)
+                        Text("Tap to change", fontSize = 12.sp, color = Color.Gray)
+                        Spacer(Modifier.weight(1f))
+                        Icon(Icons.Default.Edit, contentDescription = null, tint = OrangePrimary, modifier = Modifier.size(16.dp))
+                    }
+                } else {
+                    // Grid of emoji options
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        customEmojiOptions.chunked(8).forEach { row ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                row.forEach { emoji ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (emoji == selectedEmoji) OrangePrimary.copy(alpha = 0.2f) else Color.Transparent)
+                                            .clickable {
+                                                selectedEmoji = emoji
+                                                showEmojiPicker = false
+                                            }
+                                            .padding(4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(emoji, fontSize = 20.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Title field
+                OutlinedTextField(
+                    value         = title,
+                    onValueChange = { if (it.length <= 40) title = it },
+                    label         = { Text("What do you want?") },
+                    placeholder   = { Text("e.g. Trip to the park") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
+                    shape         = RoundedCornerShape(12.dp),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        focusedLabelColor  = OrangePrimary
+                    )
+                )
+
+                // Description field
+                OutlinedTextField(
+                    value         = description,
+                    onValueChange = { if (it.length <= 100) description = it },
+                    label         = { Text("Details (optional)") },
+                    placeholder   = { Text("Tell your parent more about it") },
+                    maxLines      = 2,
+                    modifier      = Modifier.fillMaxWidth(),
+                    shape         = RoundedCornerShape(12.dp),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = OrangePrimary,
+                        focusedLabelColor  = OrangePrimary
+                    )
+                )
+
+                // XP cost slider
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("XP to spend:", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "⭐ $xpCost XP",
+                            fontWeight = FontWeight.Bold,
+                            color      = if (userXp >= xpCost) OrangePrimary else Color(0xFFF44336),
+                            fontSize   = 13.sp
+                        )
+                    }
+                    Slider(
+                        value         = xpCost.toFloat(),
+                        onValueChange = { xpCost = it.toInt() },
+                        valueRange    = 10f..minOf(500f, userXp.toFloat().coerceAtLeast(10f)),
+                        steps         = 48,  // steps of ~10 XP
+                        colors        = SliderDefaults.colors(
+                            thumbColor       = OrangePrimary,
+                            activeTrackColor = OrangePrimary
+                        )
+                    )
+                    if (userXp < xpCost) {
+                        Text("You don't have enough XP for this amount", fontSize = 11.sp, color = Color(0xFFF44336))
+                    } else {
+                        Text("After request: ${userXp - xpCost} XP remaining", fontSize = 11.sp, color = Color.Gray)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick  = {
+                    if (canSubmit) {
+                        onConfirm(
+                            Privilege(
+                                id          = "custom_${System.currentTimeMillis()}",
+                                emoji       = selectedEmoji,
+                                title       = title.trim(),
+                                description = description.trim().ifBlank { "Custom request" },
+                                xpCost      = xpCost,
+                                category    = PrivilegeCategory.CUSTOM,
+                                isCustom    = true
+                            )
+                        )
+                    }
+                },
+                enabled  = canSubmit,
+                shape    = RoundedCornerShape(12.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("✅ Send Request!", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = Color.Gray) }
+        }
+    )
 }
 
 // ── Privilege card ──────────────────────────────────────────────────────────
@@ -346,7 +581,7 @@ private fun PrivilegeCard(
                 enabled  = canAfford,
                 shape    = RoundedCornerShape(12.dp),
                 colors   = ButtonDefaults.buttonColors(
-                    containerColor        = categoryColor,
+                    containerColor         = categoryColor,
                     disabledContainerColor = Color(0xFFE0E0E0)
                 ),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
@@ -362,11 +597,11 @@ private fun PrivilegeCard(
     }
 }
 
-// ── My request card ─────────────────────────────────────────────────────────
+// ── My request card — with X dismiss/cancel button ──────────────────────────
 @Composable
 private fun MyRequestCard(
     req: com.kidsroutine.core.model.PrivilegeRequest,
-    onCancel: ((com.kidsroutine.core.model.PrivilegeRequest) -> Unit)? = null
+    onCancel: (com.kidsroutine.core.model.PrivilegeRequest) -> Unit
 ) {
     val (statusColor, statusText, statusEmoji) = when (req.status) {
         PrivilegeRequestStatus.PENDING  -> Triple(Color(0xFFFF9800), "Pending",  "⏳")
@@ -382,61 +617,70 @@ private fun MyRequestCard(
         border    = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
     ) {
         Row(
-            modifier  = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
+            modifier  = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(req.privilegeEmoji, fontSize = 32.sp)
+
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(req.privilegeTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text("⭐ ${req.xpCost} XP", fontSize = 12.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
                 }
+                // Parent note shown only on rejected requests
                 if (req.parentNote.isNotBlank() && req.status == PrivilegeRequestStatus.REJECTED) {
                     Text(
                         "Parent said: \"${req.parentNote}\"",
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        fontSize   = 11.sp,
+                        color      = Color.Gray,
+                        fontStyle  = androidx.compose.ui.text.font.FontStyle.Italic
                     )
                 }
             }
+
+            // Status chip + X button stacked vertically
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = statusColor.copy(alpha = 0.12f),
+                    shape  = RoundedCornerShape(8.dp),
+                    color  = statusColor.copy(alpha = 0.12f),
                     border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
                 ) {
                     Text(
                         "$statusEmoji $statusText",
-                        color = statusColor,
+                        color      = statusColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        fontSize   = 11.sp,
+                        modifier   = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
-                // X button for all statuses; PENDING also deletes from parent queue
+
+                // X button:
+                // - PENDING  → deletes from Firestore (removes it for parent too)
+                // - APPROVED/REJECTED → dismisses from local list only
                 IconButton(
-                    onClick = { onCancel?.invoke(req) },
+                    onClick  = { onCancel(req) },
                     modifier = Modifier
                         .size(28.dp)
                         .background(Color(0xFFF5F5F5), CircleShape)
                 ) {
                     Icon(
-                        Icons.Default.Close,
+                        imageVector        = Icons.Default.Close,
                         contentDescription = if (req.status == PrivilegeRequestStatus.PENDING) "Cancel request" else "Dismiss",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(14.dp)
+                        tint               = Color.Gray,
+                        modifier           = Modifier.size(14.dp)
                     )
                 }
             }
         }
     }
 }
-
 
 @Composable
 private fun MyRequestsEmpty() {
@@ -452,7 +696,7 @@ private fun MyRequestsEmpty() {
     }
 }
 
-// ── Confirmation dialog ─────────────────────────────────────────────────────
+// ── Default privilege purchase confirmation ──────────────────────────────────
 @Composable
 private fun PrivilegePurchaseDialog(
     privilege: Privilege,
@@ -460,6 +704,8 @@ private fun PrivilegePurchaseDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    var submitting by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor   = Color.White,
@@ -493,7 +739,7 @@ private fun PrivilegePurchaseDialog(
                     ) {
                         Text("⭐", fontSize = 18.sp)
                         Text(
-                            "${userXp} → ${userXp - privilege.xpCost} XP",
+                            "$userXp → ${userXp - privilege.xpCost} XP",
                             fontWeight = FontWeight.Bold,
                             color      = OrangePrimary
                         )
@@ -509,9 +755,15 @@ private fun PrivilegePurchaseDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
-                shape   = RoundedCornerShape(12.dp),
-                colors  = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
+                onClick  = {
+                    if (!submitting) {
+                        submitting = true
+                        onConfirm()
+                    }
+                },
+                enabled  = !submitting,
+                shape    = RoundedCornerShape(12.dp),
+                colors   = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("✅ Send Request!", fontWeight = FontWeight.Bold)

@@ -35,11 +35,24 @@ class DailyViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DailyUiState())
     val uiState: StateFlow<DailyUiState> = _uiState.asStateFlow()
 
+    // Guard: track which userId+date we have already initialized for,
+    // so navigating away and back does NOT re-trigger the whole Firestore pipeline
+    private var initializedFor: String = ""
+
     fun init(user: UserModel) {
-        Log.d("DailyViewModel", "init() called with userId=${user.userId}")
         val today = DateUtils.todayString()
+        val key   = "${user.userId}_$today"
+
+        // ── PERFORMANCE FIX: skip re-init if same user+date is already live ──
+        if (initializedFor == key) {
+            Log.d("DailyViewModel", "init() skipped — already initialized for $key")
+            return
+        }
+        initializedFor = key
+        Log.d("DailyViewModel", "init() starting for $key")
 
         viewModelScope.launch {
+            // Generate today's task instances once (idempotent — safe to call multiple times)
             generateDailyTasks(user, today)
 
             combine(
@@ -47,43 +60,59 @@ class DailyViewModel @Inject constructor(
                 userRepository.observeUser(user.userId),
                 taskRepository.observeChildAssignedTasks(user.userId, user.familyId)
             ) { dailyState, observedUser, assignedTasks ->
-                Log.d("DailyViewModel", "Got update: user.xp=${observedUser?.xp}, dailyState.completedCount=${dailyState.completedCount}, assignedTasks=${assignedTasks.size}")
+                Log.d("DailyViewModel", "Pipeline update: xp=${observedUser?.xp}, completed=${dailyState.completedCount}, assigned=${assignedTasks.size}")
 
-                // Merge assigned tasks with daily tasks
+                // Merge parent-assigned tasks into the daily list (no duplicates)
                 val mergedTasks = dailyState.tasks.toMutableList()
                 assignedTasks.forEach { assignedTask ->
                     if (mergedTasks.none { it.task.id == assignedTask.id }) {
-                        val newInstance = TaskInstance(
-                            instanceId = "${assignedTask.id}_${System.currentTimeMillis()}",
-                            templateId = assignedTask.id,
-                            task = assignedTask,
-                            resolvedValues = emptyMap(),
-                            assignedDate = today,
-                            userId = user.userId,
-                            injectedByChallengeId = null
+                        mergedTasks.add(
+                            TaskInstance(
+                                instanceId             = "${assignedTask.id}_${today}",
+                                templateId             = assignedTask.id,
+                                task                   = assignedTask,
+                                resolvedValues         = emptyMap(),
+                                assignedDate           = today,
+                                userId                 = user.userId,
+                                injectedByChallengeId  = null
+                            )
                         )
-                        mergedTasks.add(newInstance)
-                        Log.d("DailyViewModel", "Added newly assigned task: ${assignedTask.title}")
                     }
                 }
 
-                Triple(dailyState.copy(tasks = mergedTasks), observedUser ?: user, assignedTasks)
+                // ── Filter: completed tasks disappear after 1.5-second linger ──
+                val now = System.currentTimeMillis()
+                val displayTasks = mergedTasks.filter { instance ->
+                    instance.status != TaskStatus.COMPLETED ||
+                            (now - instance.completedAt) < 1_500L
+                }
+
+                Triple(dailyState.copy(tasks = displayTasks), observedUser ?: user, assignedTasks)
             }
                 .catch { e ->
-                    Log.e("DailyViewModel", "Error", e)
+                    Log.e("DailyViewModel", "Pipeline error", e)
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
                 .collect { (dailyState, observedUser, _) ->
-                    _uiState.update { it.copy(
-                        isLoading = false,
-                        dailyState = dailyState,
-                        currentUser = observedUser
-                    ) }
+                    _uiState.update {
+                        it.copy(
+                            isLoading   = false,
+                            dailyState  = dailyState,
+                            currentUser = observedUser
+                        )
+                    }
                 }
         }
 
         loadActiveStoryArc(user.familyId)
     }
+
+    // Called only by push-notification refresh — bypasses the guard key
+    fun forceRefresh(user: UserModel) {
+        initializedFor = ""   // clear the guard so init() re-runs fully
+        init(user)
+    }
+
 
     private fun loadActiveStoryArc(familyId: String) {
         if (familyId.isEmpty()) return
@@ -91,7 +120,6 @@ class DailyViewModel @Inject constructor(
             try {
                 val arc = storyArcRepository.getActiveArc(familyId)
                 _uiState.update { it.copy(activeStoryArc = arc) }
-                Log.d("DailyViewModel", "Active story arc: ${arc?.arcTitle ?: "none"}")
             } catch (e: Exception) {
                 Log.w("DailyViewModel", "Could not load story arc: ${e.message}")
             }

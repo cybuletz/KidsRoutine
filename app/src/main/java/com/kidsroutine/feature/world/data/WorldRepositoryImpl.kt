@@ -1,102 +1,94 @@
 package com.kidsroutine.feature.world.data
 
-import com.kidsroutine.core.model.WorldModel
-import com.kidsroutine.core.model.WorldNode
-import com.kidsroutine.core.model.WorldNodeStatus
-import com.kidsroutine.core.model.WorldTheme
+import com.kidsroutine.core.model.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.sin
 
 @Singleton
 class WorldRepositoryImpl @Inject constructor() : WorldRepository {
 
     override suspend fun getWorld(userXp: Int): WorldModel {
-        val nodes = listOf(
+        val allLevels = WorldLevelData.ALL_LEVELS
+
+        // Determine which nodes to show:
+        // Always show all nodes up to and including the first LOCKED node
+        // plus the next 3 locked nodes as "preview" — so the child can see what's coming
+        val nodes = allLevels.map { def ->
+            val status = when {
+                userXp >= def.requiredXp ->
+                    if (def.level == 1 || userXp >= WorldLevelData.xpForLevel(def.level))
+                        WorldNodeStatus.COMPLETED
+                    else
+                        WorldNodeStatus.UNLOCKED
+                userXp >= WorldLevelData.xpForLevel(maxOf(1, def.level - 1)) ->
+                    WorldNodeStatus.UNLOCKED
+                else ->
+                    WorldNodeStatus.LOCKED
+            }
             WorldNode(
-                nodeId = "node_1",
-                title = "Starter Island",
-                subtitle = "Begin your journey",
-                emoji = "🏝️",
-                requiredXp = 0,
-                status = statusFor(userXp, 0),
-                positionX = 0.18f,
-                positionY = 0.82f,
-                rewardXp = 50,
-                theme = WorldTheme.JUNGLE
-            ),
-            WorldNode(
-                nodeId = "node_2",
-                title = "Forest Trail",
-                subtitle = "100 XP needed",
-                emoji = "🌲",
-                requiredXp = 100,
-                status = statusFor(userXp, 100),
-                positionX = 0.42f,
-                positionY = 0.68f,
-                rewardXp = 75,
-                theme = WorldTheme.JUNGLE
-            ),
-            WorldNode(
-                nodeId = "node_3",
-                title = "River Crossing",
-                subtitle = "250 XP needed",
-                emoji = "🌊",
-                requiredXp = 250,
-                status = statusFor(userXp, 250),
-                positionX = 0.70f,
-                positionY = 0.58f,
-                rewardXp = 100,
-                theme = WorldTheme.OCEAN
-            ),
-            WorldNode(
-                nodeId = "node_4",
-                title = "Crystal Cave",
-                subtitle = "450 XP needed",
-                emoji = "💎",
-                requiredXp = 450,
-                status = statusFor(userXp, 450),
-                positionX = 0.28f,
-                positionY = 0.42f,
-                rewardXp = 125,
-                theme = WorldTheme.JUNGLE
-            ),
-            WorldNode(
-                nodeId = "node_5",
-                title = "Sky Temple",
-                subtitle = "700 XP needed",
-                emoji = "⛩️",
-                requiredXp = 700,
-                status = statusFor(userXp, 700),
-                positionX = 0.60f,
-                positionY = 0.30f,
-                rewardXp = 150,
-                theme = WorldTheme.SPACE
-            ),
-            WorldNode(
-                nodeId = "node_6",
-                title = "Champion Peak",
-                subtitle = "1000 XP needed",
-                emoji = "🏆",
-                requiredXp = 1000,
-                status = statusFor(userXp, 1000),
-                positionX = 0.38f,
-                positionY = 0.14f,
-                rewardXp = 200,
-                theme = WorldTheme.SPACE,
-                isSpecial = true
+                nodeId      = "node_${def.level}",
+                title       = def.title,
+                subtitle    = def.subtitle,
+                emoji       = def.emoji,
+                requiredXp  = def.requiredXp,
+                status      = status,
+                positionX   = positionX(def.level),
+                positionY   = positionY(def.level),
+                rewardXp    = def.rewardXp,
+                theme       = def.theme,
+                isSpecial   = def.isBoss,
+                levelNumber = def.level
             )
-        )
+        }
+
+        // Only expose the window of nodes relevant to the user:
+        // All completed + 1 unlocked + 9 upcoming locked = max 30 visible at once
+        // This keeps the map performant regardless of total level count
+        val lastCompletedIndex = nodes.indexOfLast { it.status == WorldNodeStatus.COMPLETED }
+        val startIndex = maxOf(0, lastCompletedIndex - 5)
+        val endIndex   = minOf(nodes.size, lastCompletedIndex + 25)
+        val visibleNodes = nodes.subList(startIndex, endIndex)
+
+        // Current theme = the theme of the current unlocked/active node
+        val activeNode  = nodes.firstOrNull { it.status == WorldNodeStatus.UNLOCKED }
+            ?: nodes.firstOrNull()
+        val activeTheme = activeNode?.theme ?: WorldTheme.JUNGLE
+
         return WorldModel(
-            worldId = "world_1",
-            title = "Kids Routine World",
-            theme = WorldTheme.JUNGLE,
-            nodes = nodes,
-            totalXpRequired = 1000
+            worldId          = "world_main",
+            title            = themeTitle(activeTheme),
+            theme            = activeTheme,
+            nodes            = visibleNodes,
+            totalXpRequired  = WorldLevelData.xpForLevel(500)
         )
     }
 
-    private fun statusFor(userXp: Int, required: Int) = when {
-        userXp >= required -> WorldNodeStatus.UNLOCKED
-        else               -> WorldNodeStatus.LOCKED
+    // Winding path: nodes alternate left-center-right in a S-curve pattern
+    private fun positionX(level: Int): Float {
+        val posInZone = ((level - 1) % 50)  // 0..49
+        // S-curve: use sine wave across the zone
+        val angle = posInZone.toFloat() / 49f * Math.PI.toFloat() * 4f
+        return 0.5f + sin(angle) * 0.3f
+    }
+
+    private fun positionY(level: Int): Float {
+        val posInZone = ((level - 1) % 50).toFloat()
+        // Top of screen = lowest level in zone, bottom = highest (scroll down = progress)
+        // Reserve 15% top for HUD, 10% bottom for nav
+        return 0.15f + (posInZone / 49f) * 0.75f
+    }
+
+    private fun themeTitle(theme: WorldTheme) = when (theme) {
+        WorldTheme.JUNGLE   -> "🌴 Enchanted Jungle"
+        WorldTheme.OCEAN    -> "🌊 Deep Ocean"
+        WorldTheme.SPACE    -> "🚀 Outer Space"
+        WorldTheme.VOLCANO  -> "🌋 Volcano Island"
+        WorldTheme.ARCTIC   -> "❄️ Arctic Kingdom"
+        WorldTheme.NEON_CITY-> "🌃 Neon City"
+        WorldTheme.CRYSTAL  -> "💎 Crystal Caves"
+        WorldTheme.CLOUD    -> "☁️ Sky Citadel"
+        WorldTheme.DESERT   -> "🏜️ Ancient Desert"
+        WorldTheme.COSMOS   -> "🌌 The Cosmos"
     }
 }
