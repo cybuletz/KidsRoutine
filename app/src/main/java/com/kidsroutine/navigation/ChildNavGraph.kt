@@ -37,7 +37,7 @@ object TaskPassthrough {
 fun NavGraphBuilder.childNavGraph(
     currentUser: UserModel,
     navController: NavController,
-    onSignOut: () -> Unit          // ← NEW
+    onSignOut: () -> Unit
 ) {
     navigation(
         route            = "child_graph",
@@ -57,11 +57,11 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.CHILD_PROFILE) {
             ChildProfileScreen(
-                user                  = currentUser,
-                onBackClick           = { navController.popBackStack() },
+                user                   = currentUser,
+                onBackClick            = { navController.popBackStack() },
                 onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
-                onStatsClick          = { navController.navigate(Routes.STATS) },
-                onSettingsClick       = { navController.popBackStack() }
+                onStatsClick           = { navController.navigate(Routes.STATS) },
+                onSettingsClick        = { navController.popBackStack() }
             )
         }
 
@@ -105,10 +105,10 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.CHALLENGES) {
             ActiveChallengesScreen(
-                currentUser          = currentUser,
-                onBackClick          = { navController.popBackStack() },
+                currentUser           = currentUser,
+                onBackClick           = { navController.popBackStack() },
                 onStartChallengeClick = { navController.navigate(Routes.CHALLENGES) },
-                onChallengeClick     = { challenge ->
+                onChallengeClick      = { challenge ->
                     navController.navigate(Routes.challengeDetail(challenge.challengeId))
                 }
             )
@@ -149,7 +149,11 @@ fun NavGraphBuilder.childNavGraph(
         }
 
         composable(Routes.WORLD) {
-            WorldScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
+            WorldScreen(
+                currentUser    = currentUser,
+                onBackClick    = { navController.popBackStack() },
+                onLootBoxClick = { navController.navigate(Routes.LOOT_BOX) }   // ← wired
+            )
         }
 
         composable(Routes.CHILD_TASK_PROPOSAL) {
@@ -168,12 +172,12 @@ fun NavGraphBuilder.childNavGraph(
             val sampleBox = LootBox(
                 earnedFor = "All tasks done today!",
                 reward = LootBoxReward(
-                    type = LootBoxRewardType.XP_BOOST,
-                    rarity = LootBoxRarity.RARE,
-                    title = "XP Surge",
+                    type        = LootBoxRewardType.XP_BOOST,
+                    rarity      = LootBoxRarity.RARE,
+                    title       = "XP Surge",
                     description = "You earned a rare XP boost for finishing every task!",
-                    emoji = "⚡",
-                    xpValue = 75
+                    emoji       = "⚡",
+                    xpValue     = 75
                 )
             )
             LootBoxScreen(

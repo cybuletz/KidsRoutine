@@ -1,9 +1,12 @@
 package com.kidsroutine.feature.daily.ui
 
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,13 +21,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,7 +45,6 @@ import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
 import com.kidsroutine.feature.lootbox.ui.LootBoxScreen
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
@@ -123,7 +128,8 @@ fun ChildMainScreen(
                     onStatsClick           = { innerNavController.navigate("leaderboard") },
                     onProfileClick         = { parentNavController.navigate(Routes.CHILD_PROFILE) },
                     onNotificationsClick   = { innerNavController.navigate("notifications") },
-                    onLootBoxClick         = { innerNavController.navigate("lootbox") }   // ← NEW
+                    onLootBoxClick         = { innerNavController.navigate("lootbox") },
+                    onWorldClick           = { innerNavController.navigate("world") }   // ← NEW
                 )
             }
 
@@ -156,8 +162,9 @@ fun ChildMainScreen(
             composable("world") {
                 currentRoute = "world"
                 WorldScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNavController.navigate("daily") }
+                    currentUser    = currentUser,
+                    onBackClick    = { innerNavController.navigate("daily") },
+                    onLootBoxClick = { innerNavController.navigate("lootbox") }   // ← NEW
                 )
             }
 
@@ -166,7 +173,7 @@ fun ChildMainScreen(
                 RewardsScreen(
                     currentUser       = currentUser,
                     onBackClick       = { innerNavController.navigate("daily") },
-                    onAvatarShopClick = { /* TODO: navigate to avatar customization */ }
+                    onAvatarShopClick = { }
                 )
             }
 
@@ -188,13 +195,8 @@ fun ChildMainScreen(
                 )
             }
 
-            // ── Loot Box screen ────────────────────────────────────────────
             composable("lootbox") {
                 currentRoute = "lootbox"
-                // In a real build you'd pass the actual pending LootBox from
-                // a DailyViewModel / RewardsViewModel. This sample box ensures
-                // the screen renders immediately — swap it out when the real
-                // data layer is wired.
                 val sampleBox = LootBox(
                     earnedFor = "All tasks done today!",
                     reward = LootBoxReward(
@@ -209,7 +211,7 @@ fun ChildMainScreen(
                 LootBoxScreen(
                     lootBox = sampleBox,
                     onBack  = { innerNavController.popBackStack() },
-                    onClaim = { /* TODO: viewModel.claimLootBox(it) */ }
+                    onClaim = { }
                 )
             }
         }
@@ -270,7 +272,7 @@ fun SeasonalBanner(
     }
 }
 
-// ── Nav bar ───────────────────────────────────────────────────────────────────
+// ── Nav bar — WITH animated pill on active tab ────────────────────────────────
 @Composable
 private fun PersistentNavBar(
     currentRoute: String,
@@ -288,6 +290,16 @@ private fun PersistentNavBar(
     pendingRewardCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
+    // Define the 5 nav items in order
+    data class NavItem(val route: String, val icon: ImageVector, val label: String, val onClick: () -> Unit)
+    val items = listOf(
+        NavItem("daily",       Icons.Default.Home,         "Daily",       onDailyClick),
+        NavItem("challenges",  Icons.Default.EmojiEvents,  "Challenges",  onChallengesClick),
+        NavItem("leaderboard", Icons.Default.BarChart,     "Leaderboard", onLeaderboardClick),
+        NavItem("world",       Icons.Default.Language,     "World",       onWorldClick),
+        NavItem("rewards",     Icons.Default.CardGiftcard, "Rewards",     onRewardsClick)
+    )
+
     Box(modifier = modifier.fillMaxSize()) {
         Surface(
             modifier        = Modifier
@@ -300,75 +312,85 @@ private fun PersistentNavBar(
                 Row(
                     modifier              = Modifier
                         .fillMaxWidth()
-                        .height(72.dp)
-                        .padding(horizontal = 0.dp, vertical = 0.dp),
+                        .height(72.dp),
                     horizontalArrangement = Arrangement.spacedBy(0.dp),
                     verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    NavBarItemButton(
-                        icon       = Icons.Default.Home,
-                        label      = "Daily",
-                        isSelected = currentRoute == "daily",
-                        onClick    = onDailyClick,
-                        modifier   = Modifier.weight(1f)
-                    )
-                    NavBarItemButton(
-                        icon       = Icons.Default.EmojiEvents,
-                        label      = "Challenges",
-                        isSelected = currentRoute == "challenges",
-                        onClick    = onChallengesClick,
-                        modifier   = Modifier.weight(1f)
-                    )
-                    NavBarItemButton(
-                        icon       = Icons.Default.BarChart,
-                        label      = "Leaderboard",
-                        isSelected = currentRoute == "leaderboard",
-                        onClick    = onLeaderboardClick,
-                        modifier   = Modifier.weight(1f)
-                    )
-                    NavBarItemButton(
-                        icon       = Icons.Default.Language,
-                        label      = "World",
-                        isSelected = currentRoute == "world",
-                        onClick    = onWorldClick,
-                        modifier   = Modifier.weight(1f)
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                    ) {
-                        NavBarItemButton(
-                            icon       = Icons.Default.CardGiftcard,
-                            label      = "Rewards",
-                            isSelected = currentRoute == "rewards",
-                            onClick    = onRewardsClick,
-                            modifier   = Modifier.fillMaxHeight()
+                    items.forEach { item ->
+                        val isSelected = currentRoute == item.route
+                        // Animate pill alpha — fades in when selected
+                        val pillAlpha by animateFloatAsState(
+                            targetValue   = if (isSelected) 1f else 0f,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                            label         = "pill_${item.route}"
                         )
-                        if (pendingRewardCount > 0) {
-                            Surface(
-                                shape    = CircleShape,
-                                color    = OrangePrimary,
+                        // Animate icon scale — slight bounce when selected
+                        val iconScale by animateFloatAsState(
+                            targetValue   = if (isSelected) 1.15f else 1f,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                            label         = "scale_${item.route}"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable(onClick = item.onClick),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Animated pill background behind active item
+                            Box(
                                 modifier = Modifier
-                                    .size(22.dp)
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = (-4).dp, y = 4.dp)
-                                    .zIndex(5f)
+                                    .size(width = 56.dp, height = 36.dp)
+                                    .graphicsLayer { alpha = pillAlpha }
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(OrangePrimary.copy(alpha = 0.12f))
+                            )
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                    Text(
-                                        "$pendingRewardCount",
-                                        color      = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize   = 10.sp
+                                // Badge for rewards
+                                Box {
+                                    Icon(
+                                        item.icon,
+                                        contentDescription = item.label,
+                                        tint     = if (isSelected) OrangePrimary else Color.Gray,
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .graphicsLayer { scaleX = iconScale; scaleY = iconScale }
                                     )
+                                    if (item.route == "rewards" && pendingRewardCount > 0) {
+                                        Surface(
+                                            shape    = CircleShape,
+                                            color    = OrangePrimary,
+                                            modifier = Modifier
+                                                .size(16.dp)
+                                                .align(Alignment.TopEnd)
+                                                .zIndex(5f)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                                Text("$pendingRewardCount", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                            }
+                                        }
+                                    }
                                 }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text       = item.label,
+                                    fontSize   = 10.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color      = if (isSelected) OrangePrimary else Color.Gray,
+                                    maxLines   = 1,
+                                    overflow   = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
                 }
 
+                // Absorbs the system navigation bar height
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -414,47 +436,8 @@ private fun PersistentNavBar(
                 contentPadding = PaddingValues(0.dp),
                 elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
-                Icon(
-                    Icons.Default.Message,
-                    contentDescription = "Chat",
-                    tint               = Color.White,
-                    modifier           = Modifier.size(24.dp)
-                )
+                Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
             }
         }
-    }
-}
-
-@Composable
-private fun NavBarItemButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier            = modifier
-            .fillMaxHeight()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 0.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint               = if (isSelected) OrangePrimary else Color.Gray,
-            modifier           = Modifier.size(26.dp)
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text       = label,
-            fontSize   = 10.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color      = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis
-        )
     }
 }
