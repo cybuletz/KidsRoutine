@@ -76,20 +76,38 @@ class TaskRepository @Inject constructor(
 
     suspend fun deleteTask(familyId: String, taskId: String) {
         try {
-            Log.d("TaskRepository", "Deleting task: $taskId")
-            firestore
+            Log.d("TaskRepository", "Deleting task: $taskId and all its assignments")
+            val batch = firestore.batch()
+
+            // 1. Delete the task document itself
+            val taskRef = firestore
                 .collection("families")
                 .document(familyId)
                 .collection("tasks")
                 .document(taskId)
-                .delete()
+            batch.delete(taskRef)
+
+            // 2. Find and delete all taskAssignments for this task
+            val assignments = firestore
+                .collection("taskAssignments")
+                .whereEqualTo("taskId", taskId)
+                .whereEqualTo("familyId", familyId)
+                .get()
                 .await()
-            Log.d("TaskRepository", "Task deleted successfully")
+
+            for (doc in assignments.documents) {
+                batch.delete(doc.reference)
+            }
+
+            // 3. Commit everything atomically
+            batch.commit().await()
+            Log.d("TaskRepository", "Task and ${assignments.size()} assignments deleted successfully")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error deleting task", e)
             throw e
         }
     }
+
 
     suspend fun getTaskById(familyId: String, taskId: String): TaskModel? {
         return try {

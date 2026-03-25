@@ -73,4 +73,13 @@ object Routes {
     fun parentChallengeDetail(challengeId: String) = "parent_challenge_detail/$challengeId"
 
     fun selectChildren(taskId: String) = "select_children/$taskId"
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PARENT NAV BAR ROUTES (inner navigation)
+    // ═══════════════════════════════════════════════════════════════════════
+    const val PARENT_HOME      = "parent_home"
+    const val PARENT_TASKS_TAB = "parent_tasks_tab"
+    const val PARENT_FAMILY_TAB = "parent_family_tab"
+    const val PARENT_DISCOVER_TAB = "parent_discover_tab"
+    const val PARENT_SETTINGS_TAB = "parent_settings_tab"
 }

@@ -22,29 +22,26 @@ import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.family.ui.InviteChildrenScreen
 import com.kidsroutine.feature.family.ui.ParentDashboardScreen
+import com.kidsroutine.feature.generation.ui.DailyPlanScreen
+import com.kidsroutine.feature.generation.ui.GenerationScreen
+import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
+import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.profile.ui.ParentProfileScreen
-import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
-import com.kidsroutine.feature.tasks.ui.TaskListScreen
-import com.kidsroutine.feature.tasks.ui.SelectChildrenScreen
-import com.kidsroutine.core.model.TaskModel
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.kidsroutine.feature.generation.ui.DailyPlanScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
-import com.kidsroutine.feature.generation.ui.GenerationScreen
-import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
+import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
+import com.kidsroutine.feature.tasks.ui.SelectChildrenScreen
+import com.kidsroutine.feature.tasks.ui.TaskListScreen
 import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
 import com.kidsroutine.feature.billing.ContentPacksScreen
+import com.kidsroutine.feature.billing.ContentPacksViewModel
 import com.kidsroutine.feature.billing.UpgradeScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.kidsroutine.core.model.EntitlementsRepository
 import androidx.compose.runtime.collectAsState
-import com.kidsroutine.feature.billing.ContentPacksViewModel
-import com.kidsroutine.feature.notifications.ui.NotificationViewModel
-import com.kidsroutine.feature.notifications.ui.NotificationsScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.kidsroutine.core.model.TaskModel
 
 
 fun NavGraphBuilder.parentNavGraph(
@@ -58,34 +55,20 @@ fun NavGraphBuilder.parentNavGraph(
     ) {
         // Parent dashboard (home)
         composable(Routes.PARENT_DASHBOARD) {
-
-            val notifViewModel: NotificationViewModel = hiltViewModel()
-            val notifState by notifViewModel.uiState.collectAsState()
-
-            LaunchedEffect(currentUser.userId) {
-                notifViewModel.loadNotifications(currentUser.userId)
-            }
-
             ParentDashboardScreen(
-                currentUser = currentUser,
-                onInviteClick = { navController.navigate(Routes.INVITE_CHILDREN) },
-                onTasksClick = { navController.navigate(Routes.TASK_LIST) },
-                onPendingClick = { navController.navigate(Routes.PENDING_TASKS) },
-                onChallengesClick = { navController.navigate(Routes.PARENT_CHALLENGES) },
-                onMarketplaceClick = { navController.navigate(Routes.MARKETPLACE) },
-                onPublishClick = { navController.navigate(Routes.PUBLISH) },
-                onModerationClick = { navController.navigate(Routes.MODERATION) },
-                onLeaderboardClick = { navController.navigate(Routes.LEADERBOARD) },
+                currentUser           = currentUser,
+                familyMembers         = familyMembers,
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
-                onProfileClick = { navController.navigate(Routes.PARENT_PROFILE) },
-                onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
-                onGenerationClick = { navController.navigate(Routes.GENERATION) },
-                onWeeklyPlanClick = { navController.navigate(Routes.WEEKLY_PLAN) },
-                onUpgradeClick      = { navController.navigate(Routes.UPGRADE) },
-                onContentPacksClick = { navController.navigate(Routes.CONTENT_PACKS) },
-                onNotificationsClick    = { navController.navigate(Routes.NOTIFICATIONS) },
-                unreadNotificationCount = notifState.unreadCount,
-                onSettingsClick = { /* TODO */ }
+                onUpgradeClick        = { navController.navigate(Routes.UPGRADE) },
+                onContentPacksClick   = { navController.navigate(Routes.CONTENT_PACKS) },
+                onProfileClick        = { navController.navigate(Routes.PARENT_PROFILE) },
+                onSignOutClick        = {
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    // Pop entire back stack back to root — MainActivity will detect signout via AuthState
+                    navController.navigate("parent_graph") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 

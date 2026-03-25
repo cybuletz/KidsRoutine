@@ -14,12 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-data class ParentDashboardUiState(
-    val isLoading: Boolean = false,
-    val family: FamilyModel? = null,
-    val error: String? = null,
-    val inviteCode: String = ""
-)
 
 @HiltViewModel
 class ParentDashboardViewModel @Inject constructor(

@@ -1,6 +1,7 @@
 package com.kidsroutine.feature.tasks.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +11,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -209,97 +212,137 @@ private fun TaskCard(
     task: TaskModel,
     onDeleteClick: () -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier  = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // ── Main row (always visible) ──────────────────────────────────
             Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
             ) {
-                Text(
-                    text = when(task.category) {
-                        com.kidsroutine.core.model.TaskCategory.MORNING_ROUTINE -> "🌅"
-                        com.kidsroutine.core.model.TaskCategory.LEARNING -> "📚"
-                        com.kidsroutine.core.model.TaskCategory.CHORES -> "🧹"
-                        com.kidsroutine.core.model.TaskCategory.HEALTH -> "🏃"
-                        com.kidsroutine.core.model.TaskCategory.CREATIVITY -> "🎨"
-                        com.kidsroutine.core.model.TaskCategory.SOCIAL -> "👥"
-                        com.kidsroutine.core.model.TaskCategory.FAMILY -> "👨‍👩‍👧"
-                        com.kidsroutine.core.model.TaskCategory.OUTDOOR -> "🌳"
-                        com.kidsroutine.core.model.TaskCategory.SLEEP -> "😴"
-                        com.kidsroutine.core.model.TaskCategory.SCREEN_TIME -> "📱"
-                    },
-                    fontSize = 32.sp
-                )
-
-                Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier              = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2D3436)
+                        text = when (task.category) {
+                            com.kidsroutine.core.model.TaskCategory.MORNING_ROUTINE -> "🌅"
+                            com.kidsroutine.core.model.TaskCategory.LEARNING        -> "📚"
+                            com.kidsroutine.core.model.TaskCategory.CHORES          -> "🧹"
+                            com.kidsroutine.core.model.TaskCategory.HEALTH          -> "🏃"
+                            com.kidsroutine.core.model.TaskCategory.CREATIVITY      -> "🎨"
+                            com.kidsroutine.core.model.TaskCategory.SOCIAL          -> "👥"
+                            com.kidsroutine.core.model.TaskCategory.FAMILY          -> "👨‍👩‍👧"
+                            com.kidsroutine.core.model.TaskCategory.OUTDOOR         -> "🌳"
+                            com.kidsroutine.core.model.TaskCategory.SLEEP           -> "😴"
+                            com.kidsroutine.core.model.TaskCategory.SCREEN_TIME     -> "📱"
+                        },
+                        fontSize = 32.sp
                     )
-
-                    if (task.description.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = task.description,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray,
-                            maxLines = 1
+                            text       = task.title,
+                            style      = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color(0xFF2D3436)
                         )
+                        // Show truncated description when collapsed
+                        if (task.description.isNotEmpty() && !expanded) {
+                            Text(
+                                text     = task.description,
+                                style    = MaterialTheme.typography.labelSmall,
+                                color    = Color.Gray,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                        Row(
+                            modifier              = Modifier.padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE3F2FD)) {
+                                Text(
+                                    "⭐ ${task.reward.xp}",
+                                    style    = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFFF3E0)) {
+                                Text(
+                                    "⏱ ${task.estimatedDurationSec / 60}m",
+                                    style    = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
-
-                    Row(
-                        modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFE3F2FD)
-                        ) {
-                            Text(
-                                text = "⭐ ${task.reward.xp}",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFFF3E0)
-                        ) {
-                            Text(
-                                text = "⏱ ${task.estimatedDurationSec / 60}m",
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
+                }
+                // Expand chevron + delete
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector        = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint               = Color.LightGray,
+                        modifier           = Modifier.size(20.dp)
+                    )
+                    IconButton(onClick = onDeleteClick, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint               = Color(0xFFF44336),
+                            modifier           = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
 
-            IconButton(
-                onClick = onDeleteClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = Color(0xFFF44336),
-                    modifier = Modifier.size(20.dp)
-                )
+            // ── Expanded description panel ─────────────────────────────────
+            if (expanded && task.description.isNotEmpty()) {
+                HorizontalDivider(color = Color(0xFFF0F0F0))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFAFAFA))
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    Text(
+                        "Description",
+                        fontSize   = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color      = Color.Gray,
+                        letterSpacing = 0.6.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text  = task.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF2D3436),
+                        lineHeight = 22.sp
+                    )
+                }
+            } else if (expanded && task.description.isEmpty()) {
+                HorizontalDivider(color = Color(0xFFF0F0F0))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFAFAFA))
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No description provided.", fontSize = 13.sp, color = Color.Gray)
+                }
             }
         }
     }
