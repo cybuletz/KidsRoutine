@@ -40,12 +40,19 @@ sealed class ExecutionEvent {
 @HiltViewModel
 class ExecutionViewModel @Inject constructor(
     private val completeTaskUseCase: CompleteTaskUseCase,
-    private val achievementRepository: AchievementRepository,  // ← ADD THIS
+    private val achievementRepository: AchievementRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExecutionUiState())
     val uiState: StateFlow<ExecutionUiState> = _uiState.asStateFlow()
+
+    // Holds the current child's UserModel — set by the screen before task execution
+    private var currentUser: UserModel? = null
+
+    fun setCurrentUser(user: UserModel) {
+        currentUser = user
+    }
 
     fun loadTask(task: TaskModel) {
         val firstBlock = task.interactionBlocks.firstOrNull()
@@ -72,29 +79,31 @@ class ExecutionViewModel @Inject constructor(
 
     private fun submitTask() {
         val state = _uiState.value
+        val user  = currentUser
         _uiState.update { it.copy(isCompleting = true) }
+
         viewModelScope.launch {
-            // Get the real userId from somewhere - you need to pass it to ViewModel
-            // For now, get it from current Firebase user
-            val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "demo_user"
+            val userId = user?.userId
+                ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                ?: "demo_user"
 
             val result = completeTaskUseCase(
-                task     = state.task,
-                userId   = userId,  // ← Use real userId, not "demo_user"
-                photoUrl = state.photoUrl
+                task           = state.task,
+                userId         = userId,
+                photoUrl       = state.photoUrl,
+                currentStreak  = user?.streak ?: 0,
+                lastActiveDate = user?.lastActiveDate ?: "",
+                childName      = user?.displayName?.split(" ")?.first() ?: "",
+                childAge       = runCatching { user?.age ?: 8 }.getOrDefault(8),
+                familyId       = user?.familyId ?: state.task.familyId
             )
 
-            // ← NEW: Check for achievements
             if (result is CompletionResult.Success) {
                 Log.d("ExecutionVM", "Task completed, checking for new badges...")
                 try {
                     val newBadges = achievementRepository.checkAndUnlockAchievements(userId)
                     Log.d("ExecutionVM", "New badges: ${newBadges.size}")
-                    _uiState.update {
-                        it.copy(
-                            newBadgesUnlocked = newBadges
-                        )
-                    }
+                    _uiState.update { it.copy(newBadgesUnlocked = newBadges) }
                 } catch (e: Exception) {
                     Log.e("ExecutionVM", "Error checking badges", e)
                 }
@@ -102,9 +111,11 @@ class ExecutionViewModel @Inject constructor(
 
             _uiState.update {
                 it.copy(
-                    isCompleting   = false,
-                    result         = result,
-                    showSuccessAnim = result is CompletionResult.Success
+                    isCompleting       = false,
+                    result             = result,
+                    showSuccessAnim    = result is CompletionResult.Success,
+                    celebrationMessage = if (result is CompletionResult.Success)
+                        result.celebrationMessage else ""
                 )
             }
         }

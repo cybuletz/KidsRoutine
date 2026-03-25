@@ -93,8 +93,9 @@ fun NavGraphBuilder.childNavGraph(
             val task = TaskPassthrough.pendingTask
             if (task != null) {
                 TaskExecutionScreen(
-                    task      = task,
-                    onBack    = { navController.popBackStack() },
+                    task        = task,
+                    currentUser = currentUser,      // ← ADDED
+                    onBack      = { navController.popBackStack() },
                     onCompleted = { _ ->
                         TaskPassthrough.pendingTask = null
                         navController.popBackStack()
@@ -152,7 +153,7 @@ fun NavGraphBuilder.childNavGraph(
             WorldScreen(
                 currentUser    = currentUser,
                 onBackClick    = { navController.popBackStack() },
-                onLootBoxClick = { navController.navigate(Routes.LOOT_BOX) }   // ← wired
+                onLootBoxClick = { navController.navigate(Routes.LOOT_BOX) }
             )
         }
 
