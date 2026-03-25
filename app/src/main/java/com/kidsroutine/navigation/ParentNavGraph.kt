@@ -83,7 +83,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onBackClick = { navController.popBackStack() },
                 onAddChildClick = { navController.navigate(Routes.INVITE_CHILDREN) },
                 onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
-                onSettingsClick = { /* TODO: Navigate to settings */ },
+                onSettingsClick = { navController.popBackStack() },
                 onChildClick = { child ->
                     navController.navigate(Routes.CHILD_PROFILE)
                 },
@@ -102,8 +102,8 @@ fun NavGraphBuilder.parentNavGraph(
                     onBackClick = { navController.popBackStack() },
                     onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
                     onStatsClick = { navController.navigate(Routes.PARENT_STATS) },
-                    onSettingsClick = { /* TODO: Navigate to child settings */ }
-                )
+                    onSettingsClick = { navController.popBackStack() },
+                    )
             }
         }
 
