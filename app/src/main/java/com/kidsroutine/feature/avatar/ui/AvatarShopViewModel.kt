@@ -73,6 +73,7 @@ class AvatarShopViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 avatarRepository.unlockAvatarItem(userId, item.itemId, currentCustomization)
+                avatarRepository.deductUserXp(userId, item.xpCost)
 
                 currentCustomization = currentCustomization.copy(
                     unlockedItemIds = currentCustomization.unlockedItemIds + item.itemId
@@ -86,13 +87,13 @@ class AvatarShopViewModel @Inject constructor(
                         error           = null
                     )
                 }
-                Log.d("AvatarShopVM", "Item purchased: ${item.name}")
             } catch (e: Exception) {
                 Log.e("AvatarShopVM", "Purchase failed", e)
                 _uiState.update { it.copy(error = "Purchase failed: ${e.message}") }
             }
         }
     }
+
 
     fun clearMessages() {
         _uiState.update { it.copy(purchaseSuccess = null, error = null) }

@@ -248,46 +248,98 @@ private fun AvatarPreview(
     customization: com.kidsroutine.core.model.AvatarCustomization,
     modifier: Modifier = Modifier
 ) {
-    val bodyItem    = customization.body.selectedItemId
-    val eyesItem    = customization.eyes.selectedItemId
-    val mouthItem   = customization.mouth.selectedItemId
-    val hairItem    = customization.hairstyle.selectedItemId
-    val accessory   = customization.accessories.selectedItemId
-    val clothing    = customization.clothing.selectedItemId
-    val background  = customization.background.selectedItemId
+    val bgId       = customization.background.selectedItemId
+    val hairId     = customization.hairstyle.selectedItemId
+    val eyesId     = customization.eyes.selectedItemId
+    val mouthId    = customization.mouth.selectedItemId
+    val clothingId = customization.clothing.selectedItemId
+    val accessId   = customization.accessories.selectedItemId
+    val bodyColor  = customization.body.selectedColor
 
-    // Map item IDs to emojis
-    fun itemEmoji(itemId: String): String = when {
-        itemId.contains("galaxy",    ignoreCase = true) -> "🌌"
-        itemId.contains("forest",    ignoreCase = true) -> "🌲"
-        itemId.contains("beach",     ignoreCase = true) -> "🏖️"
-        itemId.contains("city",      ignoreCase = true) -> "🏙️"
-        itemId.contains("sunset",    ignoreCase = true) -> "🌅"
-        itemId.contains("crown",     ignoreCase = true) -> "👑"
-        itemId.contains("glasses",   ignoreCase = true) -> "🕶️"
-        itemId.contains("hat",       ignoreCase = true) -> "🎩"
-        itemId.contains("cape",      ignoreCase = true) -> "🦸"
-        itemId.contains("wings",     ignoreCase = true) -> "🪽"
-        itemId.contains("sword",     ignoreCase = true) -> "⚔️"
-        itemId.contains("shield",    ignoreCase = true) -> "🛡️"
-        itemId.contains("robot",     ignoreCase = true) -> "🤖"
-        itemId.contains("ninja",     ignoreCase = true) -> "🥷"
-        itemId.contains("wizard",    ignoreCase = true) -> "🧙"
-        itemId.contains("dragon",    ignoreCase = true) -> "🐉"
-        itemId.contains("hoodie",    ignoreCase = true) -> "🧥"
-        itemId.contains("suit",      ignoreCase = true) -> "👔"
-        itemId.contains("tshirt",    ignoreCase = true) -> "👕"
-        itemId.contains("dress",     ignoreCase = true) -> "👗"
-        itemId.contains("happy",     ignoreCase = true) -> "😄"
-        itemId.contains("cool",      ignoreCase = true) -> "😎"
-        itemId.contains("sleepy",    ignoreCase = true) -> "😴"
-        itemId.contains("angry",     ignoreCase = true) -> "😠"
-        itemId.contains("blue",      ignoreCase = true) -> "🔵"
-        itemId.contains("red",       ignoreCase = true) -> "🔴"
-        itemId.contains("green",     ignoreCase = true) -> "🟢"
-        itemId.contains("golden",    ignoreCase = true) -> "🟡"
+    // Background gradient based on selected bg item
+    val bgColors = when {
+        bgId.contains("galaxy",  true) -> listOf(ComposeColor(0xFF0D0D2B), ComposeColor(0xFF1A0533))
+        bgId.contains("forest",  true) -> listOf(ComposeColor(0xFF1B4332), ComposeColor(0xFF52B788))
+        bgId.contains("beach",   true) -> listOf(ComposeColor(0xFF0077B6), ComposeColor(0xFFADE8F4))
+        bgId.contains("city",    true) -> listOf(ComposeColor(0xFF2D3436), ComposeColor(0xFF636E72))
+        bgId.contains("sunset",  true) -> listOf(ComposeColor(0xFFFF6B35), ComposeColor(0xFFFFD93D))
+        else                           -> listOf(ComposeColor(0xFF1A1A2E), ComposeColor(0xFF0F3460))
+    }
+
+    // Background emoji overlay
+    val bgEmoji = when {
+        bgId.contains("galaxy",  true) -> "🌌"
+        bgId.contains("forest",  true) -> "🌲🌲"
+        bgId.contains("beach",   true) -> "🌊☀️"
+        bgId.contains("city",    true) -> "🏙️"
+        bgId.contains("sunset",  true) -> "🌅"
         else -> ""
     }
+
+    fun accessoryEmoji(id: String) = when {
+        id.contains("crown",   true) -> "👑"
+        id.contains("glasses", true) -> "🕶️"
+        id.contains("hat",     true) -> "🎩"
+        id.contains("cape",    true) -> "🦸"
+        id.contains("wings",   true) -> "🪽"
+        id.contains("sword",   true) -> "⚔️"
+        id.contains("shield",  true) -> "🛡️"
+        else -> ""
+    }
+
+    fun hairEmoji(id: String) = when {
+        id.contains("long",   true) -> "💇"
+        id.contains("curly",  true) -> "🦱"
+        id.contains("spiky",  true) -> "🦔"
+        id.contains("bun",    true) -> "👩"
+        id.contains("short",  true) -> "💆"
+        id.contains("afro",   true) -> "🧑"
+        else -> if (id.isNotEmpty()) "🎭" else ""
+    }
+
+    fun eyesEmoji(id: String) = when {
+        id.contains("happy",   true) -> "😊"
+        id.contains("cool",    true) -> "😎"
+        id.contains("sleepy",  true) -> "😴"
+        id.contains("angry",   true) -> "😠"
+        id.contains("wink",    true) -> "😉"
+        id.contains("star",    true) -> "🤩"
+        else -> if (id.isNotEmpty()) "👀" else ""
+    }
+
+    fun mouthEmoji(id: String) = when {
+        id.contains("smile",  true) -> "😄"
+        id.contains("laugh",  true) -> "😂"
+        id.contains("sad",    true) -> "😢"
+        id.contains("cool",   true) -> "😏"
+        id.contains("tongue", true) -> "😛"
+        else -> if (id.isNotEmpty()) "😶" else ""
+    }
+
+    fun clothingEmoji(id: String) = when {
+        id.contains("hoodie", true) -> "🧥"
+        id.contains("suit",   true) -> "👔"
+        id.contains("tshirt", true) -> "👕"
+        id.contains("dress",  true) -> "👗"
+        id.contains("armor",  true) -> "🛡️"
+        id.contains("robe",   true) -> "🥋"
+        else -> if (id.isNotEmpty()) "👕" else ""
+    }
+
+    val faceColor: ComposeColor = try {
+        val parsed = android.graphics.Color.parseColor(
+            if (bodyColor.startsWith("#")) bodyColor else "#FF6B35"
+        )
+        ComposeColor(parsed.toLong() or 0xFF000000L)
+    } catch (_: Throwable) { ComposeColor(0xFFFF6B35) }
+
+    // Top-hat accessories (worn ON HEAD, above hair)
+    val isHeadwear = accessId.contains("crown", true) ||
+            accessId.contains("hat", true)
+    // Eye-level accessories (worn on face)
+    val isFaceWear = accessId.contains("glasses", true)
+    // Body accessories
+    val isBodyWear = !isHeadwear && !isFaceWear && accessId.isNotEmpty()
 
     Card(
         modifier  = modifier,
@@ -297,107 +349,93 @@ private fun AvatarPreview(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            ComposeColor(0xFF1A1A2E),
-                            ComposeColor(0xFF16213E),
-                            ComposeColor(0xFF0F3460)
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
+                .background(Brush.verticalGradient(bgColors))
         ) {
-            // Glow ring behind avatar
-            Surface(
-                modifier = Modifier.size(160.dp),
-                shape    = CircleShape,
-                color    = GradientStart.copy(alpha = 0.15f)
-            ) {}
+            // ── Background scene text ──────────────────────────────────────
+            if (bgEmoji.isNotEmpty()) {
+                Text(
+                    text     = bgEmoji,
+                    fontSize = 28.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                )
+            }
 
+            // ── Main avatar column ─────────────────────────────────────────
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier            = Modifier.padding(16.dp)
+                modifier            = Modifier.fillMaxSize()
             ) {
-                // Background badge (top)
-                val bgEmoji = itemEmoji(background)
-                if (bgEmoji.isNotEmpty()) {
-                    Text(bgEmoji, fontSize = 18.sp, modifier = Modifier.padding(bottom = 4.dp))
+
+                // HEAD LAYER 1: Crown / hat (above hair)
+                if (isHeadwear) {
+                    Text(accessoryEmoji(accessId), fontSize = 32.sp)
                 }
 
-                // Hairstyle above head
-                val hairEmoji = itemEmoji(hairItem)
-                if (hairEmoji.isNotEmpty()) {
-                    Text(hairEmoji, fontSize = 28.sp)
+                // HEAD LAYER 2: Hair
+                val hair = hairEmoji(hairId)
+                if (hair.isNotEmpty()) {
+                    Text(hair, fontSize = 26.sp)
                 }
 
-                // Main avatar face (body color drives the face)
-                val bodyColorHex = customization.body.selectedColor
-                val faceColor = if (bodyColorHex.startsWith("#")) {
-                    try {
-                        ComposeColor(android.graphics.Color.parseColor(bodyColorHex))
-                    } catch (_: Exception) {
-                        ComposeColor(0xFFFF6B35)
-                    }
-                } else {
-                    ComposeColor(0xFFFF6B35)
-                }
-
+                // HEAD LAYER 3: Face circle with eyes overlay
                 Box(
                     modifier         = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(faceColor.copy(alpha = 0.3f))
+                        .background(faceColor.copy(alpha = 0.25f))
                         .border(3.dp, faceColor, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("👤", fontSize = 44.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        // Eyes (with glasses layered on top)
+                        Box(contentAlignment = Alignment.Center) {
+                            val eyes = eyesEmoji(eyesId)
+                            if (eyes.isNotEmpty()) Text(eyes, fontSize = 20.sp)
+                            if (isFaceWear) Text(accessoryEmoji(accessId), fontSize = 20.sp)
+                        }
+                        // Mouth
+                        val mouth = mouthEmoji(mouthId)
+                        if (mouth.isNotEmpty()) {
+                            Text(mouth, fontSize = 16.sp)
+                        }
+                    }
                 }
 
-                // Eyes + mouth row
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier              = Modifier.padding(top = 4.dp)
-                ) {
-                    val eyeEmoji   = itemEmoji(eyesItem)
-                    val mouthEmoji = itemEmoji(mouthItem)
-                    if (eyeEmoji.isNotEmpty())  Text(eyeEmoji,  fontSize = 18.sp)
-                    if (mouthEmoji.isNotEmpty()) Text(mouthEmoji, fontSize = 18.sp)
+                Spacer(Modifier.height(4.dp))
+
+                // BODY LAYER: Clothing
+                val cloth = clothingEmoji(clothingId)
+                if (cloth.isNotEmpty()) {
+                    Text(cloth, fontSize = 32.sp)
                 }
 
-                // Clothing
-                val clothEmoji = itemEmoji(clothing)
-                if (clothEmoji.isNotEmpty()) {
-                    Text(clothEmoji, fontSize = 28.sp, modifier = Modifier.padding(top = 4.dp))
-                }
-
-                // Accessory
-                val accEmoji = itemEmoji(accessory)
-                if (accEmoji.isNotEmpty()) {
-                    Text(accEmoji, fontSize = 22.sp, modifier = Modifier.padding(top = 4.dp))
+                // BODY ACCESSORY: Cape / wings / sword
+                if (isBodyWear) {
+                    Text(accessoryEmoji(accessId), fontSize = 26.sp)
                 }
             }
 
-            // XP badge overlay
+            // ── Live Preview badge ────────────────────────────────────────
             Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
                 shape    = RoundedCornerShape(8.dp),
                 color    = ComposeColor.Black.copy(alpha = 0.5f)
             ) {
                 Text(
                     "✨ Live Preview",
-                    fontSize = 10.sp,
-                    color    = ComposeColor.White,
+                    fontSize   = 10.sp,
+                    color      = ComposeColor.White,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
     }
 }
+
 
 
 // ── Category Selector ─────────────────────────────────────────────────────────

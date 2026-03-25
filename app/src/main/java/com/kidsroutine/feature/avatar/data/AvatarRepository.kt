@@ -12,4 +12,5 @@ interface AvatarRepository {
     suspend fun unlockAvatarItem(userId: String, itemId: String, currentCustomization: AvatarCustomization)
     suspend fun saveAvatarPreset(userId: String, presetName: String, customization: AvatarCustomization)
     fun observeAvatarCustomization(userId: String): Flow<AvatarCustomization>
+    suspend fun deductUserXp(userId: String, amount: Int)
 }

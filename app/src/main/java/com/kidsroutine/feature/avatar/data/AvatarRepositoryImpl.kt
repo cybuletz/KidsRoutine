@@ -18,6 +18,19 @@ class AvatarRepositoryImpl @Inject constructor(
     private val avatarDao: AvatarDao
 ) : AvatarRepository {
 
+    override suspend fun deductUserXp(userId: String, amount: Int) {
+        try {
+            firestore.collection("users").document(userId)
+                .update("xp", com.google.firebase.firestore.FieldValue.increment(-amount.toLong()))
+                .await()
+            Log.d("AvatarRepository", "Deducted $amount XP from user $userId")
+        } catch (e: Exception) {
+            Log.e("AvatarRepository", "Error deducting XP", e)
+            throw e
+        }
+    }
+
+
     override suspend fun getAllAvatarItems(): List<AvatarItem> {
         return try {
             val snapshot = firestore.collection("avatar_items").get().await()
