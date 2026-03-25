@@ -92,6 +92,24 @@ class RewardsViewModel @Inject constructor(
         }
     }
 
+    fun cancelRequest(requestId: String) {
+        viewModelScope.launch {
+            try {
+                firestore.collection("privilege_requests")
+                    .document(requestId)
+                    .delete()
+                    .await()
+                // Remove from local state immediately
+                _uiState.value = _uiState.value.copy(
+                    myRequests = _uiState.value.myRequests.filter { it.requestId != requestId }
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(errorMessage = e.message)
+            }
+        }
+    }
+
+
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(successMessage = null, errorMessage = null)
     }

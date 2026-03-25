@@ -236,7 +236,10 @@ fun RewardsScreen(
                         item { MyRequestsEmpty() }
                     } else {
                         items(uiState.myRequests, key = { it.requestId }) { req ->
-                            MyRequestCard(req)
+                            MyRequestCard(
+                                req = req,
+                                onCancel = { viewModel.cancelRequest(it.requestId) }
+                            )
                         }
                     }
                 }
@@ -361,9 +364,12 @@ private fun PrivilegeCard(
 
 // ── My request card ─────────────────────────────────────────────────────────
 @Composable
-private fun MyRequestCard(req: com.kidsroutine.core.model.PrivilegeRequest) {
+private fun MyRequestCard(
+    req: com.kidsroutine.core.model.PrivilegeRequest,
+    onCancel: ((com.kidsroutine.core.model.PrivilegeRequest) -> Unit)? = null
+) {
     val (statusColor, statusText, statusEmoji) = when (req.status) {
-        PrivilegeRequestStatus.PENDING  -> Triple(Color(0xFFFF9800), "Pending", "⏳")
+        PrivilegeRequestStatus.PENDING  -> Triple(Color(0xFFFF9800), "Pending",  "⏳")
         PrivilegeRequestStatus.APPROVED -> Triple(GreenDone,          "Approved", "✅")
         PrivilegeRequestStatus.REJECTED -> Triple(Color(0xFFF44336),  "Declined", "❌")
     }
@@ -376,17 +382,14 @@ private fun MyRequestCard(req: com.kidsroutine.core.model.PrivilegeRequest) {
         border    = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
     ) {
         Row(
-            modifier  = Modifier.padding(16.dp),
+            modifier  = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(req.privilegeEmoji, fontSize = 32.sp)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(req.privilegeTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("⭐ ${req.xpCost} XP", fontSize = 12.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
                 }
                 if (req.parentNote.isNotBlank() && req.status == PrivilegeRequestStatus.REJECTED) {
@@ -398,22 +401,42 @@ private fun MyRequestCard(req: com.kidsroutine.core.model.PrivilegeRequest) {
                     )
                 }
             }
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = statusColor.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    "$statusEmoji $statusText",
-                    color = statusColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = statusColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        "$statusEmoji $statusText",
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+                // X button for all statuses; PENDING also deletes from parent queue
+                IconButton(
+                    onClick = { onCancel?.invoke(req) },
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(Color(0xFFF5F5F5), CircleShape)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = if (req.status == PrivilegeRequestStatus.PENDING) "Cancel request" else "Dismiss",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun MyRequestsEmpty() {
