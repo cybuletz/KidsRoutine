@@ -45,6 +45,7 @@ import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.onboarding.ui.ParentOnboardingWizard
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
+import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen
 import com.kidsroutine.feature.settings.ui.SettingsScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
 
@@ -101,7 +102,8 @@ fun ParentDashboardScreen(
                     onProfileClick         = onProfileClick,
                     onPendingClick         = { innerNav.navigate("tasks") },
                     onFamilyMessagingClick = onFamilyMessagingClick,
-                    onCreateTaskClick      = { innerNav.navigate("tasks") }
+                    onCreateTaskClick      = { innerNav.navigate("tasks") },
+                    onPrivilegeApprovalsClick  = { innerNav.navigate("privilege_approvals") }
                 )
             }
             composable("tasks") {
@@ -167,6 +169,13 @@ fun ParentDashboardScreen(
             composable("moderation") {
                 com.kidsroutine.feature.community.ui.ModerationScreen(onBackClick = { innerNav.popBackStack() })
             }
+            composable("privilege_approvals") {
+                currentTab = "home"
+                ParentPrivilegeApprovalsScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
         }
 
         // ── Bottom Nav Bar ─────────────────────────────────────────────────
@@ -217,6 +226,7 @@ private fun ParentHomeTab(
     onPendingClick: () -> Unit,
     onFamilyMessagingClick: () -> Unit,
     onCreateTaskClick: () -> Unit,
+    onPrivilegeApprovalsClick: () -> Unit,
 ) {
     var selectedChild by remember { mutableStateOf<UserModel?>(null) }
 
@@ -377,11 +387,18 @@ private fun ParentHomeTab(
                 onClick = onPendingClick
             )
             QuickActionRow(
-                icon    = Icons.Default.EmojiEvents,
-                color   = Color(0xFF9B59B6),
-                title   = "Start a Challenge",
+                icon     = Icons.Default.EmojiEvents,
+                color    = Color(0xFF9B59B6),
+                title    = "Start a Challenge",
                 subtitle = "Set a family-wide goal",
-                onClick = onPendingClick
+                onClick  = onPendingClick
+            )
+            QuickActionRow(
+                icon     = Icons.Default.Shield,
+                color    = Color(0xFF06D6A0),
+                title    = "Privilege Approvals",
+                subtitle = "Review requests from your children",
+                onClick  = onPrivilegeApprovalsClick
             )
         }
 

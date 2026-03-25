@@ -6,6 +6,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.kidsroutine.core.model.LootBox
+import com.kidsroutine.core.model.LootBoxRarity
+import com.kidsroutine.core.model.LootBoxReward
+import com.kidsroutine.core.model.LootBoxRewardType
 import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
@@ -18,6 +22,7 @@ import com.kidsroutine.feature.daily.ui.ChildMainScreen
 import com.kidsroutine.feature.execution.ui.TaskExecutionScreen
 import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
+import com.kidsroutine.feature.lootbox.ui.LootBoxScreen
 import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
@@ -157,6 +162,25 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.MOMENTS) {
             MomentsScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
+        }
+
+        composable(Routes.LOOT_BOX) {
+            val sampleBox = LootBox(
+                earnedFor = "All tasks done today!",
+                reward = LootBoxReward(
+                    type = LootBoxRewardType.XP_BOOST,
+                    rarity = LootBoxRarity.RARE,
+                    title = "XP Surge",
+                    description = "You earned a rare XP boost for finishing every task!",
+                    emoji = "⚡",
+                    xpValue = 75
+                )
+            )
+            LootBoxScreen(
+                lootBox = sampleBox,
+                onBack  = { navController.popBackStack() },
+                onClaim = { /* TODO: viewModel.claimLootBox(it) */ }
+            )
         }
     }
 }
