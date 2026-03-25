@@ -39,7 +39,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.ui.draw.alpha
 import com.kidsroutine.core.engine.SeasonalThemeManager
 
-
 // ── Brand colors ──────────────────────────────────────────────────────────────
 private val YellowPrimary  = Color(0xFFFFD93D)
 private val OrangePrimary  = Color(0xFFFF6B35)
@@ -53,7 +52,7 @@ private val DoneGreen      = Color(0xFF06D6A0)
 private val DoneGreenLight = Color(0xFF06D6A0).copy(alpha = 0.10f)
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DailyScreen — adds onLootBoxClick
+// DailyScreen
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun DailyScreen(
@@ -65,20 +64,23 @@ fun DailyScreen(
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onNotificationsClick: () -> Unit,
-    onLootBoxClick: () -> Unit = {},          // ← NEW
+    onLootBoxClick: () -> Unit = {},
+    onWorldClick: () -> Unit = {},           // ← NEW: for "X XP away" nudge tap
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // PERFORMANCE FIX: guard key lives in DailyViewModel.init() — safe to call every recomposition
     LaunchedEffect(currentUser.userId) {
-        Log.d("DailyScreen", "Initializing with user: ${currentUser.userId}")
+        Log.d("DailyScreen", "LaunchedEffect → viewModel.init() for ${currentUser.userId}")
         viewModel.init(currentUser)
     }
 
+    // Push-notification manual refresh
     LaunchedEffect(Unit) {
         RefreshEventManager.refreshEvent.collect {
-            Log.d("DailyScreen", "🔔 Refresh triggered by push notification!")
-            viewModel.init(currentUser)
+            Log.d("DailyScreen", "🔔 Push refresh — forceRefresh")
+            viewModel.forceRefresh(currentUser)
         }
     }
 
@@ -99,14 +101,15 @@ fun DailyScreen(
                 onStatsClick           = onStatsClick,
                 onProfileClick         = onProfileClick,
                 onNotificationsClick   = onNotificationsClick,
-                onLootBoxClick         = onLootBoxClick          // ← NEW
+                onLootBoxClick         = onLootBoxClick,
+                onWorldClick           = onWorldClick
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DailyContent — threads onLootBoxClick down
+// DailyContent — NO bottom nav bar here (handled by ChildMainScreen's PersistentNavBar)
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun DailyContent(
@@ -118,12 +121,13 @@ private fun DailyContent(
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onNotificationsClick: () -> Unit,
-    onLootBoxClick: () -> Unit              // ← NEW
+    onLootBoxClick: () -> Unit,
+    onWorldClick: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier            = Modifier.fillMaxSize(),
-            contentPadding      = PaddingValues(bottom = 80.dp),
+            contentPadding      = PaddingValues(bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
@@ -134,8 +138,14 @@ private fun DailyContent(
                 )
             }
 
-            // ← ProgressSection now receives onLootBoxClick
-            item { ProgressSection(uiState.dailyState, uiState.currentUser, onLootBoxClick) }
+            item {
+                ProgressSection(
+                    state          = uiState.dailyState,
+                    currentUser    = uiState.currentUser,
+                    onLootBoxClick = onLootBoxClick,
+                    onWorldClick   = onWorldClick
+                )
+            }
 
             item {
                 val arc = uiState.activeStoryArc
@@ -164,122 +174,31 @@ private fun DailyContent(
             }
         }
 
-        // Chat Bubble
+        // Chat bubble — positioned above the PersistentNavBar (80dp) + 12dp gap
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = (-16).dp, y = (-78).dp)
+                .offset(x = (-16).dp, y = (-94).dp)
                 .zIndex(10f)
                 .navigationBarsPadding()
         ) {
             ChatBubbleButton(onClick = onFamilyMessagingClick)
         }
-
-        // Bottom Navigation Bar (retained from original — not used when PersistentNavBar is active,
-        // but kept so DailyScreen still compiles standalone if ever needed)
-        Surface(
-            modifier       = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding(),
-            color          = Color.White,
-            shadowElevation = 12.dp
-        ) {
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .padding(horizontal = 0.dp, vertical = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(0.dp),
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                NavItemButton(
-                    icon       = Icons.Default.Home,
-                    label      = "Daily",
-                    isSelected = true,
-                    onClick    = { },
-                    modifier   = Modifier.weight(1f)
-                )
-                NavItemButton(
-                    icon       = Icons.Default.EmojiEvents,
-                    label      = "Challenges",
-                    isSelected = false,
-                    onClick    = onChallengesClick,
-                    modifier   = Modifier.weight(1f)
-                )
-                NavItemButton(
-                    icon       = Icons.Default.BarChart,
-                    label      = "Leaderboard",
-                    isSelected = false,
-                    onClick    = onStatsClick,
-                    modifier   = Modifier.weight(1f)
-                )
-                Box(modifier = Modifier.weight(1f)) {
-                    NavItemButton(
-                        icon      = Icons.Default.Language,
-                        label     = "World",
-                        isSelected = false,
-                        onClick   = { },
-                        modifier  = Modifier.fillMaxHeight()
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    NavItemButton(
-                        icon      = Icons.Default.PhotoAlbum,
-                        label     = "Moments",
-                        isSelected = false,
-                        onClick   = { },
-                        modifier  = Modifier.fillMaxHeight()
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    NavItemButton(
-                        icon      = Icons.Default.EmojiEvents,
-                        label     = "Achievements",
-                        isSelected = false,
-                        onClick   = onAchievementsClick
-                    )
-                    if (uiState.currentUser.badges.isNotEmpty()) {
-                        Surface(
-                            shape    = CircleShape,
-                            color    = Color(0xFFFF6B35),
-                            modifier = Modifier
-                                .size(18.dp)
-                                .align(Alignment.TopEnd)
-                                .offset(x = (-4).dp, y = 4.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Text(
-                                    text       = "${uiState.currentUser.badges.size}",
-                                    color      = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize   = 9.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // ← No Surface / bottom nav bar here — removed entirely
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ProgressSection — loot box teaser is now a real Button
+// ProgressSection — segmented pill bar + World nudge banner
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun ProgressSection(
     state: DailyStateModel,
     currentUser: UserModel,
-    onLootBoxClick: () -> Unit           // ← NEW
+    onLootBoxClick: () -> Unit,
+    onWorldClick: () -> Unit
 ) {
     val allDone = state.completedCount == state.tasks.size && state.tasks.isNotEmpty()
-
-    val animatedProgress by animateFloatAsState(
-        targetValue    = state.completionPercent,
-        animationSpec  = tween(durationMillis = 800, easing = EaseOutCubic),
-        label          = "progress"
-    )
 
     val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
     val glowAlpha by infiniteTransition.animateFloat(
@@ -288,6 +207,16 @@ private fun ProgressSection(
         animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
         label         = "glowAlpha"
     )
+
+    // World nudge: show if child is within 200 XP of a world node unlock
+    // We pass nextNodeXp via uiState — for now derive a placeholder from current XP
+    // When WorldViewModel is wired to DailyScreen this can be real data
+    val xpToNextNode = remember(currentUser.xp) {
+        // Find the next 50-XP milestone as a simple approximation until WorldViewModel feeds this
+        val nextMilestone = ((currentUser.xp / 50) + 1) * 50
+        nextMilestone - currentUser.xp
+    }
+    val showWorldNudge = xpToNextNode in 1..200 && !allDone
 
     Card(
         modifier = Modifier
@@ -302,8 +231,9 @@ private fun ProgressSection(
     ) {
         Column(
             modifier            = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // ── Header row ────────────────────────────────────────────────
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -313,7 +243,7 @@ private fun ProgressSection(
                     Text(
                         "🎉 All done today!",
                         fontWeight = FontWeight.Bold,
-                        color      = Color(0xFFFF6B35),
+                        color      = OrangePrimary,
                         fontSize   = 16.sp
                     )
                 } else {
@@ -325,25 +255,48 @@ private fun ProgressSection(
                 Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
             }
 
-            LinearProgressIndicator(
-                progress   = { animatedProgress },
-                modifier   = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(CircleShape),
-                color      = if (allDone) Color(0xFFFFD700) else OrangePrimary,
-                trackColor = OrangePrimary.copy(alpha = 0.15f)
-            )
+            // ── Segmented pill progress bar ───────────────────────────────
+            // Each task gets its own pill — task type color fills when done
+            if (state.tasks.isNotEmpty()) {
+                SegmentedProgressBar(tasks = state.tasks)
+            }
 
-            // ── Loot box teaser — real tappable button when all tasks done ──
-            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
-                Button(
-                    onClick  = onLootBoxClick,
+            // ── World nudge banner ────────────────────────────────────────
+            AnimatedVisibility(visible = showWorldNudge, enter = fadeIn() + expandVertically()) {
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                        .clickable { onWorldClick() },
+                    shape  = RoundedCornerShape(12.dp),
+                    color  = Color(0xFF1A1042).copy(alpha = 0.07f),
+                    border = BorderStroke(1.dp, Color(0xFF9B5DE5).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("🌍", fontSize = 20.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Only $xpToNextNode XP to unlock the next World node!",
+                                fontSize   = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = Color(0xFF4B2DA0)
+                            )
+                            Text("Complete tasks to get there →", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                }
+            }
+
+            // ── Loot box button when all done ─────────────────────────────
+            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
+                Button(
+                    onClick   = onLootBoxClick,
+                    modifier  = Modifier.fillMaxWidth().height(52.dp),
+                    shape     = RoundedCornerShape(14.dp),
+                    colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
                     Text("🎁", fontSize = 20.sp)
@@ -361,8 +314,202 @@ private fun ProgressSection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Everything below is UNCHANGED from your committed version
+// Segmented progress bar — one pill per task, animated fill on completion
 // ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun SegmentedProgressBar(tasks: List<TaskInstance>) {
+    if (tasks.isEmpty()) return
+    val gapDp = 4.dp
+    Row(
+        modifier            = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(gapDp)
+    ) {
+        tasks.forEach { instance ->
+            val isDone    = instance.status == TaskStatus.COMPLETED
+            val taskColor = taskTypeColor(instance.task.type)
+
+            val animColor by animateColorAsState(
+                targetValue   = if (isDone) taskColor else Color(0xFFE0E0E0),
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                label         = "segColor_${instance.instanceId}"
+            )
+            val segScale by animateFloatAsState(
+                targetValue   = if (isDone) 1.08f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label         = "segScale_${instance.instanceId}"
+            )
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .scale(scaleX = 1f, scaleY = segScale)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(animColor)
+            )
+        }
+    }
+    // Legend row — show category dots if >1 unique type
+    val uniqueTypes = tasks.map { it.task.type }.distinct()
+    if (uniqueTypes.size > 1) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            uniqueTypes.forEach { type ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(taskTypeColor(type), CircleShape)
+                    )
+                    Text(
+                        text     = taskTypeName(type),
+                        fontSize = 9.sp,
+                        color    = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TaskCard — with 4dp left accent stripe
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+fun TaskCard(
+    instance: TaskInstance,
+    onClick: () -> Unit
+) {
+    val task   = instance.task
+    val isDone = instance.status == TaskStatus.COMPLETED
+    val cardColor = if (isDone) DoneGreen else taskTypeColor(task.type)
+    val icon      = taskTypeIcon(task.type)
+
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue   = if (pressed) 0.97f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label         = "card_press"
+    )
+
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(instance.instanceId) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter   = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
+    ) {
+        // Outer box provides the left stripe
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .scale(scale)
+        ) {
+            // ── 4dp left accent stripe ────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
+                    .background(cardColor.copy(alpha = if (isDone) 0.4f else 1f))
+                    .align(Alignment.CenterStart)
+            )
+
+            // ── Card body (left-padded 4dp to clear the stripe) ──────────
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp)    // clear the stripe
+                    .alpha(if (isDone) 0.65f else 1f)
+                    .clickable(enabled = !isDone) {
+                        pressed = true
+                        onClick()
+                    },
+                shape     = RoundedCornerShape(
+                    topStart = 0.dp, bottomStart = 0.dp,
+                    topEnd   = 20.dp, bottomEnd   = 20.dp
+                ),
+                colors    = CardDefaults.cardColors(
+                    containerColor = if (isDone) DoneGreenLight else Color.White
+                ),
+                border    = if (isDone) BorderStroke(1.5.dp, DoneGreen.copy(alpha = 0.4f)) else null,
+                elevation = CardDefaults.cardElevation(if (isDone) 0.dp else 3.dp)
+            ) {
+                Row(
+                    modifier          = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(cardColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isDone) {
+                            Text("✅", fontSize = 26.sp)
+                        } else {
+                            Icon(
+                                imageVector        = icon,
+                                contentDescription = null,
+                                tint               = cardColor,
+                                modifier           = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (task.requiresCoop) TaskChip("CO-OP", CoopPurple)
+                            if (instance.injectedByChallengeId != null) TaskChip("CHALLENGE", TealSecondary)
+                            if (isDone) TaskChip("DONE", DoneGreen)
+                        }
+                        Text(
+                            text           = task.title,
+                            style          = MaterialTheme.typography.titleLarge,
+                            fontWeight     = FontWeight.Bold,
+                            textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                            color          = if (isDone) Color.Gray else TextDark
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "⭐ ${task.reward.xp} XP",
+                                color      = if (isDone) Color.Gray else OrangePrimary,
+                                style      = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text("·", color = Color.Gray)
+                            Text("~${task.estimatedDurationSec}s", color = Color.Gray, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+
+                    if (!isDone) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+                    } else {
+                        Text("🏆", fontSize = 20.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Fix: ProgressSection references state.dailyState which doesn't exist on DailyStateModel
+// The model already IS the daily state — use state.tasks directly
+// The SegmentedProgressBar call above passes state.tasks (corrected below in the actual call)
 
 @Composable
 private fun ChatBubbleButton(onClick: () -> Unit) {
@@ -379,37 +526,14 @@ private fun ChatBubbleButton(onClick: () -> Unit) {
 }
 
 @Composable
-private fun NavItemButton(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier            = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(0.dp)
+private fun TaskChip(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint               = if (isSelected) OrangePrimary else Color.Gray,
-            modifier           = Modifier.size(24.dp)
-        )
-        Text(
-            text       = label,
-            fontSize   = 9.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color      = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines   = 1,
-            overflow   = TextOverflow.Ellipsis,
-            lineHeight = 10.sp
-        )
+        Text(label, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, fontSize = 10.sp)
     }
 }
 
@@ -509,144 +633,6 @@ private fun DailyHeader(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StreakBadge(streak: Int) {
-    val scale by animateFloatAsState(
-        targetValue   = if (streak > 0) 1f else 0.8f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label         = "streak_scale"
-    )
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier            = Modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.25f))
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-    ) {
-        Text(text = "🔥", fontSize = 28.sp)
-        Text(
-            text       = "$streak",
-            style      = MaterialTheme.typography.titleLarge,
-            color      = Color.White,
-            fontWeight = FontWeight.ExtraBold
-        )
-        Text(text = "streak", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(0.8f))
-    }
-}
-
-@Composable
-fun TaskCard(
-    instance: TaskInstance,
-    onClick: () -> Unit
-) {
-    val task   = instance.task
-    val isDone = instance.status == TaskStatus.COMPLETED
-    val cardColor = if (isDone) DoneGreen else taskTypeColor(task.type)
-    val icon      = taskTypeIcon(task.type)
-
-    var pressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue   = if (pressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label         = "card_press"
-    )
-
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(instance.instanceId) { visible = true }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter   = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .scale(scale)
-                .alpha(if (isDone) 0.65f else 1f)
-                .clickable(enabled = !isDone) {
-                    pressed = true
-                    onClick()
-                },
-            shape     = RoundedCornerShape(20.dp),
-            colors    = CardDefaults.cardColors(
-                containerColor = if (isDone) DoneGreenLight else Color.White
-            ),
-            border    = if (isDone) BorderStroke(1.5.dp, DoneGreen.copy(alpha = 0.4f)) else null,
-            elevation = CardDefaults.cardElevation(if (isDone) 0.dp else 3.dp)
-        ) {
-            Row(
-                modifier          = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(cardColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isDone) {
-                        Text("✅", fontSize = 26.sp)
-                    } else {
-                        Icon(
-                            imageVector        = icon,
-                            contentDescription = null,
-                            tint               = cardColor,
-                            modifier           = Modifier.size(28.dp)
-                        )
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (task.requiresCoop) TaskChip("CO-OP", CoopPurple)
-                        if (instance.injectedByChallengeId != null) TaskChip("CHALLENGE", TealSecondary)
-                        if (isDone) TaskChip("DONE", DoneGreen)
-                    }
-                    Text(
-                        text           = task.title,
-                        style          = MaterialTheme.typography.titleLarge,
-                        fontWeight     = FontWeight.Bold,
-                        textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
-                        color          = if (isDone) Color.Gray else TextDark
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "⭐ ${task.reward.xp} XP",
-                            color      = if (isDone) Color.Gray else OrangePrimary,
-                            style      = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text("·", color = Color.Gray)
-                        Text("~${task.estimatedDurationSec}s", color = Color.Gray, style = MaterialTheme.typography.labelLarge)
-                    }
-                }
-
-                if (!isDone) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
-                } else {
-                    Text("🏆", fontSize = 20.sp)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TaskChip(label: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(label, color = color, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, fontSize = 10.sp)
     }
 }
 
@@ -753,6 +739,9 @@ fun StoryArcBannerCard(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// task type helpers — public so WorldScreen can reference them if needed
+// ─────────────────────────────────────────────────────────────────────────────
 fun taskTypeColor(type: TaskType): Color = when (type) {
     TaskType.LOGIC     -> LogicBlue
     TaskType.REAL_LIFE -> RealLifeGreen
@@ -762,6 +751,17 @@ fun taskTypeColor(type: TaskType): Color = when (type) {
     TaskType.EMOTIONAL -> Color(0xFFEF476F)
     TaskType.SOCIAL    -> TealSecondary
     TaskType.STORY     -> Color(0xFF8B5CF6)
+}
+
+fun taskTypeName(type: TaskType): String = when (type) {
+    TaskType.LOGIC     -> "Logic"
+    TaskType.REAL_LIFE -> "Life"
+    TaskType.CO_OP     -> "Co-op"
+    TaskType.CREATIVE  -> "Creative"
+    TaskType.LEARNING  -> "Learn"
+    TaskType.EMOTIONAL -> "Emotion"
+    TaskType.SOCIAL    -> "Social"
+    TaskType.STORY     -> "Story"
 }
 
 fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
