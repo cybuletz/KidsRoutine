@@ -51,36 +51,6 @@ fun ActiveChallengesScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // ── Header — matches Tasks style ──────────────────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-                .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Challenges",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                IconButton(onClick = onStartChallengeClick) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Start Challenge",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-        }
-
         // ── Content ───────────────────────────────────────────────────────
         when {
             uiState.isLoading -> {

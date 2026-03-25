@@ -1,6 +1,5 @@
 package com.kidsroutine.feature.avatar.ui
 
-import android.graphics.Color
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -30,6 +29,8 @@ import com.kidsroutine.core.model.AvatarCategory
 import com.kidsroutine.core.model.AvatarItem
 import com.kidsroutine.core.model.AvatarRarity
 import com.kidsroutine.core.model.UserModel
+import androidx.compose.foundation.border
+
 
 private val GradientStart = ComposeColor(0xFF667EEA)
 private val GradientEnd   = ComposeColor(0xFF764BA2)
@@ -247,29 +248,157 @@ private fun AvatarPreview(
     customization: com.kidsroutine.core.model.AvatarCustomization,
     modifier: Modifier = Modifier
 ) {
+    val bodyItem    = customization.body.selectedItemId
+    val eyesItem    = customization.eyes.selectedItemId
+    val mouthItem   = customization.mouth.selectedItemId
+    val hairItem    = customization.hairstyle.selectedItemId
+    val accessory   = customization.accessories.selectedItemId
+    val clothing    = customization.clothing.selectedItemId
+    val background  = customization.background.selectedItemId
+
+    // Map item IDs to emojis
+    fun itemEmoji(itemId: String): String = when {
+        itemId.contains("galaxy",    ignoreCase = true) -> "🌌"
+        itemId.contains("forest",    ignoreCase = true) -> "🌲"
+        itemId.contains("beach",     ignoreCase = true) -> "🏖️"
+        itemId.contains("city",      ignoreCase = true) -> "🏙️"
+        itemId.contains("sunset",    ignoreCase = true) -> "🌅"
+        itemId.contains("crown",     ignoreCase = true) -> "👑"
+        itemId.contains("glasses",   ignoreCase = true) -> "🕶️"
+        itemId.contains("hat",       ignoreCase = true) -> "🎩"
+        itemId.contains("cape",      ignoreCase = true) -> "🦸"
+        itemId.contains("wings",     ignoreCase = true) -> "🪽"
+        itemId.contains("sword",     ignoreCase = true) -> "⚔️"
+        itemId.contains("shield",    ignoreCase = true) -> "🛡️"
+        itemId.contains("robot",     ignoreCase = true) -> "🤖"
+        itemId.contains("ninja",     ignoreCase = true) -> "🥷"
+        itemId.contains("wizard",    ignoreCase = true) -> "🧙"
+        itemId.contains("dragon",    ignoreCase = true) -> "🐉"
+        itemId.contains("hoodie",    ignoreCase = true) -> "🧥"
+        itemId.contains("suit",      ignoreCase = true) -> "👔"
+        itemId.contains("tshirt",    ignoreCase = true) -> "👕"
+        itemId.contains("dress",     ignoreCase = true) -> "👗"
+        itemId.contains("happy",     ignoreCase = true) -> "😄"
+        itemId.contains("cool",      ignoreCase = true) -> "😎"
+        itemId.contains("sleepy",    ignoreCase = true) -> "😴"
+        itemId.contains("angry",     ignoreCase = true) -> "😠"
+        itemId.contains("blue",      ignoreCase = true) -> "🔵"
+        itemId.contains("red",       ignoreCase = true) -> "🔴"
+        itemId.contains("green",     ignoreCase = true) -> "🟢"
+        itemId.contains("golden",    ignoreCase = true) -> "🟡"
+        else -> ""
+    }
+
     Card(
         modifier  = modifier,
-        shape     = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+        shape     = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(12.dp)
     ) {
         Box(
-            modifier         = Modifier.fillMaxSize().background(ComposeColor.White),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            ComposeColor(0xFF1A1A2E),
+                            ComposeColor(0xFF16213E),
+                            ComposeColor(0xFF0F3460)
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
+            // Glow ring behind avatar
+            Surface(
+                modifier = Modifier.size(160.dp),
+                shape    = CircleShape,
+                color    = GradientStart.copy(alpha = 0.15f)
+            ) {}
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Center,
+                modifier            = Modifier.padding(16.dp)
             ) {
-                Text(text = "👤", fontSize = 80.sp, modifier = Modifier.padding(16.dp))
+                // Background badge (top)
+                val bgEmoji = itemEmoji(background)
+                if (bgEmoji.isNotEmpty()) {
+                    Text(bgEmoji, fontSize = 18.sp, modifier = Modifier.padding(bottom = 4.dp))
+                }
+
+                // Hairstyle above head
+                val hairEmoji = itemEmoji(hairItem)
+                if (hairEmoji.isNotEmpty()) {
+                    Text(hairEmoji, fontSize = 28.sp)
+                }
+
+                // Main avatar face (body color drives the face)
+                val bodyColorHex = customization.body.selectedColor
+                val faceColor = if (bodyColorHex.startsWith("#")) {
+                    try {
+                        ComposeColor(android.graphics.Color.parseColor(bodyColorHex))
+                    } catch (_: Exception) {
+                        ComposeColor(0xFFFF6B35)
+                    }
+                } else {
+                    ComposeColor(0xFFFF6B35)
+                }
+
+                Box(
+                    modifier         = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(faceColor.copy(alpha = 0.3f))
+                        .border(3.dp, faceColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("👤", fontSize = 44.sp)
+                }
+
+                // Eyes + mouth row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier              = Modifier.padding(top = 4.dp)
+                ) {
+                    val eyeEmoji   = itemEmoji(eyesItem)
+                    val mouthEmoji = itemEmoji(mouthItem)
+                    if (eyeEmoji.isNotEmpty())  Text(eyeEmoji,  fontSize = 18.sp)
+                    if (mouthEmoji.isNotEmpty()) Text(mouthEmoji, fontSize = 18.sp)
+                }
+
+                // Clothing
+                val clothEmoji = itemEmoji(clothing)
+                if (clothEmoji.isNotEmpty()) {
+                    Text(clothEmoji, fontSize = 28.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+
+                // Accessory
+                val accEmoji = itemEmoji(accessory)
+                if (accEmoji.isNotEmpty()) {
+                    Text(accEmoji, fontSize = 22.sp, modifier = Modifier.padding(top = 4.dp))
+                }
+            }
+
+            // XP badge overlay
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp),
+                shape    = RoundedCornerShape(8.dp),
+                color    = ComposeColor.Black.copy(alpha = 0.5f)
+            ) {
                 Text(
-                    text  = "Avatar Preview",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = ComposeColor.Gray
+                    "✨ Live Preview",
+                    fontSize = 10.sp,
+                    color    = ComposeColor.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
     }
 }
+
 
 // ── Category Selector ─────────────────────────────────────────────────────────
 @Composable
@@ -386,7 +515,11 @@ private fun ItemCard(
                     Text(text = item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Surface(
                         shape    = CircleShape,
-                        color    = ComposeColor(android.graphics.Color.parseColor(item.defaultColor.takeIf { it.startsWith("#") } ?: "#FF6B35")),
+                        color = run {
+                            val hex = item.defaultColor.takeIf { it.startsWith("#") } ?: "#FF6B35"
+                            try { ComposeColor(android.graphics.Color.parseColor(hex)) }
+                            catch (_: Exception) { ComposeColor(0xFFFF6B35) }
+                        },
                         modifier = Modifier.size(20.dp)
                     ) {}
                     Text(
