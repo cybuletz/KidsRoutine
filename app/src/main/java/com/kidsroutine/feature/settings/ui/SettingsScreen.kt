@@ -23,6 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.model.UserModel
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight = Color(0xFFFFFBF0)
@@ -41,6 +45,91 @@ fun SettingsScreen(
 ) {
     val clipboardManager = LocalClipboardManager.current
     var codeCopied by remember { mutableStateOf(false) }
+
+    var showEditNameDialog by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+// Display Name row:
+    SettingsRow(
+        icon = Icons.Default.Person,
+        iconColor = Color(0xFF4A90E2),
+        title = "Display Name",
+        subtitle = currentUser.displayName,
+        onClick = { showEditNameDialog = true }
+    )
+
+// Change Password row:
+    SettingsRow(
+        icon = Icons.Default.Lock,
+        iconColor = Color(0xFF2ECC71),
+        title = "Change Password",
+        subtitle = "Update your login password",
+        onClick = { showPasswordDialog = true }
+    )
+
+// Privacy Policy row:
+    SettingsRow(
+        icon = Icons.Default.Security,
+        iconColor = Color(0xFF3498DB),
+        title = "Privacy Policy",
+        subtitle = "How we protect your family's data",
+        onClick = {
+            val intent = android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse("https://kidsroutine.app/privacy")
+            )
+            context.startActivity(intent)
+        }
+    )
+
+// Add dialogs at the end of the composable (before final Spacer):
+    if (showEditNameDialog) {
+        var nameInput by remember { mutableStateOf(currentUser.displayName) }
+        AlertDialog(
+            onDismissRequest = { showEditNameDialog = false },
+            title = { Text("Edit Display Name") },
+            text = {
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { nameInput = it },
+                    label = { Text("Name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (nameInput.isNotBlank()) {
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("users").document(currentUser.userId)
+                            .update("displayName", nameInput.trim())
+                        showEditNameDialog = false
+                    }
+                }) { Text("Save", color = OrangePrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false },
+            title = { Text("Reset Password") },
+            text = { Text("A password reset email will be sent to ${currentUser.email}") },
+            confirmButton = {
+                TextButton(onClick = {
+                    com.google.firebase.auth.FirebaseAuth.getInstance()
+                        .sendPasswordResetEmail(currentUser.email)
+                    showPasswordDialog = false
+                }) { Text("Send Email", color = OrangePrimary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPasswordDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     Column(
         modifier = modifier

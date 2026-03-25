@@ -41,9 +41,9 @@ fun ContentPacksScreen(
 
     LaunchedEffect(currentUser.userId) {
         viewModel.init(
-            userXp         = currentUser.xp,
-            isPro          = isPro,
-            unlockedPackIds = emptySet()   // TODO: load from Firestore
+            userXp          = currentUser.xp,
+            isPro           = isPro,
+            unlockedPackIds = uiState.unlockedPackIds
         )
     }
 

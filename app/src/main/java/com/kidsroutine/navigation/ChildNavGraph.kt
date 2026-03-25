@@ -59,7 +59,7 @@ fun NavGraphBuilder.childNavGraph(
                 onBackClick = { navController.popBackStack() },
                 onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
                 onStatsClick = { navController.navigate(Routes.STATS) },
-                onSettingsClick = { /* TODO: Navigate to settings */ }
+                onSettingsClick = { navController.popBackStack() }
             )
         }
 

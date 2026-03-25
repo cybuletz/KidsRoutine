@@ -123,9 +123,14 @@ fun ParentDashboardScreen(
             composable("discover") {
                 currentTab = "discover"
                 ParentDiscoverTab(
-                    currentUser   = currentUser,
-                    familyMembers = familyMembers,
-                    onUpgradeClick = onUpgradeClick
+                    currentUser        = currentUser,
+                    familyMembers      = familyMembers,
+                    onUpgradeClick     = onUpgradeClick,
+                    onGenerationClick  = { innerNav.navigate("generation") },
+                    onWeeklyPlanClick  = { innerNav.navigate("weekly_plan") },
+                    onMarketplaceClick = { innerNav.navigate("marketplace") },
+                    onPublishClick     = { innerNav.navigate("publish") },
+                    onModerationClick  = { innerNav.navigate("moderation") }
                 )
             }
             composable("settings") {
@@ -145,6 +150,21 @@ fun ParentDashboardScreen(
                     onBackClick = { innerNav.popBackStack() },
                     viewModel   = notifViewModel
                 )
+            }
+            composable("generation") {
+                GenerationScreen(currentUser = currentUser, onBackClick = { innerNav.popBackStack() })
+            }
+            composable("weekly_plan") {
+                WeeklyPlanScreen(currentUser = currentUser, familyChildren = familyMembers, onBackClick = { innerNav.popBackStack() })
+            }
+            composable("marketplace") {
+                MarketplaceScreen(currentUser = currentUser, onBackClick = { innerNav.popBackStack() })
+            }
+            composable("publish") {
+                PublishScreen(currentUser = currentUser, onBackClick = { innerNav.popBackStack() })
+            }
+            composable("moderation") {
+                com.kidsroutine.feature.community.ui.ModerationScreen(onBackClick = { innerNav.popBackStack() })
             }
         }
 
@@ -697,7 +717,12 @@ private fun ParentFamilyTab(
 private fun ParentDiscoverTab(
     currentUser: UserModel,
     familyMembers: List<UserModel>,
-    onUpgradeClick: () -> Unit
+    onUpgradeClick: () -> Unit,
+    onGenerationClick: () -> Unit,        // ← new
+    onWeeklyPlanClick: () -> Unit,        // ← new
+    onMarketplaceClick: () -> Unit,       // ← new
+    onPublishClick: () -> Unit,           // ← new
+    onModerationClick: () -> Unit = {}    // ← new
 ) {
     Column(
         modifier = Modifier
@@ -718,51 +743,22 @@ private fun ParentDiscoverTab(
         Spacer(Modifier.height(20.dp))
 
         Column(
-            modifier              = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement   = Arrangement.spacedBy(12.dp)
+            modifier            = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DiscoverCard(
-                emoji   = "✨",
-                title   = "AI Task Generator",
-                subtitle = "Create personalised tasks using AI",
-                color   = Color(0xFF4A90E2),
-                content = { GenerationScreen(currentUser = currentUser, onBackClick = { }) }
-            )
-            DiscoverCard(
-                emoji   = "📅",
-                title   = "Weekly Planner",
-                subtitle = "AI 7-day family schedule · PRO",
-                color   = Color(0xFF11998E),
-                content = { WeeklyPlanScreen(currentUser = currentUser, familyChildren = familyMembers, onBackClick = { }) }
-            )
-            DiscoverCard(
-                emoji   = "🌍",
-                title   = "Community Library",
-                subtitle = "Browse tasks shared by other families",
-                color   = Color(0xFF667EEA),
-                content = { MarketplaceScreen(currentUser = currentUser, onBackClick = { }) }
-            )
-            DiscoverCard(
-                emoji   = "📤",
-                title   = "Publish Content",
-                subtitle = "Share your best tasks with the community",
-                color   = Color(0xFFFF6B35),
-                content = { PublishScreen(currentUser = currentUser, onBackClick = { }) }
-            )
+            DiscoverCard("✨", "AI Task Generator",    "Create personalised tasks using AI",             Color(0xFF4A90E2), onGenerationClick)
+            DiscoverCard("📅", "Weekly Planner",       "AI 7-day family schedule · PRO",                 Color(0xFF11998E), onWeeklyPlanClick)
+            DiscoverCard("🌍", "Community Library",    "Browse tasks shared by other families",          Color(0xFF667EEA), onMarketplaceClick)
+            DiscoverCard("📤", "Publish Content",      "Share your best tasks with the community",       Color(0xFFFF6B35), onPublishClick)
             if (currentUser.isAdmin) {
-                DiscoverCard(
-                    emoji   = "🛡️",
-                    title   = "Moderation Panel",
-                    subtitle = "Admin only — review community content",
-                    color   = Color(0xFFE74C3C),
-                    content = { com.kidsroutine.feature.community.ui.ModerationScreen(onBackClick = { }) }
-                )
+                DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",         Color(0xFFE74C3C), onModerationClick)
             }
         }
 
         Spacer(Modifier.height(32.dp))
     }
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // BOTTOM NAV BAR
@@ -987,40 +983,45 @@ private fun DiscoverCard(
     title: String,
     subtitle: String,
     color: Color,
-    content: @Composable () -> Unit
+    onClick: () -> Unit              // ← replaces content: @Composable () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
-        Column {
-            Row(
-                modifier              = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(18.dp),
-                verticalAlignment     = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(18.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(46.dp),
+                shape    = RoundedCornerShape(13.dp),
+                color    = color.copy(alpha = 0.12f)
             ) {
-                Surface(modifier = Modifier.size(46.dp), shape = RoundedCornerShape(13.dp), color = color.copy(alpha = 0.12f)) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text(emoji, fontSize = 22.sp) }
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text(emoji, fontSize = 22.sp)
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
-                    Text(subtitle, fontSize = 12.sp, color = Color.Gray)
-                }
-                Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null, tint = Color.Gray, modifier = Modifier.size(20.dp)
-                )
             }
-            if (expanded) {
-                HorizontalDivider(color = Color(0xFFF0F0F0))
-                content()
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
+                Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
+            Icon(
+                Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint     = Color.LightGray,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
