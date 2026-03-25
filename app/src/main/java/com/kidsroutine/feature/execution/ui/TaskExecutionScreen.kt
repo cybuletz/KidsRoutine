@@ -33,10 +33,10 @@ import com.kidsroutine.feature.celebrations.ui.CelebrationViewModel
 import com.kidsroutine.core.model.GameType
 import com.kidsroutine.feature.lootbox.ui.LootBoxViewModel
 
-
 @Composable
 fun TaskExecutionScreen(
     task: TaskModel,
+    currentUser: UserModel,
     onBack: () -> Unit,
     onCompleted: (xpGained: Int) -> Unit,
     viewModel: ExecutionViewModel = hiltViewModel(),
@@ -48,20 +48,20 @@ fun TaskExecutionScreen(
 
     Log.d("TaskExecution", "Task: ${task.title}, GameType: ${task.gameType}")
 
-    LaunchedEffect(task.id) { viewModel.loadTask(task) }
+    LaunchedEffect(task.id) {
+        viewModel.loadTask(task)
+        viewModel.setCurrentUser(currentUser)
+    }
 
-    // Handle completion navigation
     LaunchedEffect(uiState.result) {
         val result = uiState.result
         if (result is CompletionResult.Success) {
             Log.d("TaskExecutionScreen", "Task completed! Result: $result")
             celebrationViewModel.showTaskCompletion()
 
-            // ← NEW: Check if badges were unlocked
             if (uiState.newBadgesUnlocked.isNotEmpty()) {
                 Log.d("TaskExecutionScreen", "New badges unlocked: ${uiState.newBadgesUnlocked.size}")
-                // Show first badge after task celebration completes
-                kotlinx.coroutines.delay(3500)  // Wait for task celebration
+                kotlinx.coroutines.delay(3500)
                 val badge = uiState.newBadgesUnlocked.first()
                 celebrationViewModel.showAchievementUnlock(badge.title)
                 kotlinx.coroutines.delay(500)
@@ -69,14 +69,10 @@ fun TaskExecutionScreen(
                 kotlinx.coroutines.delay(500)
             }
 
-            // Award a loot box every 5th task completion (check streak)
-            if (result.xpGained >= 50) {   // threshold — tune as needed
-                val box = com.kidsroutine.core.model.LootBox(
-                    earnedFor = "Task completed: ${task.title}"
-                )
-
+            if (result.xpGained >= 50) {
+                val box = LootBox(earnedFor = "Task completed: ${task.title}")
                 lootBoxViewModel.presentBox(box)
-                kotlinx.coroutines.delay(800)  // let celebration clear first
+                kotlinx.coroutines.delay(800)
             }
 
             onCompleted(result.xpGained)
@@ -90,7 +86,6 @@ fun TaskExecutionScreen(
                 .background(Color(0xFFFFFBF0))
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Header ──────────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,7 +97,7 @@ fun TaskExecutionScreen(
                         Icon(Icons.Default.ArrowBack, null, tint = Color.White)
                     }
                     Row(
-                        verticalAlignment    = Alignment.CenterVertically,
+                        verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Box(
@@ -115,20 +110,26 @@ fun TaskExecutionScreen(
                             Icon(taskTypeIcon(task.type), null, tint = Color.White, modifier = Modifier.size(30.dp))
                         }
                         Column {
-                            Text(task.title, style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold, color = Color.White)
-                            Text("⭐ ${task.reward.xp} XP  ·  ~${task.estimatedDurationSec}s",
-                                color = Color.White.copy(0.85f), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                task.title,
+                                style      = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color      = Color.White
+                            )
+                            Text(
+                                "⭐ ${task.reward.xp} XP  ·  ~${task.estimatedDurationSec}s",
+                                color = Color.White.copy(0.85f),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                     if (task.requiresCoop) CoopBadge()
 
-                    // ── Description (shown in header if present) ──────────────────────────
                     if (task.description.isNotEmpty()) {
                         Surface(
-                            modifier      = Modifier.fillMaxWidth(),
-                            shape         = RoundedCornerShape(12.dp),
-                            color         = Color.White.copy(alpha = 0.18f)
+                            modifier = Modifier.fillMaxWidth(),
+                            shape    = RoundedCornerShape(12.dp),
+                            color    = Color.White.copy(alpha = 0.18f)
                         ) {
                             Row(
                                 modifier              = Modifier.padding(12.dp),
@@ -145,26 +146,21 @@ fun TaskExecutionScreen(
                             }
                         }
                     }
-
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // ── Interaction Blocks or Game ──────────────────────────────────────────
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
+                modifier            = Modifier.padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Check if task has a game instead of interaction blocks
                 if (task.gameType != GameType.NONE) {
-                    // Render the game
                     GameRenderer(
-                        gameType = task.gameType,
+                        gameType       = task.gameType,
                         onGameComplete = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
                     )
                 } else {
-                    // Render interaction blocks
                     val block = task.interactionBlocks.getOrNull(uiState.currentBlockIndex)
                     if (block != null) {
                         BlockProgressIndicator(
@@ -174,11 +170,10 @@ fun TaskExecutionScreen(
                         )
                         InteractionBlockRenderer(block = block, onEvent = viewModel::onEvent)
                     } else {
-                        // All blocks answered — show submit
                         SubmitSection(
-                            isLoading   = uiState.isCompleting,
-                            taskColor   = taskColor,
-                            onSubmit    = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
+                            isLoading = uiState.isCompleting,
+                            taskColor = taskColor,
+                            onSubmit  = { viewModel.onEvent(ExecutionEvent.SubmitTask) }
                         )
                     }
                 }
@@ -187,7 +182,16 @@ fun TaskExecutionScreen(
             Spacer(Modifier.height(40.dp))
         }
 
-
+        if (uiState.showSuccessAnim && uiState.result is CompletionResult.Success) {
+            val result = uiState.result as CompletionResult.Success
+            SuccessOverlay(
+                xpGained           = result.xpGained,
+                needsParent        = result.needsParent,
+                celebrationMessage = uiState.celebrationMessage,
+                taskColor          = taskColor,
+                onDismiss          = { viewModel.onEvent(ExecutionEvent.DismissResult) }
+            )
+        }
     }
 }
 
@@ -225,10 +229,12 @@ private fun SubmitSection(isLoading: Boolean, taskColor: Color, onSubmit: () -> 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("All done? Tap to submit! 🎉",
-            style = MaterialTheme.typography.titleLarge,
+        Text(
+            "All done? Tap to submit! 🎉",
+            style      = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center)
+            textAlign  = TextAlign.Center
+        )
         Button(
             onClick  = onSubmit,
             enabled  = !isLoading,
@@ -249,6 +255,7 @@ private fun SubmitSection(isLoading: Boolean, taskColor: Color, onSubmit: () -> 
 private fun SuccessOverlay(
     xpGained: Int,
     needsParent: Boolean,
+    celebrationMessage: String,
     taskColor: Color,
     onDismiss: () -> Unit
 ) {
@@ -258,30 +265,28 @@ private fun SuccessOverlay(
         label         = "success_scale"
     )
     Box(
-        modifier = Modifier
+        modifier         = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.6f)),
         contentAlignment = Alignment.Center
     ) {
         Card(
-            modifier  = Modifier
-                .fillMaxWidth(0.85f)
-                .scale(scale),
+            modifier  = Modifier.fillMaxWidth(0.85f).scale(scale),
             shape     = RoundedCornerShape(28.dp),
             colors    = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(16.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier            = Modifier.padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(if (needsParent) "⏳" else "🎉", fontSize = 72.sp)
                 Text(
                     if (needsParent) "Waiting for Parent!" else "Task Complete!",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style      = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
+                    textAlign  = TextAlign.Center
                 )
                 if (!needsParent) {
                     Box(
@@ -293,16 +298,29 @@ private fun SuccessOverlay(
                         Text("+$xpGained XP ⭐", color = taskColor, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
                     }
                 }
-                Text(
-                    if (needsParent) "Your parent will confirm this task soon." else "Amazing work! Keep it up!",
-                    color = Color.Gray, textAlign = TextAlign.Center
-                )
+                if (celebrationMessage.isNotBlank()) {
+                    Text(
+                        text       = celebrationMessage,
+                        fontSize   = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color      = Color(0xFF444444),
+                        textAlign  = TextAlign.Center
+                    )
+                } else {
+                    Text(
+                        if (needsParent) "Your parent will confirm this task soon." else "Amazing work! Keep it up!",
+                        color     = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Button(
                     onClick  = onDismiss,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape    = RoundedCornerShape(16.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = taskColor)
-                ) { Text("Back to Tasks", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+                ) {
+                    Text("Back to Tasks", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
             }
         }
     }

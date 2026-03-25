@@ -51,6 +51,7 @@ import com.kidsroutine.feature.generation.ui.GenerationScreen
 import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.onboarding.ui.ParentOnboardingWizard
+import com.kidsroutine.feature.parent.ui.ParentAiInsightCard
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
 import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen
 import com.kidsroutine.feature.settings.ui.SettingsScreen
@@ -62,10 +63,9 @@ private val GradientEnd   = Color(0xFFFFD93D)
 private val BgLight       = Color(0xFFFFFBF0)
 private val TextDark      = Color(0xFF2D3436)
 private val PinkChat      = Color(0xFFEC407A)
-private val RingDone      = Color(0xFF06D6A0)   // ← completion ring filled color
-private val RingTrack     = Color(0xFFE0E0E0)   // ← ring track color
+private val RingDone      = Color(0xFF06D6A0)
+private val RingTrack     = Color(0xFFE0E0E0)
 
-// ── Entry point ───────────────────────────────────────────────────────────────
 @Composable
 fun ParentDashboardScreen(
     currentUser: UserModel,
@@ -102,16 +102,17 @@ fun ParentDashboardScreen(
             composable("home") {
                 currentTab = "home"
                 ParentHomeTab(
-                    currentUser            = currentUser,
-                    familyMembers          = familyMembers.filter { it.userId != currentUser.userId },
-                    uiState                = uiState,
-                    unreadCount            = notifState.unreadCount,
-                    onNotificationsClick   = { innerNav.navigate("notifications") },
-                    onProfileClick         = onProfileClick,
-                    onPendingClick         = { innerNav.navigate("tasks") },
-                    onFamilyMessagingClick = onFamilyMessagingClick,
-                    onCreateTaskClick      = { innerNav.navigate("tasks") },
-                    onPrivilegeApprovalsClick  = { innerNav.navigate("privilege_approvals") }
+                    currentUser               = currentUser,
+                    familyMembers             = familyMembers.filter { it.userId != currentUser.userId },
+                    uiState                   = uiState,
+                    unreadCount               = notifState.unreadCount,
+                    onNotificationsClick      = { innerNav.navigate("notifications") },
+                    onProfileClick            = onProfileClick,
+                    onPendingClick            = { innerNav.navigate("tasks") },
+                    onFamilyMessagingClick    = onFamilyMessagingClick,
+                    onCreateTaskClick         = { innerNav.navigate("tasks") },
+                    onPrivilegeApprovalsClick = { innerNav.navigate("privilege_approvals") },
+                    onGenerateForChild        = { innerNav.navigate("generation") }
                 )
             }
             composable("tasks") {
@@ -205,12 +206,12 @@ fun ParentDashboardScreen(
                 .navigationBarsPadding()
         ) {
             Button(
-                onClick  = onFamilyMessagingClick,
-                modifier = Modifier.size(width = 56.dp, height = 50.dp),
-                shape    = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
-                colors   = ButtonDefaults.buttonColors(containerColor = PinkChat),
+                onClick        = onFamilyMessagingClick,
+                modifier       = Modifier.size(width = 56.dp, height = 50.dp),
+                shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
+                colors         = ButtonDefaults.buttonColors(containerColor = PinkChat),
                 contentPadding = PaddingValues(0.dp),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
                 Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
             }
@@ -218,9 +219,6 @@ fun ParentDashboardScreen(
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TAB 1 — HOME
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
 private fun ParentHomeTab(
     currentUser: UserModel,
@@ -233,6 +231,7 @@ private fun ParentHomeTab(
     onFamilyMessagingClick: () -> Unit,
     onCreateTaskClick: () -> Unit,
     onPrivilegeApprovalsClick: () -> Unit,
+    onGenerateForChild: (UserModel) -> Unit = {}
 ) {
     var selectedChild by remember { mutableStateOf<UserModel?>(null) }
 
@@ -326,16 +325,23 @@ private fun ParentHomeTab(
                     )
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
+
+            ParentAiInsightCard(
+                children           = familyMembers,
+                onGenerateForChild = onGenerateForChild
+            )
+
+            Spacer(Modifier.height(8.dp))
         }
 
         Text("Quick Actions", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(Modifier.height(12.dp))
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            QuickActionRow(Icons.Default.Add,          Color(0xFF4A90E2), "Create a Task",       "Assign a new task to your children",   onCreateTaskClick)
-            QuickActionRow(Icons.Default.Pending,      Color(0xFFFF9800), "Child Proposals",     "Tasks your children want to do",       onPendingClick)
-            QuickActionRow(Icons.Default.EmojiEvents,  Color(0xFF9B59B6), "Start a Challenge",   "Set a family-wide goal",               onPendingClick)
-            QuickActionRow(Icons.Default.Shield,       Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",   onPrivilegeApprovalsClick)
+            QuickActionRow(Icons.Default.Add,         Color(0xFF4A90E2), "Create a Task",       "Assign a new task to your children",  onCreateTaskClick)
+            QuickActionRow(Icons.Default.Pending,     Color(0xFFFF9800), "Child Proposals",     "Tasks your children want to do",      onPendingClick)
+            QuickActionRow(Icons.Default.EmojiEvents, Color(0xFF9B59B6), "Start a Challenge",   "Set a family-wide goal",              onPendingClick)
+            QuickActionRow(Icons.Default.Shield,      Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",  onPrivilegeApprovalsClick)
         }
 
         Spacer(Modifier.height(32.dp))
@@ -362,14 +368,9 @@ private fun ParentHomeTab(
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// CHILD SUMMARY CARD — with completion ring
-// ══════════════════════════════════════════════════════════════════════════════
 @Composable
 private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
     var isOnline by remember { mutableStateOf(false) }
-
-    // Real-time: how many task_instances are COMPLETED today vs total assigned today
     var completedToday by remember { mutableStateOf(0) }
     var totalToday     by remember { mutableStateOf(0) }
 
@@ -380,39 +381,26 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
 
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
-
-        // Online presence
         db.collection("users").document(child.userId)
-            .addSnapshotListener { snap, _ ->
-                isOnline = snap?.getBoolean("isOnline") ?: false
-            }
-
-        // Today's task_instances for this child
+            .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
         db.collection("task_instances")
             .whereEqualTo("childId", child.userId)
             .whereEqualTo("date", today)
             .addSnapshotListener { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
                 totalToday     = snap.size()
-                completedToday = snap.documents.count { doc ->
-                    doc.getString("status") == "COMPLETED"
-                }
+                completedToday = snap.documents.count { doc -> doc.getString("status") == "COMPLETED" }
             }
     }
 
-    // Animate the arc sweep — 0° → (completedToday/totalToday * 360°)
     val sweepTarget = if (totalToday > 0) (completedToday.toFloat() / totalToday.toFloat()) * 360f else 0f
-    val animatedSweep by animateFloatAsState(
-        targetValue   = sweepTarget,
-        animationSpec = tween(800),
-        label         = "ringSwipe_${child.userId}"
-    )
+    val animatedSweep by animateFloatAsState(targetValue = sweepTarget, animationSpec = tween(800), label = "ringSwipe_${child.userId}")
 
     val ringColor = when {
-        totalToday == 0           -> Color.LightGray          // no tasks yet — gray
-        completedToday == totalToday -> RingDone              // all done — green
-        completedToday > 0        -> OrangePrimary            // partial — orange
-        else                      -> Color(0xFFE0E0E0)        // none done — light gray
+        totalToday == 0              -> Color.LightGray
+        completedToday == totalToday -> RingDone
+        completedToday > 0           -> OrangePrimary
+        else                         -> Color(0xFFE0E0E0)
     }
 
     Card(
@@ -421,79 +409,35 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier            = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // ── Avatar + ring ──────────────────────────────────────────────
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-
-                // Track ring (full circle, faint)
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawArc(
-                        color      = RingTrack,
-                        startAngle = -90f,
-                        sweepAngle = 360f,
-                        useCenter  = false,
-                        style      = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
-                        topLeft    = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
-                        size       = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx())
-                    )
+                    drawArc(color = RingTrack, startAngle = -90f, sweepAngle = 360f, useCenter = false,
+                        style   = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+                        topLeft = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
+                        size    = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx()))
                 }
-
-                // Filled arc — animates from 0 to sweep
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     if (animatedSweep > 0f) {
-                        drawArc(
-                            color      = ringColor,
-                            startAngle = -90f,
-                            sweepAngle = animatedSweep,
-                            useCenter  = false,
-                            style      = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
-                            topLeft    = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
-                            size       = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx())
-                        )
+                        drawArc(color = ringColor, startAngle = -90f, sweepAngle = animatedSweep, useCenter = false,
+                            style   = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
+                            topLeft = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
+                            size    = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx()))
                     }
                 }
-
-                // Avatar circle inside the ring
-                Surface(
-                    modifier = Modifier.size(52.dp),
-                    shape    = CircleShape,
-                    color    = OrangePrimary.copy(alpha = 0.15f)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("👤", fontSize = 26.sp)
-                    }
+                Surface(modifier = Modifier.size(52.dp), shape = CircleShape, color = OrangePrimary.copy(alpha = 0.15f)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 26.sp) }
                 }
-
-                // Online dot
                 if (isOnline) {
-                    Surface(
-                        modifier = Modifier.size(12.dp).align(Alignment.BottomEnd),
-                        shape    = CircleShape,
-                        color    = Color(0xFF4CAF50)
-                    ) {}
+                    Surface(modifier = Modifier.size(12.dp).align(Alignment.BottomEnd), shape = CircleShape, color = Color(0xFF4CAF50)) {}
                 }
             }
-
             Spacer(Modifier.height(8.dp))
-            Text(
-                child.displayName.split(" ").first(),
-                fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
+            Text(child.displayName.split(" ").first(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("Lv ${child.level}", fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
-
-            // Completion label below the card — "3/5 done" or "No tasks"
             if (totalToday > 0) {
-                Text(
-                    "$completedToday/$totalToday done",
-                    fontSize   = 10.sp,
-                    color      = ringColor,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("$completedToday/$totalToday done", fontSize = 10.sp, color = ringColor, fontWeight = FontWeight.SemiBold)
             } else {
                 Text("${child.xp} XP", fontSize = 11.sp, color = Color.Gray)
             }
@@ -501,15 +445,11 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
     }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// All other composables — identical to committed version
-// ══════════════════════════════════════════════════════════════════════════════
-
 @Composable
 private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit) {
-    var selectedSegment by remember { mutableStateOf(0) }
-    var showCreateTask by remember { mutableStateOf(false) }
-    var createdTask by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
+    var selectedSegment    by remember { mutableStateOf(0) }
+    var showCreateTask     by remember { mutableStateOf(false) }
+    var createdTask        by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
     var showStartChallenge by remember { mutableStateOf(false) }
 
     when {
@@ -582,9 +522,9 @@ private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit) {
         }
 
         when (selectedSegment) {
-            0 -> com.kidsroutine.feature.tasks.ui.TaskListScreen(currentUser = currentUser, onCreateTaskClick = { showCreateTask = true }, onBackClick = { })
-            1 -> com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen(currentUser = currentUser, onBackClick = { })
-            2 -> com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen(currentUser = currentUser, onBackClick = { }, onStartChallengeClick = { showStartChallenge = true }, onChallengeClick = { })
+            0 -> TaskListScreen(currentUser = currentUser, onCreateTaskClick = { showCreateTask = true }, onBackClick = { })
+            1 -> ParentPendingTasksScreen(currentUser = currentUser, onBackClick = { })
+            2 -> ActiveChallengesScreen(currentUser = currentUser, onBackClick = { }, onStartChallengeClick = { showStartChallenge = true }, onChallengeClick = { })
         }
     }
 }
@@ -702,13 +642,13 @@ private fun ParentDiscoverTab(
         }
         Spacer(Modifier.height(20.dp))
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DiscoverCard("✨", "AI Task Generator",    "Create personalised tasks using AI",          Color(0xFF4A90E2), onGenerationClick)
-            DiscoverCard("📅", "Weekly Planner",       "AI 7-day family schedule · PRO",              Color(0xFF11998E), onWeeklyPlanClick)
-            DiscoverCard("🎁", "Content Packs",        "Browse & unlock themed task packs",           Color(0xFF667EEA), onContentPacksClick)
-            DiscoverCard("🌍", "Community Library",    "Browse tasks shared by other families",       Color(0xFF667EEA), onMarketplaceClick)
-            DiscoverCard("📤", "Publish Content",      "Share your best tasks with the community",    Color(0xFFFF6B35), onPublishClick)
+            DiscoverCard("✨", "AI Task Generator",  "Create personalised tasks using AI",        Color(0xFF4A90E2), onGenerationClick)
+            DiscoverCard("📅", "Weekly Planner",     "AI 7-day family schedule · PRO",            Color(0xFF11998E), onWeeklyPlanClick)
+            DiscoverCard("🎁", "Content Packs",      "Browse & unlock themed task packs",         Color(0xFF667EEA), onContentPacksClick)
+            DiscoverCard("🌍", "Community Library",  "Browse tasks shared by other families",     Color(0xFF667EEA), onMarketplaceClick)
+            DiscoverCard("📤", "Publish Content",    "Share your best tasks with the community",  Color(0xFFFF6B35), onPublishClick)
             if (currentUser.isAdmin) {
-                DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",      Color(0xFFE74C3C), onModerationClick)
+                DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",  Color(0xFFE74C3C), onModerationClick)
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -768,7 +708,7 @@ private fun ActionRequiredBanner(message: String, onClick: () -> Unit, modifier:
 
 @Composable
 private fun FamilyMemberRow(child: UserModel) {
-    var isOnline by remember { mutableStateOf(false) }
+    var isOnline    by remember { mutableStateOf(false) }
     var displayName by remember { mutableStateOf(child.displayName) }
     LaunchedEffect(child.userId) {
         FirebaseFirestore.getInstance().collection("users").document(child.userId)
