@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.Language
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
 import com.kidsroutine.feature.lootbox.ui.LootBoxScreen
-import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.rewards.ui.RewardsScreen
@@ -171,14 +170,6 @@ fun ChildMainScreen(
                 )
             }
 
-            composable("moments") {
-                currentRoute = "moments"
-                MomentsScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNavController.navigate("daily") }
-                )
-            }
-
             composable("notifications") {
                 currentRoute = "notifications"
                 NotificationsScreen(
@@ -232,7 +223,6 @@ fun ChildMainScreen(
             onLeaderboardClick      = { innerNavController.navigate("leaderboard")   { popUpTo("daily") } },
             onWorldClick            = { innerNavController.navigate("world")         { popUpTo("daily") } },
             onAchievementsClick     = { innerNavController.navigate("achievements")  { popUpTo("daily") } },
-            onMomentsClick          = { innerNavController.navigate("moments")       { popUpTo("daily") } },
             onChatClick             = onFamilyMessagingClick,
             onRewardsClick          = { innerNavController.navigate("rewards")       { popUpTo("daily") } },
             pendingRewardCount      = 0,
@@ -290,7 +280,6 @@ private fun PersistentNavBar(
     onLeaderboardClick: () -> Unit,
     onWorldClick: () -> Unit,
     onAchievementsClick: () -> Unit,
-    onMomentsClick: () -> Unit,
     onChatClick: () -> Unit,
     unreadNotificationCount: Int = 0,
     onNotificationsClick: () -> Unit = {},
@@ -342,13 +331,6 @@ private fun PersistentNavBar(
                         label      = "World",
                         isSelected = currentRoute == "world",
                         onClick    = onWorldClick,
-                        modifier   = Modifier.weight(1f)
-                    )
-                    NavBarItemButton(
-                        icon       = Icons.Default.PhotoAlbum,
-                        label      = "Moments",
-                        isSelected = currentRoute == "moments",
-                        onClick    = onMomentsClick,
                         modifier   = Modifier.weight(1f)
                     )
 

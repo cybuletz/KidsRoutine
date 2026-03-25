@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.parent.ui
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,10 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.kidsroutine.core.model.PrivilegeRequest
 import com.kidsroutine.core.model.UserModel
 
 private val GradientStart = Color(0xFFFF6B35)
@@ -29,48 +29,16 @@ private val TextDark      = Color(0xFF2D3436)
 private val GreenApprove  = Color(0xFF06D6A0)
 private val RedDeny       = Color(0xFFEF476F)
 
-// ── Stub data class — replace with your real domain model ────────────────────
-data class PrivilegeRequest(
-    val id: String,
-    val childName: String,
-    val childEmoji: String = "👤",
-    val privilegeTitle: String,
-    val privilegeDescription: String,
-    val requestedAt: String = "Just now"
-)
-
 @Composable
 fun ParentPrivilegeApprovalsScreen(
     currentUser: UserModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: ParentPrivilegeApprovalsViewModel = hiltViewModel()
 ) {
-    // Stub list — swap with ViewModel state when your data layer is ready
-    var requests by remember {
-        mutableStateOf(
-            listOf(
-                PrivilegeRequest(
-                    id                   = "1",
-                    childName            = "Alex",
-                    privilegeTitle       = "Extra Screen Time",
-                    privilegeDescription = "Alex is requesting 30 extra minutes of screen time tonight.",
-                    requestedAt          = "5 min ago"
-                ),
-                PrivilegeRequest(
-                    id                   = "2",
-                    childName            = "Mia",
-                    privilegeTitle       = "Stay Up Late",
-                    privilegeDescription = "Mia wants to stay up until 10 PM on Friday.",
-                    requestedAt          = "1 hour ago"
-                ),
-                PrivilegeRequest(
-                    id                   = "3",
-                    childName            = "Alex",
-                    privilegeTitle       = "Skip Chores",
-                    privilegeDescription = "Alex wants to skip room-cleaning today because of a school project.",
-                    requestedAt          = "2 hours ago"
-                )
-            )
-        )
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(currentUser.familyId) {
+        viewModel.loadRequests(currentUser.familyId)
     }
 
     Column(
@@ -91,29 +59,16 @@ fun ParentPrivilegeApprovalsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBackClick) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint               = Color.White
-                    )
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                 }
                 Spacer(Modifier.width(4.dp))
-                Icon(
-                    Icons.Default.Shield,
-                    contentDescription = null,
-                    tint               = Color.White,
-                    modifier           = Modifier.size(22.dp)
-                )
+                Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Column {
+                    Text("Privilege Approvals", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Text(
-                        "Privilege Approvals",
-                        fontSize   = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = Color.White
-                    )
-                    Text(
-                        "${requests.size} pending",
+                        if (uiState.isLoading) "Loading…"
+                        else "${uiState.requests.size} pending",
                         fontSize = 13.sp,
                         color    = Color.White.copy(alpha = 0.8f)
                     )
@@ -121,41 +76,51 @@ fun ParentPrivilegeApprovalsScreen(
             }
         }
 
-        // ── List ──────────────────────────────────────────────────────────
-        if (requests.isEmpty()) {
-            Box(
-                modifier         = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("✅", fontSize = 52.sp)
-                    Text(
-                        "All caught up!",
-                        fontSize   = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = TextDark
-                    )
-                    Text(
-                        "No pending privilege requests.",
-                        fontSize = 14.sp,
-                        color    = Color.Gray
-                    )
+        when {
+            uiState.isLoading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = GradientStart)
                 }
             }
-        } else {
-            LazyColumn(
-                contentPadding      = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(requests, key = { it.id }) { request ->
-                    PrivilegeRequestCard(
-                        request   = request,
-                        onApprove = { requests = requests.filter { it.id != request.id } },
-                        onDeny    = { requests = requests.filter { it.id != request.id } }
-                    )
+            uiState.error != null -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("⚠️", fontSize = 40.sp)
+                        Text("Failed to load", fontWeight = FontWeight.Bold, color = TextDark)
+                        Text(uiState.error!!, fontSize = 12.sp, color = Color.Gray)
+                        Button(
+                            onClick = { viewModel.loadRequests(currentUser.familyId) },
+                            colors  = ButtonDefaults.buttonColors(containerColor = GradientStart)
+                        ) { Text("Retry") }
+                    }
+                }
+            }
+            uiState.requests.isEmpty() -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("✅", fontSize = 52.sp)
+                        Text("All caught up!", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                        Text("No pending privilege requests.", fontSize = 14.sp, color = Color.Gray)
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    contentPadding      = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.requests, key = { it.requestId }) { request ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter   = fadeIn() + expandVertically()
+                        ) {
+                            PrivilegeRequestCard(
+                                request   = request,
+                                onApprove = { viewModel.approveRequest(request) },
+                                onDeny    = { viewModel.denyRequest(request) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -175,114 +140,64 @@ private fun PrivilegeRequestCard(
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier            = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Child info row ─────────────────────────────────────────
             Row(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape    = CircleShape,
-                    color    = GradientStart.copy(alpha = 0.12f)
-                ) {
+                Surface(modifier = Modifier.size(42.dp), shape = CircleShape, color = GradientStart.copy(alpha = 0.12f)) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text(request.childEmoji, fontSize = 20.sp)
+                        Text(request.privilegeEmoji.ifBlank { "🎁" }, fontSize = 22.sp)
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
+                    Text(request.childName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
                     Text(
-                        request.childName,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 15.sp,
-                        color      = TextDark
-                    )
-                    Text(
-                        request.requestedAt,
+                        android.text.format.DateUtils.getRelativeTimeSpanString(
+                            request.requestedAt,
+                            System.currentTimeMillis(),
+                            android.text.format.DateUtils.MINUTE_IN_MILLIS
+                        ).toString(),
                         fontSize = 11.sp,
                         color    = Color.Gray
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFFFF3E0)
-                ) {
-                    Text(
-                        "Pending",
-                        fontSize   = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color      = GradientStart,
-                        modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFFFF3E0)) {
+                    Text("Pending", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = GradientStart,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
                 }
             }
 
-            // ── Privilege details ──────────────────────────────────────
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape    = RoundedCornerShape(10.dp),
-                color    = Color(0xFFF9F9F9)
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        request.privilegeTitle,
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 14.sp,
-                        color      = TextDark
-                    )
-                    Text(
-                        request.privilegeDescription,
-                        fontSize = 13.sp,
-                        color    = Color.Gray
-                    )
+            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = Color(0xFFF9F9F9)) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(request.privilegeTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("⭐ ${request.xpCost} XP", fontSize = 12.sp, color = GradientStart, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
 
-            // ── Action buttons ─────────────────────────────────────────
-            Row(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Deny
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(
                     onClick  = onDeny,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape  = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = RedDeny),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, RedDeny)
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape    = RoundedCornerShape(12.dp),
+                    colors   = ButtonDefaults.outlinedButtonColors(contentColor = RedDeny),
+                    border   = androidx.compose.foundation.BorderStroke(1.5.dp, RedDeny)
                 ) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Deny",
-                        modifier           = Modifier.size(16.dp)
-                    )
+                    Icon(Icons.Default.Close, contentDescription = "Deny", modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Deny", fontWeight = FontWeight.SemiBold)
                 }
-                // Approve
                 Button(
                     onClick  = onApprove,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape  = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GreenApprove)
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    shape    = RoundedCornerShape(12.dp),
+                    colors   = ButtonDefaults.buttonColors(containerColor = GreenApprove)
                 ) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "Approve",
-                        tint               = Color.White,
-                        modifier           = Modifier.size(16.dp)
-                    )
+                    Icon(Icons.Default.Check, contentDescription = "Approve", tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Approve", color = Color.White, fontWeight = FontWeight.SemiBold)
                 }

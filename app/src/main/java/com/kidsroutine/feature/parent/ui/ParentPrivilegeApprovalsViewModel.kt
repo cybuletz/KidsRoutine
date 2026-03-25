@@ -15,8 +15,7 @@ import javax.inject.Inject
 
 data class PrivilegeApprovalsUiState(
     val isLoading: Boolean = false,
-    val pendingRequests: List<PrivilegeRequest> = emptyList(),
-    val successMessage: String? = null,
+    val requests: List<PrivilegeRequest> = emptyList(),
     val error: String? = null
 )
 
@@ -28,41 +27,35 @@ class ParentPrivilegeApprovalsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PrivilegeApprovalsUiState())
     val uiState: StateFlow<PrivilegeApprovalsUiState> = _uiState.asStateFlow()
 
-    fun loadPendingRequests(familyId: String) {
+    fun loadRequests(familyId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val snapshot = firestore.collection("privilege_requests")
                     .whereEqualTo("familyId", familyId)
-                    .whereEqualTo("status", PrivilegeRequestStatus.PENDING.name)
+                    .whereEqualTo("status", "PENDING")
                     .orderBy("requestedAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .get()
                     .await()
                 val requests = snapshot.documents.mapNotNull { doc ->
                     doc.toObject(PrivilegeRequest::class.java)?.copy(requestId = doc.id)
                 }
-                _uiState.value = _uiState.value.copy(isLoading = false, pendingRequests = requests)
+                _uiState.value = _uiState.value.copy(isLoading = false, requests = requests)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }
 
-    fun approveRequest(requestId: String, note: String = "") {
+    fun approveRequest(request: PrivilegeRequest) {
         viewModelScope.launch {
             try {
                 firestore.collection("privilege_requests")
-                    .document(requestId)
-                    .update(
-                        mapOf(
-                            "status"     to PrivilegeRequestStatus.APPROVED.name,
-                            "parentNote" to note,
-                            "resolvedAt" to System.currentTimeMillis()
-                        )
-                    ).await()
+                    .document(request.requestId)
+                    .update("status", "APPROVED")
+                    .await()
                 _uiState.value = _uiState.value.copy(
-                    pendingRequests = _uiState.value.pendingRequests.filter { it.requestId != requestId },
-                    successMessage  = "✅ Approved!"
+                    requests = _uiState.value.requests.filter { it.requestId != request.requestId }
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
@@ -70,29 +63,19 @@ class ParentPrivilegeApprovalsViewModel @Inject constructor(
         }
     }
 
-    fun rejectRequest(requestId: String, note: String) {
+    fun denyRequest(request: PrivilegeRequest) {
         viewModelScope.launch {
             try {
                 firestore.collection("privilege_requests")
-                    .document(requestId)
-                    .update(
-                        mapOf(
-                            "status"     to PrivilegeRequestStatus.REJECTED.name,
-                            "parentNote" to note,
-                            "resolvedAt" to System.currentTimeMillis()
-                        )
-                    ).await()
+                    .document(request.requestId)
+                    .update("status", "REJECTED")
+                    .await()
                 _uiState.value = _uiState.value.copy(
-                    pendingRequests = _uiState.value.pendingRequests.filter { it.requestId != requestId },
-                    successMessage  = "Request declined."
+                    requests = _uiState.value.requests.filter { it.requestId != request.requestId }
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }
         }
-    }
-
-    fun clearMessages() {
-        _uiState.value = _uiState.value.copy(successMessage = null, error = null)
     }
 }
