@@ -1,17 +1,19 @@
 package com.kidsroutine.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
+import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
+import com.kidsroutine.feature.billing.ContentPacksScreen
+import com.kidsroutine.feature.billing.ContentPacksViewModel
+import com.kidsroutine.feature.billing.UpgradeScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.challenges.ui.StartChallengesScreen
@@ -27,28 +29,22 @@ import com.kidsroutine.feature.generation.ui.GenerationScreen
 import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
+import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen   // ← NEW IMPORT
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.profile.ui.ParentProfileScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
 import com.kidsroutine.feature.tasks.ui.CreateTaskScreen
 import com.kidsroutine.feature.tasks.ui.SelectChildrenScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
-import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
-import com.kidsroutine.feature.billing.ContentPacksScreen
-import com.kidsroutine.feature.billing.ContentPacksViewModel
-import com.kidsroutine.feature.billing.UpgradeScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.kidsroutine.core.model.TaskModel
-
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
     familyMembers: List<UserModel>,
     navController: NavController,
-    onSignOut: () -> Unit          // ← NEW
+    onSignOut: () -> Unit
 ) {
     navigation(
         route            = "parent_graph",
@@ -62,7 +58,7 @@ fun NavGraphBuilder.parentNavGraph(
                 onUpgradeClick         = { navController.navigate(Routes.UPGRADE) },
                 onContentPacksClick    = { navController.navigate(Routes.CONTENT_PACKS) },
                 onProfileClick         = { navController.navigate(Routes.PARENT_PROFILE) },
-                onSignOutClick         = onSignOut   // ← uses the real callback
+                onSignOutClick         = onSignOut
             )
         }
 
@@ -81,15 +77,15 @@ fun NavGraphBuilder.parentNavGraph(
         }
 
         composable(Routes.CHILD_PROFILE) {
-            val selectedChild = remember { mutableStateOf<UserModel?>(null) }
+            val selectedChild  = remember { mutableStateOf<UserModel?>(null) }
             val childToDisplay = selectedChild.value ?: familyMembers.firstOrNull()
             if (childToDisplay != null) {
                 ChildProfileScreen(
-                    user                  = childToDisplay,
-                    onBackClick           = { navController.popBackStack() },
+                    user                   = childToDisplay,
+                    onBackClick            = { navController.popBackStack() },
                     onAvatarCustomizeClick = { navController.navigate(Routes.AVATAR_CUSTOMIZATION) },
-                    onStatsClick          = { navController.navigate(Routes.PARENT_STATS) },
-                    onSettingsClick       = { navController.popBackStack() }
+                    onStatsClick           = { navController.navigate(Routes.PARENT_STATS) },
+                    onSettingsClick        = { navController.popBackStack() }
                 )
             }
         }
@@ -118,9 +114,9 @@ fun NavGraphBuilder.parentNavGraph(
             when {
                 createdTask != null -> {
                     SelectChildrenScreen(
-                        task         = createdTask!!,
-                        currentUser  = currentUser,
-                        onBackClick  = { createdTask = null; showCreateTaskScreen = false },
+                        task                 = createdTask!!,
+                        currentUser          = currentUser,
+                        onBackClick          = { createdTask = null; showCreateTaskScreen = false },
                         onAssignmentComplete = { createdTask = null; showCreateTaskScreen = false }
                     )
                 }
@@ -148,20 +144,28 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
+        // ── Privilege Approvals ─────────────────────────────────────────
+        composable(Routes.PRIVILEGE_APPROVALS) {
+            ParentPrivilegeApprovalsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
         composable(Routes.PARENT_CHALLENGES) {
             val showStartChallengeScreen = remember { mutableStateOf(false) }
             if (showStartChallengeScreen.value) {
                 StartChallengesScreen(
-                    currentUser      = currentUser,
-                    onBackClick      = { showStartChallengeScreen.value = false },
+                    currentUser        = currentUser,
+                    onBackClick        = { showStartChallengeScreen.value = false },
                     onChallengeStarted = { showStartChallengeScreen.value = false }
                 )
             } else {
                 ActiveChallengesScreen(
-                    currentUser          = currentUser,
-                    onBackClick          = { navController.popBackStack() },
+                    currentUser           = currentUser,
+                    onBackClick           = { navController.popBackStack() },
                     onStartChallengeClick = { showStartChallengeScreen.value = true },
-                    onChallengeClick     = { challenge ->
+                    onChallengeClick      = { challenge ->
                         navController.navigate(Routes.parentChallengeDetail(challenge.challengeId))
                     }
                 )

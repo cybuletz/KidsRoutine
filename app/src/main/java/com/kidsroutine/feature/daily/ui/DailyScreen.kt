@@ -41,17 +41,20 @@ import com.kidsroutine.core.engine.SeasonalThemeManager
 
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
-private val YellowPrimary = Color(0xFFFFD93D)
-private val OrangePrimary = Color(0xFFFF6B35)
-private val TealSecondary = Color(0xFF4ECDC4)
-private val CoopPurple    = Color(0xFF9B5DE5)
-private val LogicBlue     = Color(0xFF4361EE)
-private val RealLifeGreen = Color(0xFF06D6A0)
-private val BgLight       = Color(0xFFFFFBF0)
-private val TextDark = Color(0xFF2D3436)
-private val DoneGreen = Color(0xFF06D6A0)
+private val YellowPrimary  = Color(0xFFFFD93D)
+private val OrangePrimary  = Color(0xFFFF6B35)
+private val TealSecondary  = Color(0xFF4ECDC4)
+private val CoopPurple     = Color(0xFF9B5DE5)
+private val LogicBlue      = Color(0xFF4361EE)
+private val RealLifeGreen  = Color(0xFF06D6A0)
+private val BgLight        = Color(0xFFFFFBF0)
+private val TextDark       = Color(0xFF2D3436)
+private val DoneGreen      = Color(0xFF06D6A0)
 private val DoneGreenLight = Color(0xFF06D6A0).copy(alpha = 0.10f)
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DailyScreen — adds onLootBoxClick
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun DailyScreen(
     currentUser: UserModel,
@@ -61,7 +64,8 @@ fun DailyScreen(
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onNotificationsClick: () -> Unit,  // ← ADD THIS PARAMETER
+    onNotificationsClick: () -> Unit,
+    onLootBoxClick: () -> Unit = {},          // ← NEW
     viewModel: DailyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -87,19 +91,23 @@ fun DailyScreen(
             uiState.isLoading -> DailyLoadingScreen()
             uiState.dailyState.tasks.isEmpty() -> DailyEmptyScreen()
             else -> DailyContent(
-                uiState = uiState,
-                onTaskClick = onTaskClick,
-                onChallengesClick = onChallengesClick,
-                onAchievementsClick = onAchievementsClick,
+                uiState                = uiState,
+                onTaskClick            = onTaskClick,
+                onChallengesClick      = onChallengesClick,
+                onAchievementsClick    = onAchievementsClick,
                 onFamilyMessagingClick = onFamilyMessagingClick,
-                onStatsClick = onStatsClick,
-                onProfileClick = onProfileClick,
-                onNotificationsClick = onNotificationsClick  // ← PASS IT THROUGH
+                onStatsClick           = onStatsClick,
+                onProfileClick         = onProfileClick,
+                onNotificationsClick   = onNotificationsClick,
+                onLootBoxClick         = onLootBoxClick          // ← NEW
             )
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DailyContent — threads onLootBoxClick down
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun DailyContent(
     uiState: DailyUiState,
@@ -109,24 +117,25 @@ private fun DailyContent(
     onFamilyMessagingClick: () -> Unit,
     onStatsClick: () -> Unit,
     onProfileClick: () -> Unit,
-    onNotificationsClick: () -> Unit
+    onNotificationsClick: () -> Unit,
+    onLootBoxClick: () -> Unit              // ← NEW
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp),
+            modifier            = Modifier.fillMaxSize(),
+            contentPadding      = PaddingValues(bottom = 80.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ✅ SIMPLE: Just the header
             item {
                 DailyHeader(
-                    uiState = uiState,
-                    onProfileClick = onProfileClick,
+                    uiState              = uiState,
+                    onProfileClick       = onProfileClick,
                     onNotificationsClick = onNotificationsClick
                 )
             }
 
-            item { ProgressSection(uiState.dailyState, uiState.currentUser) }
+            // ← ProgressSection now receives onLootBoxClick
+            item { ProgressSection(uiState.dailyState, uiState.currentUser, onLootBoxClick) }
 
             item {
                 val arc = uiState.activeStoryArc
@@ -137,20 +146,20 @@ private fun DailyContent(
 
             item {
                 Text(
-                    text = "Today's Tasks",
-                    style = MaterialTheme.typography.titleLarge,
+                    text       = "Today's Tasks",
+                    style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    modifier   = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
                 )
             }
 
             items(
                 items = uiState.dailyState.tasks,
-                key = { it.instanceId }
+                key   = { it.instanceId }
             ) { instance ->
                 TaskCard(
                     instance = instance,
-                    onClick = { onTaskClick(instance) }
+                    onClick  = { onTaskClick(instance) }
                 )
             }
         }
@@ -166,73 +175,74 @@ private fun DailyContent(
             ChatBubbleButton(onClick = onFamilyMessagingClick)
         }
 
-        // Bottom Navigation Bar
+        // Bottom Navigation Bar (retained from original — not used when PersistentNavBar is active,
+        // but kept so DailyScreen still compiles standalone if ever needed)
         Surface(
-            modifier = Modifier
+            modifier       = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding(),
-            color = Color.White,
+            color          = Color.White,
             shadowElevation = 12.dp
         ) {
             Row(
-                modifier = Modifier
+                modifier              = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
                     .padding(horizontal = 0.dp, vertical = 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(0.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment     = Alignment.CenterVertically
             ) {
                 NavItemButton(
-                    icon = Icons.Default.Home,
-                    label = "Daily",
+                    icon       = Icons.Default.Home,
+                    label      = "Daily",
                     isSelected = true,
-                    onClick = { },
-                    modifier = Modifier.weight(1f)
+                    onClick    = { },
+                    modifier   = Modifier.weight(1f)
                 )
                 NavItemButton(
-                    icon = Icons.Default.EmojiEvents,
-                    label = "Challenges",
+                    icon       = Icons.Default.EmojiEvents,
+                    label      = "Challenges",
                     isSelected = false,
-                    onClick = onChallengesClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onChallengesClick,
+                    modifier   = Modifier.weight(1f)
                 )
                 NavItemButton(
-                    icon = Icons.Default.BarChart,
-                    label = "Leaderboard",
+                    icon       = Icons.Default.BarChart,
+                    label      = "Leaderboard",
                     isSelected = false,
-                    onClick = onStatsClick,
-                    modifier = Modifier.weight(1f)
+                    onClick    = onStatsClick,
+                    modifier   = Modifier.weight(1f)
                 )
                 Box(modifier = Modifier.weight(1f)) {
                     NavItemButton(
-                        icon = Icons.Default.Language,
-                        label = "World",
+                        icon      = Icons.Default.Language,
+                        label     = "World",
                         isSelected = false,
-                        onClick = { /* handle world nav */ },
-                        modifier = Modifier.fillMaxHeight()
+                        onClick   = { },
+                        modifier  = Modifier.fillMaxHeight()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     NavItemButton(
-                        icon = Icons.Default.PhotoAlbum,
-                        label = "Moments",
+                        icon      = Icons.Default.PhotoAlbum,
+                        label     = "Moments",
                         isSelected = false,
-                        onClick = { /* handle moments */ },
-                        modifier = Modifier.fillMaxHeight()
+                        onClick   = { },
+                        modifier  = Modifier.fillMaxHeight()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     NavItemButton(
-                        icon = Icons.Default.EmojiEvents,
-                        label = "Achievements",
+                        icon      = Icons.Default.EmojiEvents,
+                        label     = "Achievements",
                         isSelected = false,
-                        onClick = onAchievementsClick
+                        onClick   = onAchievementsClick
                     )
                     if (uiState.currentUser.badges.isNotEmpty()) {
                         Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFFF6B35),
+                            shape    = CircleShape,
+                            color    = Color(0xFFFF6B35),
                             modifier = Modifier
                                 .size(18.dp)
                                 .align(Alignment.TopEnd)
@@ -240,10 +250,10 @@ private fun DailyContent(
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                 Text(
-                                    text = "${uiState.currentUser.badges.size}",
-                                    color = Color.White,
+                                    text       = "${uiState.currentUser.badges.size}",
+                                    color      = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 9.sp
+                                    fontSize   = 9.sp
                                 )
                             }
                         }
@@ -254,34 +264,119 @@ private fun DailyContent(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ProgressSection — loot box teaser is now a real Button
+// ─────────────────────────────────────────────────────────────────────────────
 @Composable
-private fun ChatBubbleButton(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .size(width = 56.dp, height = 50.dp),
-        shape = RoundedCornerShape(
-            topStart = 16.dp,
-            topEnd = 16.dp,
-            bottomStart = 16.dp,
-            bottomEnd = 2.dp
-        ),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFEC407A)
-        ),
+private fun ProgressSection(
+    state: DailyStateModel,
+    currentUser: UserModel,
+    onLootBoxClick: () -> Unit           // ← NEW
+) {
+    val allDone = state.completedCount == state.tasks.size && state.tasks.isNotEmpty()
 
-        contentPadding = PaddingValues(0.dp),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+    val animatedProgress by animateFloatAsState(
+        targetValue    = state.completionPercent,
+        animationSpec  = tween(durationMillis = 800, easing = EaseOutCubic),
+        label          = "progress"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue  = 0.3f,
+        targetValue   = if (allDone) 0.9f else 0.3f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label         = "glowAlpha"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape  = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (allDone) Color(0xFFFFD700).copy(alpha = 0.12f) else Color.White
+        ),
+        border    = if (allDone) BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = glowAlpha)) else null,
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Icon(
-            Icons.Default.Message,
-            contentDescription = "Chat",
-            tint = Color.White,
-            modifier = Modifier.size(24.dp)
-        )
+        Column(
+            modifier            = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                if (allDone) {
+                    Text(
+                        "🎉 All done today!",
+                        fontWeight = FontWeight.Bold,
+                        color      = Color(0xFFFF6B35),
+                        fontSize   = 16.sp
+                    )
+                } else {
+                    Text(
+                        "${state.completedCount}/${state.tasks.size} done",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
+            }
+
+            LinearProgressIndicator(
+                progress   = { animatedProgress },
+                modifier   = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(CircleShape),
+                color      = if (allDone) Color(0xFFFFD700) else OrangePrimary,
+                trackColor = OrangePrimary.copy(alpha = 0.15f)
+            )
+
+            // ── Loot box teaser — real tappable button when all tasks done ──
+            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
+                Button(
+                    onClick  = onLootBoxClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Text("🎁", fontSize = 20.sp)
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Open your Loot Box!",
+                        fontWeight = FontWeight.ExtraBold,
+                        color      = Color(0xFF7B4F00),
+                        fontSize   = 15.sp
+                    )
+                }
+            }
+        }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Everything below is UNCHANGED from your committed version
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ChatBubbleButton(onClick: () -> Unit) {
+    Button(
+        onClick        = onClick,
+        modifier       = Modifier.size(width = 56.dp, height = 50.dp),
+        shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
+        colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
+        contentPadding = PaddingValues(0.dp),
+        elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+    ) {
+        Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
+    }
+}
 
 @Composable
 private fun NavItemButton(
@@ -294,7 +389,7 @@ private fun NavItemButton(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = modifier
+        modifier            = modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
@@ -303,16 +398,16 @@ private fun NavItemButton(
         Icon(
             icon,
             contentDescription = label,
-            tint = if (isSelected) OrangePrimary else Color.Gray,
-            modifier = Modifier.size(24.dp)
+            tint               = if (isSelected) OrangePrimary else Color.Gray,
+            modifier           = Modifier.size(24.dp)
         )
         Text(
-            text = label,
-            fontSize = 9.sp,
+            text       = label,
+            fontSize   = 9.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) OrangePrimary else Color.Gray,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            color      = if (isSelected) OrangePrimary else Color.Gray,
+            maxLines   = 1,
+            overflow   = TextOverflow.Ellipsis,
             lineHeight = 10.sp
         )
     }
@@ -327,54 +422,48 @@ private fun DailyHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(listOf(YellowPrimary, OrangePrimary))
-            )
-            .statusBarsPadding()  // ← Only here, wrapping entire header
+            .background(Brush.linearGradient(listOf(YellowPrimary, OrangePrimary)))
+            .statusBarsPadding()
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // ✅ Seasonal banner - no extra vertical padding
+        Column(modifier = Modifier.fillMaxWidth()) {
             val themeManager = remember { SeasonalThemeManager() }
-            val theme = remember { themeManager.getActiveTheme() }
+            val theme        = remember { themeManager.getActiveTheme() }
             if (theme.bannerText.isNotBlank()) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),  // ← Minimal padding
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White.copy(alpha = 0.25f),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape  = RoundedCornerShape(16.dp),
+                    color  = Color.White.copy(alpha = 0.25f),
                     border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.4f))
                 ) {
                     Text(
-                        text = theme.bannerText,
-                        fontSize = 13.sp,
+                        text       = theme.bannerText,
+                        fontSize   = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),  // ← Minimal padding
-                        maxLines = 1
+                        color      = Color.White,
+                        modifier   = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        maxLines   = 1
                     )
                 }
             }
 
-            // ✅ Main header content - no padding gaps
             Row(
-                modifier = Modifier
+                modifier              = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),  // ← Minimal
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Hey, ${uiState.currentUser.displayName}! 👋",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
+                        text       = "Hey, ${uiState.currentUser.displayName}! 👋",
+                        style      = MaterialTheme.typography.headlineMedium,
+                        color      = Color.White,
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "Ready for today?",
+                        text  = "Ready for today?",
                         style = MaterialTheme.typography.bodyLarge,
                         color = Color.White.copy(alpha = 0.85f)
                     )
@@ -382,10 +471,10 @@ private fun DailyHeader(
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment     = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = onNotificationsClick,
+                        onClick  = onNotificationsClick,
                         modifier = Modifier
                             .size(40.dp)
                             .background(Color.White.copy(alpha = 0.2f), CircleShape)
@@ -393,13 +482,13 @@ private fun DailyHeader(
                         Icon(
                             Icons.Default.Notifications,
                             contentDescription = "Notifications",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            tint               = Color.White,
+                            modifier           = Modifier.size(20.dp)
                         )
                     }
 
                     IconButton(
-                        onClick = onProfileClick,
+                        onClick  = onProfileClick,
                         modifier = Modifier
                             .size(40.dp)
                             .background(Color.White.copy(alpha = 0.2f), CircleShape)
@@ -407,15 +496,15 @@ private fun DailyHeader(
                         Icon(
                             Icons.Default.Person,
                             contentDescription = "Profile",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            tint               = Color.White,
+                            modifier           = Modifier.size(20.dp)
                         )
                     }
 
                     StreakShieldCard(
-                        streak = uiState.currentUser.streak,
+                        streak       = uiState.currentUser.streak,
                         shieldActive = uiState.currentUser.streakShieldActive,
-                        showLabel = false
+                        showLabel    = false
                     )
                 }
             }
@@ -426,13 +515,13 @@ private fun DailyHeader(
 @Composable
 private fun StreakBadge(streak: Int) {
     val scale by animateFloatAsState(
-        targetValue = if (streak > 0) 1f else 0.8f,
+        targetValue   = if (streak > 0) 1f else 0.8f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "streak_scale"
+        label         = "streak_scale"
     )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier            = Modifier
             .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White.copy(alpha = 0.25f))
@@ -440,9 +529,9 @@ private fun StreakBadge(streak: Int) {
     ) {
         Text(text = "🔥", fontSize = 28.sp)
         Text(
-            text = "$streak",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color.White,
+            text       = "$streak",
+            style      = MaterialTheme.typography.titleLarge,
+            color      = Color.White,
             fontWeight = FontWeight.ExtraBold
         )
         Text(text = "streak", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(0.8f))
@@ -450,117 +539,28 @@ private fun StreakBadge(streak: Int) {
 }
 
 @Composable
-private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {
-    val allDone = state.completedCount == state.tasks.size && state.tasks.isNotEmpty()
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = state.completionPercent,
-        animationSpec = tween(durationMillis = 800, easing = EaseOutCubic),
-        label = "progress"
-    )
-
-    // Pulse the card gold when all done
-    val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = if (allDone) 0.9f else 0.3f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "glowAlpha"
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (allDone) Color(0xFFFFD700).copy(alpha = 0.12f) else Color.White
-        ),
-        border = if (allDone) BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = glowAlpha)) else null,
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (allDone) {
-                    Text(
-                        "🎉 All done today!",
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFF6B35),
-                        fontSize = 16.sp
-                    )
-                } else {
-                    Text("${state.completedCount}/${state.tasks.size} done", fontWeight = FontWeight.SemiBold)
-                }
-                Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
-            }
-
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(CircleShape),
-                color = if (allDone) Color(0xFFFFD700) else OrangePrimary,
-                trackColor = OrangePrimary.copy(alpha = 0.15f)
-            )
-
-            // All-done loot box teaser
-            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFD700).copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("🎁", fontSize = 20.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Loot box ready! Open it from the World screen",
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFB8860B),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
 fun TaskCard(
     instance: TaskInstance,
     onClick: () -> Unit
 ) {
-    val task = instance.task
+    val task   = instance.task
     val isDone = instance.status == TaskStatus.COMPLETED
     val cardColor = if (isDone) DoneGreen else taskTypeColor(task.type)
-    val icon = taskTypeIcon(task.type)
+    val icon      = taskTypeIcon(task.type)
 
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
+        targetValue   = if (pressed) 0.97f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "card_press"
+        label         = "card_press"
     )
 
-    // Entrance animation: slide in + fade
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(instance.instanceId) { visible = true }
 
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
+        enter   = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
     ) {
         Card(
             modifier = Modifier
@@ -572,19 +572,18 @@ fun TaskCard(
                     pressed = true
                     onClick()
                 },
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
+            shape     = RoundedCornerShape(20.dp),
+            colors    = CardDefaults.cardColors(
                 containerColor = if (isDone) DoneGreenLight else Color.White
             ),
-            border = if (isDone) BorderStroke(1.5.dp, DoneGreen.copy(alpha = 0.4f)) else null,
+            border    = if (isDone) BorderStroke(1.5.dp, DoneGreen.copy(alpha = 0.4f)) else null,
             elevation = CardDefaults.cardElevation(if (isDone) 0.dp else 3.dp)
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier          = Modifier.padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Type icon circle
                 Box(
                     modifier = Modifier
                         .size(52.dp)
@@ -596,10 +595,10 @@ fun TaskCard(
                         Text("✅", fontSize = 26.sp)
                     } else {
                         Icon(
-                            imageVector = icon,
+                            imageVector        = icon,
                             contentDescription = null,
-                            tint = cardColor,
-                            modifier = Modifier.size(28.dp)
+                            tint               = cardColor,
+                            modifier           = Modifier.size(28.dp)
                         )
                     }
                 }
@@ -611,18 +610,17 @@ fun TaskCard(
                         if (isDone) TaskChip("DONE", DoneGreen)
                     }
                     Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        // Strike-through for done tasks
+                        text           = task.title,
+                        style          = MaterialTheme.typography.titleLarge,
+                        fontWeight     = FontWeight.Bold,
                         textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
-                        color = if (isDone) Color.Gray else TextDark
+                        color          = if (isDone) Color.Gray else TextDark
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "⭐ ${task.reward.xp} XP",
-                            color = if (isDone) Color.Gray else OrangePrimary,
-                            style = MaterialTheme.typography.labelLarge,
+                            color      = if (isDone) Color.Gray else OrangePrimary,
+                            style      = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text("·", color = Color.Gray)
@@ -673,10 +671,6 @@ private fun DailyEmptyScreen() {
     }
 }
 
-/**
- * Compact banner card shown on DailyScreen when a story arc is active.
- * Shows the current chapter emoji, title, and narrative.
- */
 @Composable
 fun StoryArcBannerCard(
     arc: StoryArc,
@@ -684,16 +678,12 @@ fun StoryArcBannerCard(
 ) {
     val currentChapter = arc.chapters.getOrNull(arc.currentDay - 1) ?: return
 
-    // Subtle pulsing glow on the border
     val infiniteTransition = rememberInfiniteTransition(label = "storyGlow")
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue  = 0.4f,
         targetValue   = 0.9f,
-        animationSpec = infiniteRepeatable(
-            tween(1400, easing = FastOutSlowInEasing),
-            RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
+        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label         = "glowAlpha"
     )
 
     val storyColor = Color(0xFF8B5CF6)
@@ -708,13 +698,12 @@ fun StoryArcBannerCard(
         border    = BorderStroke(1.5.dp, storyColor.copy(alpha = glowAlpha))
     ) {
         Row(
-            modifier = Modifier
+            modifier              = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically
         ) {
-            // Arc emoji
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -726,49 +715,44 @@ fun StoryArcBannerCard(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                // Chapter label
                 Text(
-                    text = "📖 ${arc.arcTitle} — Day ${arc.currentDay}/3",
-                    fontSize = 11.sp,
+                    text       = "📖 ${arc.arcTitle} — Day ${arc.currentDay}/3",
+                    fontSize   = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = storyColor
+                    color      = storyColor
                 )
-                // Chapter title
                 Text(
-                    text = currentChapter.chapterTitle,
-                    fontSize = 14.sp,
+                    text       = currentChapter.chapterTitle,
+                    fontSize   = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextDark,
-                    modifier = Modifier.padding(top = 2.dp)
+                    color      = TextDark,
+                    modifier   = Modifier.padding(top = 2.dp)
                 )
-                // Narrative context
                 Text(
-                    text = currentChapter.narrative,
+                    text     = currentChapter.narrative,
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color    = Color.Gray,
                     maxLines = 2,
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }
 
-            // XP badge
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = storyColor.copy(alpha = 0.15f)
             ) {
                 Text(
-                    text = "⭐ ${currentChapter.xpReward}",
-                    fontSize = 11.sp,
+                    text       = "⭐ ${currentChapter.xpReward}",
+                    fontSize   = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = storyColor,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    color      = storyColor,
+                    modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
         }
     }
 }
 
-// ── Visual helpers ─────────────────────────────────────────────────────────────
 fun taskTypeColor(type: TaskType): Color = when (type) {
     TaskType.LOGIC     -> LogicBlue
     TaskType.REAL_LIFE -> RealLifeGreen
