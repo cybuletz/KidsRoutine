@@ -171,8 +171,10 @@ fun AvatarCustomizationScreen(
 
                         item {
                             ItemsGrid(
-                                items           = uiState.allItems.filter { it.category == uiState.selectedCategory },
-                                unlockedItemIds = uiState.customization.unlockedItemIds,
+                                items = uiState.allItems.filter {
+                                    it.category == uiState.selectedCategory &&
+                                            it.itemId in uiState.customization.unlockedItemIds
+                                },                                unlockedItemIds = uiState.customization.unlockedItemIds,
                                 selectedItemId  = when (uiState.selectedCategory) {
                                     AvatarCategory.BODY        -> uiState.customization.body.selectedItemId
                                     AvatarCategory.EYES        -> uiState.customization.eyes.selectedItemId
