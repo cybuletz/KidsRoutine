@@ -92,7 +92,9 @@ class ExecutionViewModel @Inject constructor(
                 userId         = userId,
                 photoUrl       = state.photoUrl,
                 currentStreak  = user?.streak ?: 0,
-                lastActiveDate = user?.lastActiveDate ?: "",
+                lastActiveDate = user?.lastActiveAt?.let {
+                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date(it))
+                } ?: "",
                 childName      = user?.displayName?.split(" ")?.first() ?: "",
                 childAge       = runCatching { user?.age ?: 8 }.getOrDefault(8),
                 familyId       = user?.familyId ?: state.task.familyId

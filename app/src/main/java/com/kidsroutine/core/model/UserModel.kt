@@ -24,5 +24,7 @@ data class UserModel(
     val badges: List<Badge> = emptyList(),
     val avatarCustomization: AvatarCustomization = AvatarCustomization(),
     val createdAt: Long = 0L,
-    val lastActiveAt: Long = 0L
+    val lastActiveAt: Long = 0L,
+    val lastActiveDate: String = "",   // ← ADD: "yyyy-MM-dd" string for streak logic
+    val age: Int = 8                   // ← ADD: child age, default 8
 )
