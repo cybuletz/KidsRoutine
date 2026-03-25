@@ -509,7 +509,7 @@ private fun AchievementsGrid(currentUser: UserModel) {
         "🎯" to "Sharpshooter",   "🌈" to "Rainbow Week",  "👑" to "Quest King",
         "🦁" to "Brave Heart",    "🧠" to "Big Brain",     "🌙" to "Night Owl"
     )
-    val earnedNames = currentUser.badges.map { it.badgeId }.toSet()
+    val earnedNames = currentUser.badges.map { it.title }.toSet()
 
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text("Achievement Wall", fontWeight = FontWeight.Bold, fontSize = 18.sp)

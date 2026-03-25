@@ -7,5 +7,6 @@ data class TaskInstance(
     val resolvedValues: Map<String, Any> = emptyMap(),
     val assignedDate: String = "",   // yyyy-MM-dd
     val userId: String = "",
-    val injectedByChallengeId: String? = null  // null = regular task
+    val injectedByChallengeId: String? = null,  // null = regular task
+    val status: TaskStatus = TaskStatus.PENDING
 )
