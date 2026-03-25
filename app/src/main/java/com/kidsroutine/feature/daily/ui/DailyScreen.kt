@@ -36,6 +36,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import com.kidsroutine.core.model.StoryArc
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.draw.alpha
 import com.kidsroutine.core.engine.SeasonalThemeManager
 
 
@@ -48,6 +49,8 @@ private val LogicBlue     = Color(0xFF4361EE)
 private val RealLifeGreen = Color(0xFF06D6A0)
 private val BgLight       = Color(0xFFFFFBF0)
 private val TextDark = Color(0xFF2D3436)
+private val DoneGreen = Color(0xFF06D6A0)
+private val DoneGreenLight = Color(0xFF06D6A0).copy(alpha = 0.10f)
 
 @Composable
 fun DailyScreen(
@@ -448,39 +451,91 @@ private fun StreakBadge(streak: Int) {
 
 @Composable
 private fun ProgressSection(state: DailyStateModel, currentUser: UserModel) {
+    val allDone = state.completedCount == state.tasks.size && state.tasks.isNotEmpty()
+
     val animatedProgress by animateFloatAsState(
         targetValue = state.completionPercent,
         animationSpec = tween(durationMillis = 800, easing = EaseOutCubic),
         label = "progress"
     )
+
+    // Pulse the card gold when all done
+    val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = if (allDone) 0.9f else 0.3f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label = "glowAlpha"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = if (allDone) Color(0xFFFFD700).copy(alpha = 0.12f) else Color.White
+        ),
+        border = if (allDone) BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = glowAlpha)) else null,
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${state.completedCount}/${state.tasks.size} done", fontWeight = FontWeight.SemiBold)
+                if (allDone) {
+                    Text(
+                        "🎉 All done today!",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF6B35),
+                        fontSize = 16.sp
+                    )
+                } else {
+                    Text("${state.completedCount}/${state.tasks.size} done", fontWeight = FontWeight.SemiBold)
+                }
                 Text("⭐ ${currentUser.xp} XP", color = OrangePrimary, fontWeight = FontWeight.Bold)
             }
+
             LinearProgressIndicator(
                 progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(10.dp)
                     .clip(CircleShape),
-                color = OrangePrimary,
+                color = if (allDone) Color(0xFFFFD700) else OrangePrimary,
                 trackColor = OrangePrimary.copy(alpha = 0.15f)
             )
+
+            // All-done loot box teaser
+            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFD700).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🎁", fontSize = 20.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Loot box ready! Open it from the World screen",
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFB8860B),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun TaskCard(
@@ -488,7 +543,8 @@ fun TaskCard(
     onClick: () -> Unit
 ) {
     val task = instance.task
-    val cardColor = taskTypeColor(task.type)
+    val isDone = instance.status == TaskStatus.COMPLETED
+    val cardColor = if (isDone) DoneGreen else taskTypeColor(task.type)
     val icon = taskTypeIcon(task.type)
 
     var pressed by remember { mutableStateOf(false) }
@@ -498,49 +554,88 @@ fun TaskCard(
         label = "card_press"
     )
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .scale(scale)
-            .clickable {
-                pressed = true
-                onClick()
-            },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(3.dp)
+    // Entrance animation: slide in + fade
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(instance.instanceId) { visible = true }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .scale(scale)
+                .alpha(if (isDone) 0.65f else 1f)
+                .clickable(enabled = !isDone) {
+                    pressed = true
+                    onClick()
+                },
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isDone) DoneGreenLight else Color.White
+            ),
+            border = if (isDone) BorderStroke(1.5.dp, DoneGreen.copy(alpha = 0.4f)) else null,
+            elevation = CardDefaults.cardElevation(if (isDone) 0.dp else 3.dp)
         ) {
-            // Type icon circle
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(cardColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = cardColor, modifier = Modifier.size(28.dp))
-            }
-
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (task.requiresCoop) TaskChip("CO-OP", CoopPurple)
-                    if (instance.injectedByChallengeId != null) TaskChip("CHALLENGE", TealSecondary)
+                // Type icon circle
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(cardColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isDone) {
+                        Text("✅", fontSize = 26.sp)
+                    } else {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = cardColor,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
-                Text(task.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("⭐ ${task.reward.xp} XP", color = OrangePrimary, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text("·", color = Color.Gray)
-                    Text("~${task.estimatedDurationSec}s", color = Color.Gray, style = MaterialTheme.typography.labelLarge)
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (task.requiresCoop) TaskChip("CO-OP", CoopPurple)
+                        if (instance.injectedByChallengeId != null) TaskChip("CHALLENGE", TealSecondary)
+                        if (isDone) TaskChip("DONE", DoneGreen)
+                    }
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        // Strike-through for done tasks
+                        textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                        color = if (isDone) Color.Gray else TextDark
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "⭐ ${task.reward.xp} XP",
+                            color = if (isDone) Color.Gray else OrangePrimary,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text("·", color = Color.Gray)
+                        Text("~${task.estimatedDurationSec}s", color = Color.Gray, style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+
+                if (!isDone) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+                } else {
+                    Text("🏆", fontSize = 20.sp)
                 }
             }
-
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
         }
     }
 }

@@ -790,6 +790,48 @@ private fun NodeDetailCard(
                 }
             }
 
+            // ── World quests hint ──────────────────────────────────────────────────────
+            if (!isLocked) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White.copy(alpha = 0.06f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "✨ Quests in this world",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            node.subtitle.ifBlank { "Complete daily tasks to progress through this world node and unlock the next one!" },
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            // ── Loot box button if node just completed ─────────────────────────────────
+            if (node.status == WorldNodeStatus.COMPLETED) {
+                Button(
+                    onClick = { /* TODO: navigate to lootbox */ },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFD700)
+                    )
+                ) {
+                    Text("🎁 Open Loot Box", fontWeight = FontWeight.ExtraBold, color = Color(0xFF7B4F00), fontSize = 15.sp)
+                }
+            }
+
+
             // Dismiss
             OutlinedButton(
                 onClick = onDismiss,

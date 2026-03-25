@@ -161,6 +161,16 @@ fun ChildMainScreen(
                 )
             }
 
+            composable("rewards") {
+                currentRoute = "rewards"
+                RewardsScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") },
+                    onAvatarShopClick = { /* navigate to avatar customization */ }
+                )
+            }
+
+
             composable("moments") {
                 currentRoute = "moments"
                 MomentsScreen(
@@ -201,6 +211,8 @@ fun ChildMainScreen(
             onAchievementsClick     = { innerNavController.navigate("achievements") { popUpTo("daily") } },
             onMomentsClick          = { innerNavController.navigate("moments") { popUpTo("daily") } },
             onChatClick             = onFamilyMessagingClick,
+            onRewardsClick = { innerNavController.navigate("rewards") { popUpTo("daily") } },
+            pendingRewardCount = 0,  // wire to VM later
             unreadNotificationCount = notificationUiState.unreadCount,
             // ✅ FIX C: notifications inside inner nav
             onNotificationsClick    = { innerNavController.navigate("notifications") { popUpTo("daily") } },
@@ -261,7 +273,9 @@ private fun PersistentNavBar(
     onChatClick: () -> Unit,
     unreadNotificationCount: Int = 0,
     onNotificationsClick: () -> Unit = {},
-    onProposeTaskClick: () -> Unit = {},             // ← NEW PARAM
+    onProposeTaskClick: () -> Unit = {},
+    onRewardsClick: () -> Unit = {},
+    pendingRewardCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -325,13 +339,14 @@ private fun PersistentNavBar(
                             .fillMaxHeight()
                     ) {
                         NavBarItemButton(
-                            icon = Icons.Default.Star,
-                            label = "Badges",
-                            isSelected = currentRoute == "achievements",
-                            onClick = onAchievementsClick,
+                            icon = Icons.Default.CardGiftcard,   // use gift icon
+                            label = "Rewards",
+                            isSelected = currentRoute == "rewards",
+                            onClick = onRewardsClick,
                             modifier = Modifier.fillMaxHeight()
                         )
-                        if (currentUser.badges.isNotEmpty()) {
+                        // Badge dot if there are pending approved privileges
+                        if (pendingRewardCount > 0) {
                             Surface(
                                 shape = CircleShape,
                                 color = OrangePrimary,
@@ -343,7 +358,7 @@ private fun PersistentNavBar(
                             ) {
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                                     Text(
-                                        text = "${currentUser.badges.size}",
+                                        "$pendingRewardCount",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
