@@ -118,7 +118,7 @@ fun KidsRoutineNavGraph(
                 childNavGraph(liveUser, navController, onSignOut)
                 parentNavGraph(
                     currentUser     = liveUser,
-                    familyMembers   = familyMembers,
+                    familyMembers   = childrenOnly,
                     navController   = navController,
                     onSignOut       = onSignOut,
                     onSwitchToChild = { child ->

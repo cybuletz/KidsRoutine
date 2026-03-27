@@ -16,7 +16,8 @@ import kotlin.random.Random
 
 @Singleton
 class FamilyRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val userDao: com.kidsroutine.core.database.dao.UserDao
 ) : FamilyRepository {
 
     override suspend fun createFamily(userId: String, familyName: String): FamilyModel {
@@ -48,10 +49,15 @@ class FamilyRepositoryImpl @Inject constructor(
             ))
             .await()
 
-        // Update user's familyId
+        // Update user's familyId in Firestore
         firestore.collection("users").document(userId)
             .update("familyId", familyId)
             .await()
+
+        // Sync familyId into Room so observeUser() emits the change immediately
+        userDao.getUserSync(userId)?.let { entity ->
+            userDao.upsert(entity.copy(familyId = familyId))
+        }
 
         Log.d("FamilyRepository", "Family created: $familyId with inviteCode: $inviteCode")
         return family
@@ -143,6 +149,11 @@ class FamilyRepositoryImpl @Inject constructor(
             firestore.collection("users").document(memberId)
                 .update("familyId", familyId)
                 .await()
+
+            // Sync familyId into Room so observeUser() emits the change immediately
+            userDao.getUserSync(memberId)?.let { entity ->
+                userDao.upsert(entity.copy(familyId = familyId))
+            }
 
             Log.d("FamilyRepository", "Member added: $memberId to family: $familyId")
         } catch (e: Exception) {

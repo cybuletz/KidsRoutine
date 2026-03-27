@@ -145,7 +145,8 @@ class AuthRepositoryImpl @Inject constructor(
         val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
         val uid = result.user?.uid ?: throw Exception("Auth failed")
 
-        val familyId = if (role == Role.PARENT) "family_$uid" else ""
+        // Parents must create or join a family after signup — leave familyId empty
+        val familyId = ""
         val now = System.currentTimeMillis()
 
         val userEntity = UserEntity(
