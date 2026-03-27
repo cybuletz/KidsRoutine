@@ -101,9 +101,7 @@ class DailyRepositoryImpl @Inject constructor(
     }
 
     override suspend fun hasTasksForDate(userId: String, date: String): Boolean {
-        // Always return false to allow regeneration
-        // This ensures parent-assigned tasks are picked up
-        return false
+        return taskInstanceDao.countTasksForDate(userId, date) > 0
     }
 
     override suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate> {

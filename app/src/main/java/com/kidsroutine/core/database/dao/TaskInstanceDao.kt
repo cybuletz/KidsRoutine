@@ -24,4 +24,5 @@ interface TaskInstanceDao {
 
     @Query("UPDATE task_instances SET status = :status, completedAt = :completedAt WHERE instanceId = :instanceId")
     suspend fun updateStatus(instanceId: String, status: String, completedAt: Long)
+
 }
