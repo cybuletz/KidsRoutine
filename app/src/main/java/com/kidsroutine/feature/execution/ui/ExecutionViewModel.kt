@@ -90,7 +90,7 @@ class ExecutionViewModel @Inject constructor(
 
             val result = completeTaskUseCase(
                 task           = state.task,
-                instanceId     = state.instanceId.ifBlank { state.task.id },   // ← ADD
+                instanceId = state.instanceId.ifBlank { state.task.id },
                 userId         = userId,
                 photoUrl       = state.photoUrl,
                 currentStreak  = user?.streak ?: 0,

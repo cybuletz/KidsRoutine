@@ -251,7 +251,7 @@ private fun WorldMapCanvas(
     val density = androidx.compose.ui.platform.LocalDensity.current
     LaunchedEffect(firstUnlockedIndex) {
         if (firstUnlockedIndex >= 0) {
-            val nodeHeightPx = with(density) { 160.dp.toPx() }.toInt()
+            val nodeHeightPx = with(density) { 160.dp.roundToPx() }
             val targetPx = ((firstUnlockedIndex * nodeHeightPx) - nodeHeightPx * 2).coerceAtLeast(0)
             scrollState.animateScrollTo(targetPx)
         }
@@ -262,18 +262,14 @@ private fun WorldMapCanvas(
             .verticalScroll(scrollState)
     ) {
         val canvasW = maxWidth
+        val canvasH = maxWidth * (16f / 9f)  // use a fixed aspect ratio for node layout
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(mapHeightDp)
         ) {
-            // ── Connecting paths drawn on a Canvas ────────────────────────
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(mapHeightDp)
-            ) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(mapHeightDp)) {
                 for (i in 0 until nodes.size - 1) {
                     val from = nodes[i]
                     val to   = nodes[i + 1]
@@ -311,10 +307,8 @@ private fun WorldMapCanvas(
 
             // ── Node items positioned absolutely ──────────────────────────
             nodes.forEachIndexed { index, node ->
-                // Convert positionX/Y fractions to absolute offsets within the scrollable box
                 val nodeX = canvasW * node.positionX
-                // positionY fraction is relative to mapHeightDp
-                val nodeY = mapHeightDp * node.positionY
+                val nodeY = canvasH * node.positionY  // ← use canvasH, not mapHeightDp
                 val enterDelay = 150L + index * 80L   // faster stagger for large maps
 
                 AnimatedVisibility(

@@ -50,19 +50,19 @@ fun LeaderboardScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // Gradient background
+        // Gradient header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(top = 20.dp, bottom = 0.dp)
+                .padding(top = 20.dp, bottom = 8.dp)
         ) {
             Text(
                 "🏆 Leaderboards",
@@ -127,13 +127,8 @@ fun LeaderboardScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        // Content area — rendered below the gradient header
-        val headerHeightApprox = 0.dp
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = headerHeightApprox)
-        ) {
+        // Content — takes all remaining space, no overlap
+        Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -169,7 +164,7 @@ private fun ChildLeaderboardContent(entries: List<ChildLeaderboardEntry>) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -265,7 +260,7 @@ private fun FamilyLeaderboardContent(entries: List<FamilyLeaderboardEntry>) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -371,7 +366,7 @@ private fun ChallengeLeaderboardContent(entries: List<ChallengeLeaderboardEntry>
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -497,7 +492,7 @@ private fun MyFamilyLeaderboardContent(entries: List<LeaderboardEntry>, currentU
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
