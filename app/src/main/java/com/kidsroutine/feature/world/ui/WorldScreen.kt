@@ -68,7 +68,7 @@ fun WorldScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(currentUser.userId) {
-        viewModel.loadWorld(currentUser.userId)
+        viewModel.loadWorld(currentUser.userId, fallbackUser = currentUser)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -105,6 +105,7 @@ fun WorldScreen(
             displayName = currentUser.displayName,
             userXp      = uiState.currentUser.xp,
             totalXp     = uiState.world?.totalXpRequired ?: 1000,
+            nodes       = uiState.world?.nodes ?: emptyList(),
             onBackClick = onBackClick
         )
 
@@ -459,13 +460,21 @@ private fun WorldHud(
     displayName: String,
     userXp: Int,
     totalXp: Int,
+    nodes: List<WorldNode>,      // ADD this parameter
     onBackClick: () -> Unit
 ) {
-    val progress = (userXp.toFloat() / totalXp.toFloat()).coerceIn(0f, 1f)
+    // Find next node to unlock
+    val nextLockedNode = nodes.firstOrNull { it.status == WorldNodeStatus.LOCKED }
+    val xpToNext = if (nextLockedNode != null) (nextLockedNode.requiredXp - userXp).coerceAtLeast(0) else 0
+    val currentNode = nodes.lastOrNull { it.status != WorldNodeStatus.LOCKED }
+    val progressToNext = if (nextLockedNode != null && nextLockedNode.requiredXp > 0) {
+        (userXp.toFloat() / nextLockedNode.requiredXp.toFloat()).coerceIn(0f, 1f)
+    } else 1f
+
     val animatedProgress by animateFloatAsState(
-        targetValue   = progress,
+        targetValue = progressToNext,
         animationSpec = tween(1200, easing = EaseOutCubic),
-        label         = "xpProgress"
+        label = "xpProgress"
     )
     val shimmerInfinite = rememberInfiniteTransition(label = "hudShimmer")
     val shimmerX by shimmerInfinite.animateFloat(
@@ -482,33 +491,40 @@ private fun WorldHud(
             .zIndex(5f)
     ) {
         Surface(
-            modifier      = Modifier.fillMaxWidth(),
-            shape         = RoundedCornerShape(20.dp),
-            color         = Color(0x99000000),
-            border        = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0x99000000),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
             tonalElevation = 0.dp
         ) {
             Row(
-                modifier  = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment     = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 IconButton(
-                    onClick  = onBackClick,
+                    onClick = onBackClick,
                     modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.12f), CircleShape)
                 ) {
                     Text("←", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("🌍 Your World", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = currentNode?.title?.let { "🌍 $it" } ?: "🌍 Your World",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = XpGold, modifier = Modifier.size(14.dp))
                             Text("$userXp XP", color = XpGold, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color.White.copy(alpha = 0.15f))
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                            .background(Color.White.copy(alpha = 0.15f))
                     ) {
                         Box(
                             modifier = Modifier
@@ -523,7 +539,15 @@ private fun WorldHud(
                                 )
                         )
                     }
-                    Text("$userXp / $totalXp XP to master", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp)
+                    if (nextLockedNode != null) {
+                        Text(
+                            "$xpToNext XP to unlock ${nextLockedNode.emoji} ${nextLockedNode.title}",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 10.sp
+                        )
+                    } else {
+                        Text("🏆 All nodes unlocked!", color = XpGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 data class WorldUiState(
@@ -28,28 +29,51 @@ data class WorldUiState(
 @HiltViewModel
 class WorldViewModel @Inject constructor(
     private val worldRepository: WorldRepository,
-    private val userRepository: UserRepository  // ← ADD THIS
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<WorldUiState>(WorldUiState())
+    private val _uiState = MutableStateFlow(WorldUiState())
     val uiState: StateFlow<WorldUiState> = _uiState.asStateFlow()
 
-    fun loadWorld(userId: String) {
+    fun loadWorld(userId: String, fallbackUser: UserModel? = null) {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true) }
 
-                // Observe user changes (same as Daily does)
-                userRepository.observeUser(userId)
-                    .collect { user ->
-                        _uiState.update { it.copy(currentUser = user) }
+                // Immediately render with fallback user so map shows even if Firestore is slow
+                if (fallbackUser != null) {
+                    val initialWorld = worldRepository.getWorld(fallbackUser.xp)
+                    _uiState.update {
+                        it.copy(
+                            currentUser = fallbackUser,
+                            world = initialWorld,
+                            isLoading = false
+                        )
+                    }
+                }
 
-                        // Reload world with new XP
+                // Then keep listening for real-time XP updates
+                userRepository.observeUser(userId).collect { user ->
+                    if (user != null) {
                         val world = worldRepository.getWorld(user.xp)
+                        _uiState.update {
+                            it.copy(
+                                currentUser = user,
+                                world = world,
+                                isLoading = false
+                            )
+                        }
+                    } else if (fallbackUser == null) {
+                        // No user doc + no fallback = show empty world at level 1
+                        val world = worldRepository.getWorld(0)
                         _uiState.update { it.copy(world = world, isLoading = false) }
                     }
+                }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message, isLoading = false) }
+                Log.e("WorldViewModel", "Failed to load world", e)
+                // On any error, still show world at XP=0 rather than blank screen
+                val fallbackWorld = runCatching { worldRepository.getWorld(0) }.getOrNull()
+                _uiState.update { it.copy(error = e.message, isLoading = false, world = fallbackWorld) }
             }
         }
     }
