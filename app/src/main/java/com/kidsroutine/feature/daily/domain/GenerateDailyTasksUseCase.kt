@@ -32,7 +32,14 @@ class GenerateDailyTasksUseCase @Inject constructor(
         injectedTasks: List<TaskInstance> = emptyList(),
         recentTemplateIds: List<String> = emptyList()
     ): GenerationOutcome {
-        // Enforce 1-per-day generation limit
+
+        // ── NEW: Always sync parent-assigned tasks, even if day was already generated ──
+        val freshAssignedTasks = fetchParentAssignedTasks(user, date)
+        if (freshAssignedTasks.isNotEmpty()) {
+            repository.mergeAssignedTasks(user.userId, date, freshAssignedTasks)
+        }
+
+        // Enforce 1-per-day generation limit for the rest
         if (repository.hasTasksForDate(user.userId, date)) {
             return GenerationOutcome.AlreadyGenerated
         }
@@ -134,7 +141,7 @@ class GenerateDailyTasksUseCase @Inject constructor(
                         val taskModel = taskDoc.toObject(TaskModel::class.java)
                         if (taskModel != null && taskModel.title.isNotBlank()) {  // ← Add this check
                             val instance = TaskInstance(
-                                instanceId = "${taskId}_${System.currentTimeMillis()}",
+                                instanceId = "${taskId}_assigned",
                                 templateId = taskId,
                                 task = taskModel,
                                 assignedDate = date,
@@ -195,6 +202,41 @@ class GenerateDailyTasksUseCase @Inject constructor(
             Log.e("GenerateDailyTasks", "Error generating daily tasks", e)
             return GenerationOutcome.NoTemplatesAvailable
         }
+    }
+
+    // ── Extract the parent-assignment fetch into its own helper ──
+    private suspend fun fetchParentAssignedTasks(user: UserModel, date: String): List<TaskInstance> {
+        val result = mutableListOf<TaskInstance>()
+        try {
+            val assignmentsSnapshot = firestore
+                .collection("taskAssignments")
+                .whereEqualTo("childId", user.userId)
+                .whereEqualTo("status", "ASSIGNED")
+                .get().await()
+
+            val assignedTaskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
+            for (taskId in assignedTaskIds) {
+                try {
+                    val taskDoc = firestore.collection("tasks").document(taskId).get().await()
+                    val taskModel = taskDoc.toObject(TaskModel::class.java)
+                    if (taskModel != null && taskModel.title.isNotBlank()) {
+                        result.add(TaskInstance(
+                            instanceId   = "${taskId}_assigned",   // stable ID so it doesn't duplicate
+                            templateId   = taskId,
+                            task         = taskModel,
+                            assignedDate = date,
+                            userId       = user.userId,
+                            injectedByChallengeId = null
+                        ))
+                    }
+                } catch (e: Exception) {
+                    Log.e("GenerateDailyTasks", "Error fetching task $taskId", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("GenerateDailyTasks", "Error fetching assignments", e)
+        }
+        return result
     }
 }
 

@@ -9,6 +9,7 @@ import com.kidsroutine.core.model.*
 import com.kidsroutine.core.network.safeFirestoreCall
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -97,6 +98,31 @@ class DailyRepositoryImpl @Inject constructor(
                 ))
             }
             batch.commit().await()
+        }
+    }
+
+    override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
+        // Get existing instance IDs to avoid duplicates
+        val existingIds = taskInstanceDao.getTasksForDate(userId, date)
+            .map { entities -> entities.map { it.instanceId } }
+            .firstOrNull() ?: emptyList()
+
+        val toInsert = newTasks
+            .filter { it.instanceId !in existingIds }
+            .map { instance ->
+                TaskInstanceEntity(
+                    instanceId            = instance.instanceId,
+                    templateId            = instance.templateId,
+                    taskJson              = json.toJson(instance.task),
+                    assignedDate          = instance.assignedDate,
+                    userId                = instance.userId,
+                    injectedByChallengeId = instance.injectedByChallengeId
+                )
+            }
+
+        if (toInsert.isNotEmpty()) {
+            taskInstanceDao.insertAll(toInsert)
+            Log.d("DailyRepository", "Merged ${toInsert.size} newly assigned tasks into today's list")
         }
     }
 

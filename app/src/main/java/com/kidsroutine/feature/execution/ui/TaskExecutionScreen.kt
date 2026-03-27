@@ -173,13 +173,15 @@ fun TaskExecutionScreen(
                 }
             }
 
-// ── Description — BELOW the header, on white background ──────────────────
+            // ── Description — BELOW the header, on white background ──────────────────
             if (task.description.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))   // add this spacer, or increase existing offset
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
-                        .offset(y = (-12).dp),   // overlaps header slightly for a modern card effect
+                        .offset(y = 4.dp),       // ← change from (-12).dp to 4.dp to push it further down
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(6.dp)

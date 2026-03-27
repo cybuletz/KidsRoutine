@@ -160,8 +160,7 @@ fun ParentDashboardScreen(
                     currentUser         = currentUser,
                     familyInviteCode    = uiState.inviteCode,
                     onSignOutClick      = onSignOutClick,
-                    onUpgradeClick      = onUpgradeClick,
-                    onContentPacksClick = onContentPacksClick
+                    onUpgradeClick      = onUpgradeClick
                 )
             }
             composable("notifications") {
@@ -568,7 +567,10 @@ private fun ParentFamilyTab(currentUser: UserModel, familyMembers: List<UserMode
                 Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
                     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                         familyMembers.forEachIndexed { index, child ->
-                            FamilyMemberRow(child = child)
+                            FamilyMemberRowWithLogin(
+                                child = child,
+                                onLoginAsChild = { /* navigate to child login */ }
+                            )
                             if (index < familyMembers.lastIndex) {
                                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF0F0F0))
                             }
@@ -630,6 +632,48 @@ private fun ParentFamilyTab(currentUser: UserModel, familyMembers: List<UserMode
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FamilyMemberRowWithLogin(child: UserModel, onLoginAsChild: () -> Unit) {
+    var isOnline by remember { mutableStateOf(false) }
+    var displayName by remember { mutableStateOf(child.displayName) }
+    LaunchedEffect(child.userId) {
+        FirebaseFirestore.getInstance().collection("users").document(child.userId)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null && snap.exists()) {
+                    isOnline    = snap.getBoolean("isOnline") ?: false
+                    displayName = snap.getString("displayName") ?: child.displayName
+                }
+            }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(12.dp), color = OrangePrimary.copy(alpha = 0.15f)) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 22.sp) }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(displayName, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TextDark)
+                Surface(modifier = Modifier.size(7.dp), shape = CircleShape, color = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)) {}
+                Text(if (isOnline) "Online" else "Offline", fontSize = 10.sp, color = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD))
+            }
+            Text("Level ${child.level} · ${child.xp} XP · 🔥 ${child.streak}", fontSize = 12.sp, color = Color.Gray)
+        }
+        // Login as Child button
+        OutlinedButton(
+            onClick = onLoginAsChild,
+            modifier = Modifier.height(32.dp),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, OrangePrimary)
+        ) {
+            Text("Switch", fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -12,4 +12,5 @@ interface DailyRepository {
     suspend fun hasTasksForDate(userId: String, date: String): Boolean
     suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate>
     suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel>
+    suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>)
 }

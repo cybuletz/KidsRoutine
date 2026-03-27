@@ -48,7 +48,6 @@ fun SettingsScreen(
     familyInviteCode: String,
     onSignOutClick: () -> Unit,
     onUpgradeClick: () -> Unit,
-    onContentPacksClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -91,54 +90,6 @@ fun SettingsScreen(
         }
     )
 
-    // Add dialogs at the end of the composable (before final Spacer):
-    if (showEditNameDialog) {
-        var nameInput by remember { mutableStateOf(currentUser.displayName) }
-        AlertDialog(
-            onDismissRequest = { showEditNameDialog = false },
-            title = { Text("Edit Display Name") },
-            text = {
-                OutlinedTextField(
-                    value = nameInput,
-                    onValueChange = { nameInput = it },
-                    label = { Text("Name") },
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (nameInput.isNotBlank()) {
-                        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                            .collection("users").document(currentUser.userId)
-                            .update("displayName", nameInput.trim())
-                        showEditNameDialog = false
-                    }
-                }) { Text("Save", color = OrangePrimary) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
-
-    if (showPasswordDialog) {
-        AlertDialog(
-            onDismissRequest = { showPasswordDialog = false },
-            title = { Text("Reset Password") },
-            text = { Text("A password reset email will be sent to ${currentUser.email}") },
-            confirmButton = {
-                TextButton(onClick = {
-                    com.google.firebase.auth.FirebaseAuth.getInstance()
-                        .sendPasswordResetEmail(currentUser.email)
-                    showPasswordDialog = false
-                }) { Text("Send Email", color = OrangePrimary) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPasswordDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -170,6 +121,10 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
 
+        var showEditNameDialog by remember { mutableStateOf(false) }
+        var showPasswordDialog by remember { mutableStateOf(false) }
+
+
         // ── Account ───────────────────────────────────────────────────────
         SettingsSection(title = "Account") {
             SettingsRow(
@@ -177,7 +132,7 @@ fun SettingsScreen(
                 iconColor = Color(0xFF4A90E2),
                 title = "Display Name",
                 subtitle = currentUser.displayName,
-                onClick = { /* TODO: edit name */ }
+                onClick = { showEditNameDialog = true }   // ← was: { /* TODO */ }
             )
             SettingsDivider()
             SettingsRow(
@@ -185,7 +140,7 @@ fun SettingsScreen(
                 iconColor = Color(0xFF9B59B6),
                 title = "Email",
                 subtitle = currentUser.email.ifEmpty { "Not set" },
-                onClick = { }
+                onClick = { }   // Email is managed by Firebase Auth, leave read-only or add re-auth flow
             )
             SettingsDivider()
             SettingsRow(
@@ -193,7 +148,7 @@ fun SettingsScreen(
                 iconColor = Color(0xFF2ECC71),
                 title = "Change Password",
                 subtitle = "Update your login password",
-                onClick = { /* TODO */ }
+                onClick = { showPasswordDialog = true }   // ← was: { /* TODO */ }
             )
         }
 
@@ -287,14 +242,6 @@ fun SettingsScreen(
                 title = "Upgrade to PRO",
                 subtitle = "Unlock story arcs, unlimited AI & more",
                 onClick = onUpgradeClick
-            )
-            SettingsDivider()
-            SettingsRow(
-                icon = Icons.Default.ShoppingCart,
-                iconColor = Color(0xFF667EEA),
-                title = "Content Packs",
-                subtitle = "Browse & unlock themed task packs",
-                onClick = onContentPacksClick
             )
         }
 
