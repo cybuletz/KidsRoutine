@@ -74,9 +74,7 @@ class WorldRepositoryImpl @Inject constructor() : WorldRepository {
 
     private fun positionY(level: Int): Float {
         val posInZone = ((level - 1) % 50).toFloat()
-        // Top of screen = lowest level in zone, bottom = highest (scroll down = progress)
-        // Reserve 15% top for HUD, 10% bottom for nav
-        return 0.15f + (posInZone / 49f) * 0.75f
+        return 0.08f + (posInZone / 49f) * 0.88f  // starts at 8%, ends at 96%
     }
 
     private fun themeTitle(theme: WorldTheme) = when (theme) {

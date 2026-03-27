@@ -34,6 +34,8 @@ import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.core.model.WorldNode
 import com.kidsroutine.core.model.WorldNodeStatus
 import kotlin.math.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.PathEffect
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WORLD PALETTE
@@ -114,7 +116,11 @@ fun WorldScreen(
             visible  = uiState.showNodeDetail && uiState.selectedNode != null,
             enter    = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit     = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter).zIndex(10f)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 80.dp)   // ← clears the FAB bubbles + nav bar
+                .zIndex(10f)
         ) {
             uiState.selectedNode?.let { node ->
                 NodeDetailCard(
@@ -240,76 +246,74 @@ private fun WorldMapCanvas(
 ) {
     var revealed by remember { mutableStateOf(true) }
 
-
     val scrollState = rememberScrollState()
     val nodes       = world.nodes
-    // Each node occupies 160.dp vertically; add top/bottom padding
-    val mapHeightDp = (nodes.size * 160).dp + 160.dp
+    val mapHeightDp = (nodes.size * 260).dp + 200.dp
 
-    // Auto-scroll to the current unlocked node on first load
-    val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
     val density = androidx.compose.ui.platform.LocalDensity.current
+    // Compute mapHeightPx in Compose scope so Canvas can capture it
+    val mapHeightPx = with(density) { mapHeightDp.toPx() }
+
+    val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
     LaunchedEffect(firstUnlockedIndex) {
         if (firstUnlockedIndex >= 0) {
-            val nodeHeightPx = with(density) { 160.dp.roundToPx() }
-            val targetPx = ((firstUnlockedIndex * nodeHeightPx) - nodeHeightPx * 2).coerceAtLeast(0)
+            val screenHeightPx = with(density) { 800.dp.toPx() }
+            val node = nodes[firstUnlockedIndex]
+            val targetPx = (node.positionY * mapHeightPx - screenHeightPx / 2)
+                .coerceAtLeast(0f).toInt()
             scrollState.animateScrollTo(targetPx)
         }
     }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
     ) {
         val canvasW = maxWidth
-        val canvasH = maxWidth * (16f / 9f)  // use a fixed aspect ratio for node layout
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(mapHeightDp)
         ) {
+            // mapHeightPx is captured from Compose scope above — accessible here
             Canvas(modifier = Modifier.fillMaxWidth().height(mapHeightDp)) {
                 for (i in 0 until nodes.size - 1) {
-                    val from = nodes[i]
-                    val to   = nodes[i + 1]
-                    // positionX is 0..1 fraction of width
-                    // positionY is used as a fraction of mapHeightDp
+                    val from  = nodes[i]
+                    val to    = nodes[i + 1]
                     val fromX = from.positionX * size.width
-                    val fromY = from.positionY * size.height
+                    val fromY = from.positionY * mapHeightPx
                     val toX   = to.positionX * size.width
-                    val toY   = to.positionY * size.height
+                    val toY   = to.positionY * mapHeightPx
 
-                    val pathDone  = from.status == WorldNodeStatus.COMPLETED
-                    val color     = if (pathDone) PathDone else PathColor
-                    val dashOn    = 18f
-                    val dashOff   = 14f
-                    val dist      = sqrt((toX - fromX).pow(2) + (toY - fromY).pow(2))
-                    val steps     = (dist / (dashOn + dashOff)).toInt()
-                    val dx        = (toX - fromX) / dist
-                    val dy        = (toY - fromY) / dist
-                    for (s in 0..steps) {
-                        val startFrac = s * (dashOn + dashOff)
-                        val endFrac   = startFrac + dashOn
-                        drawLine(
-                            color       = color,
-                            start       = Offset(fromX + dx * startFrac, fromY + dy * startFrac),
-                            end         = Offset(
-                                fromX + dx * endFrac.coerceAtMost(dist),
-                                fromY + dy * endFrac.coerceAtMost(dist)
-                            ),
-                            strokeWidth = 4f,
-                            cap         = StrokeCap.Round
-                        )
+                    // Control point bulges sideways — creates an organic curve
+                    val ctrlX = size.width * 0.5f + (fromX - size.width * 0.5f) * -1.2f
+                    val ctrlY = (fromY + toY) / 2f
+
+                    val pathDone = from.status == WorldNodeStatus.COMPLETED
+                    val color    = if (pathDone) PathDone else PathColor
+
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(fromX, fromY)
+                        quadraticTo(ctrlX, ctrlY, toX, toY)
                     }
+
+                    drawPath(
+                        path   = path,
+                        color  = color,
+                        style  = Stroke(
+                            width       = 5f,
+                            pathEffect  = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
+                        )
+                    )
                 }
             }
 
-            // ── Node items positioned absolutely ──────────────────────────
             nodes.forEachIndexed { index, node ->
-                val nodeX = canvasW * node.positionX
-                val nodeY = canvasH * node.positionY  // ← use canvasH, not mapHeightDp
-                val enterDelay = 150L + index * 80L   // faster stagger for large maps
+                val nodeX      = canvasW * node.positionX
+                val nodeY      = mapHeightDp * node.positionY  // ← Dp * Float = Dp ✓
+                val enterDelay = 150L + index * 80L
 
                 AnimatedVisibility(
                     visible  = revealed,
@@ -580,7 +584,11 @@ private fun NodeDetailCard(
         tonalElevation  = 4.dp
     ) {
         Column(
-            modifier            = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 520.dp)          // ← cap height
+                .verticalScroll(rememberScrollState())   // ← scrollable inside
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
