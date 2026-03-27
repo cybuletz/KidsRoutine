@@ -64,17 +64,17 @@ class WorldRepositoryImpl @Inject constructor() : WorldRepository {
         )
     }
 
-    // Winding path: nodes alternate left-center-right in a S-curve pattern
+    // Hard alternating left-center-right positions for clear zigzag
     private fun positionX(level: Int): Float {
-        val posInZone = ((level - 1) % 50)  // 0..49
-        // S-curve: use sine wave across the zone
-        val angle = posInZone.toFloat() / 49f * Math.PI.toFloat() * 4f
-        return 0.5f + sin(angle) * 0.3f
+        return when ((level - 1) % 3) {
+            0    -> 0.22f   // left
+            1    -> 0.78f   // right
+            else -> 0.50f   // center
+        }
     }
 
     private fun positionY(level: Int): Float {
         val posInZone = ((level - 1) % 50).toFloat()
-        // Invert: level 1 = bottom (0.92), higher levels = top (0.08)
         return 0.92f - (posInZone / 49f) * 0.84f
     }
 

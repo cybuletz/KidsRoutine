@@ -240,7 +240,7 @@ private fun WorldMapCanvas(
 
     val scrollState = rememberScrollState()
     val nodes       = world.nodes
-    val mapHeightDp = (nodes.size * 260).dp + 200.dp
+    val mapHeightDp = (nodes.size * 320).dp + 200.dp
 
     val density = androidx.compose.ui.platform.LocalDensity.current
     val mapHeightPx = with(density) { mapHeightDp.toPx() }
@@ -277,9 +277,13 @@ private fun WorldMapCanvas(
                     val toX   = to.positionX * size.width
                     val toY   = to.positionY * mapHeightPx
 
-                    // S-curve: control point pulls toward the opposite side from the 'from' node
-                    val fromSide = if (fromX < size.width * 0.5f) -1f else 1f
-                    val ctrlX = size.width * 0.5f + fromSide * size.width * 0.38f
+
+                    // Hard-coded left/right edge pull — matches the hard node positions
+                    val leftEdge  = size.width * 0.05f
+                    val rightEdge = size.width * 0.95f
+
+                    // Pull the curve toward the edge that is FARTHEST from the 'from' node
+                    val ctrlX = if (fromX < size.width * 0.5f) rightEdge else leftEdge
                     val ctrlY = (fromY + toY) / 2f
 
                     val pathDone = from.status == WorldNodeStatus.COMPLETED
