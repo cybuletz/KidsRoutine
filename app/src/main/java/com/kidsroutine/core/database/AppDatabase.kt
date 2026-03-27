@@ -15,7 +15,6 @@ import com.kidsroutine.core.database.entity.TaskInstanceEntity
 import com.kidsroutine.core.database.entity.TaskProgressEntity
 import com.kidsroutine.core.database.entity.UserEntity
 
-// Migration from version 1 to 2 - Add avatar customization table
 val MIGRATION_1_TO_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
         database.execSQL("""
@@ -42,21 +41,28 @@ val MIGRATION_1_TO_2 = object : Migration(1, 2) {
     }
 }
 
+val MIGRATION_4_TO_5 = object : Migration(4, 5) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE task_instances ADD COLUMN status TEXT NOT NULL DEFAULT 'PENDING'")
+        database.execSQL("ALTER TABLE task_instances ADD COLUMN completedAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
         TaskProgressEntity::class,
         UserEntity::class,
-        AvatarEntity::class  // ← ADD THIS
+        AvatarEntity::class
     ],
-    version = 4,  // ← CHANGE FROM 1 TO 2
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskInstanceDao(): TaskInstanceDao
     abstract fun taskProgressDao(): TaskProgressDao
     abstract fun userDao(): UserDao
-    abstract fun avatarDao(): AvatarDao  // ← ADD THIS
+    abstract fun avatarDao(): AvatarDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
@@ -68,7 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "kidsroutine.db"
                 )
-                    .addMigrations(MIGRATION_1_TO_2)  // ← ADD THIS
+                    .addMigrations(MIGRATION_1_TO_2, MIGRATION_4_TO_5)
                     .build()
                     .also { instance = it }
             }
