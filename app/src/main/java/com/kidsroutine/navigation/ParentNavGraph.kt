@@ -55,16 +55,12 @@ fun NavGraphBuilder.parentNavGraph(
 
         composable(Routes.PARENT_DASHBOARD) {
             if (currentUser.familyId.isEmpty()) {
-                // New parent with no family yet — show join/create screen
+                // currentUser is now liveUser (reactive) — this will
+                // automatically recompose to the else branch once Firestore
+                // updates familyId after FamilySetupScreen / JoinFamilyScreen completes
                 ParentFamilyEntryScreen(
                     currentUser = currentUser,
-                    onFamilySet = {
-                        // Pop and re-navigate to PARENT_DASHBOARD so the
-                        // familyId check above will now pass
-                        navController.navigate(Routes.PARENT_DASHBOARD) {
-                            popUpTo(Routes.PARENT_DASHBOARD) { inclusive = true }
-                        }
-                    }
+                    onFamilySet = { /* no-op: liveUser recompose handles the transition */ }
                 )
             } else {
                 ParentDashboardScreen(

@@ -66,6 +66,15 @@ fun KidsRoutineNavGraph(
         }
     }
 
+    // Also reload family whenever the ViewModel's family is null but liveUser now has a familyId
+    LaunchedEffect(liveUser.familyId, parentDashboardUiState.family) {
+        if (liveUser.role == Role.PARENT
+            && liveUser.familyId.isNotEmpty()
+            && parentDashboardUiState.family == null) {
+            parentDashboardViewModel.loadFamily(liveUser.familyId)
+        }
+    }
+
     val familyMemberIds = parentDashboardUiState.family?.memberIds ?: emptyList()
     val familyMembers by produceState<List<UserModel>>(
         initialValue = familyMemberIds.map { liveUser.copy(userId = it) },
@@ -95,15 +104,20 @@ fun KidsRoutineNavGraph(
         value = fetched.ifEmpty { familyMemberIds.map { liveUser.copy(userId = it) } }
     }
 
+    // Pre-compute children-only list for tabs that only need children
+    val childrenOnly = remember(familyMembers) {
+        familyMembers.filter { it.role == Role.CHILD }
+    }
+
     CompositionLocalProvider(LocalSeasonalTheme provides seasonalTheme) {
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController    = navController,
-                startDestination = if (currentUser.role == Role.PARENT) "parent_graph" else "child_graph"
+                startDestination = if (liveUser.role == Role.PARENT) "parent_graph" else "child_graph"
             ) {
-                childNavGraph(currentUser, navController, onSignOut)
+                childNavGraph(liveUser, navController, onSignOut)
                 parentNavGraph(
-                    currentUser     = currentUser,
+                    currentUser     = liveUser,
                     familyMembers   = familyMembers,
                     navController   = navController,
                     onSignOut       = onSignOut,
@@ -112,7 +126,8 @@ fun KidsRoutineNavGraph(
                             popUpTo("parent_graph") { inclusive = false }
                         }
                     }
-                )            }
+                )
+            }
 
             CelebrationOverlay()
             LootBoxOverlay()

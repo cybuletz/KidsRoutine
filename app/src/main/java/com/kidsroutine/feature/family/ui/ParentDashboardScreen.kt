@@ -536,8 +536,12 @@ private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, i
         when (selectedSegment) {
             0 -> TaskListScreen(currentUser = currentUser, onCreateTaskClick = { showCreateTask = true }, onBackClick = { })
             1 -> ParentPendingTasksScreen(currentUser = currentUser, onBackClick = { })
-            2 -> ActiveChallengesScreen(currentUser = currentUser, onBackClick = { }, onStartChallengeClick = { showStartChallenge = true }, onChallengeClick = { })
-        }
+            2 -> ActiveChallengesScreen(
+                currentUser           = currentUser,
+                onBackClick           = { },
+                onStartChallengeClick = { showStartChallenge = true },
+                onChallengeClick      = { challenge -> selectedChallenge = challenge }
+            )        }
     }
 
     // Challenge detail sheet
