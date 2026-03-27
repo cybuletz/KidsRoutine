@@ -24,12 +24,13 @@ import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.family.ui.InviteChildrenScreen
 import com.kidsroutine.feature.family.ui.ParentDashboardScreen
+import com.kidsroutine.feature.family.ui.ParentFamilyEntryScreen
 import com.kidsroutine.feature.generation.ui.DailyPlanScreen
 import com.kidsroutine.feature.generation.ui.GenerationScreen
 import com.kidsroutine.feature.generation.ui.WeeklyPlanScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
-import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen   // ← NEW IMPORT
+import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.profile.ui.ParentProfileScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
@@ -44,22 +45,39 @@ fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
     familyMembers: List<UserModel>,
     navController: NavController,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onSwitchToChild: (UserModel) -> Unit = {}
 ) {
     navigation(
         route            = "parent_graph",
         startDestination = Routes.PARENT_DASHBOARD
     ) {
+
         composable(Routes.PARENT_DASHBOARD) {
-            ParentDashboardScreen(
-                currentUser            = currentUser,
-                familyMembers          = familyMembers,
-                onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
-                onUpgradeClick         = { navController.navigate(Routes.UPGRADE) },
-                onContentPacksClick    = { navController.navigate(Routes.CONTENT_PACKS) },
-                onProfileClick         = { navController.navigate(Routes.PARENT_PROFILE) },
-                onSignOutClick         = onSignOut
-            )
+            if (currentUser.familyId.isEmpty()) {
+                // New parent with no family yet — show join/create screen
+                ParentFamilyEntryScreen(
+                    currentUser = currentUser,
+                    onFamilySet = {
+                        // Pop and re-navigate to PARENT_DASHBOARD so the
+                        // familyId check above will now pass
+                        navController.navigate(Routes.PARENT_DASHBOARD) {
+                            popUpTo(Routes.PARENT_DASHBOARD) { inclusive = true }
+                        }
+                    }
+                )
+            } else {
+                ParentDashboardScreen(
+                    currentUser            = currentUser,
+                    familyMembers          = familyMembers,
+                    onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
+                    onUpgradeClick         = { navController.navigate(Routes.UPGRADE) },
+                    onContentPacksClick    = { navController.navigate(Routes.CONTENT_PACKS) },
+                    onProfileClick         = { navController.navigate(Routes.PARENT_PROFILE) },
+                    onSignOutClick         = onSignOut,
+                    onSwitchToChild        = onSwitchToChild
+                )
+            }
         }
 
         composable(Routes.PARENT_PROFILE) {
@@ -122,9 +140,9 @@ fun NavGraphBuilder.parentNavGraph(
                 }
                 showCreateTaskScreen -> {
                     CreateTaskScreen(
-                        currentUser  = currentUser,
+                        currentUser   = currentUser,
                         onTaskCreated = { task -> createdTask = task },
-                        onBackClick  = { showCreateTaskScreen = false }
+                        onBackClick   = { showCreateTaskScreen = false }
                     )
                 }
                 else -> {
@@ -144,7 +162,6 @@ fun NavGraphBuilder.parentNavGraph(
             )
         }
 
-        // ── Privilege Approvals ─────────────────────────────────────────
         composable(Routes.PRIVILEGE_APPROVALS) {
             ParentPrivilegeApprovalsScreen(
                 currentUser = currentUser,

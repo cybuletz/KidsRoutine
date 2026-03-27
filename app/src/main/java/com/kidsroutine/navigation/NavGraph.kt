@@ -102,8 +102,17 @@ fun KidsRoutineNavGraph(
                 startDestination = if (currentUser.role == Role.PARENT) "parent_graph" else "child_graph"
             ) {
                 childNavGraph(currentUser, navController, onSignOut)
-                parentNavGraph(currentUser, familyMembers, navController, onSignOut)
-            }
+                parentNavGraph(
+                    currentUser     = currentUser,
+                    familyMembers   = familyMembers,
+                    navController   = navController,
+                    onSignOut       = onSignOut,
+                    onSwitchToChild = { child ->
+                        navController.navigate("child_graph") {
+                            popUpTo("parent_graph") { inclusive = false }
+                        }
+                    }
+                )            }
 
             CelebrationOverlay()
             LootBoxOverlay()

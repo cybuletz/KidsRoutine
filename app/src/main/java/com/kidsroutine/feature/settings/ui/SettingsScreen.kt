@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import android.content.ClipData
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.ClipEntry
+import kotlinx.coroutines.tasks.await
 
 
 private val OrangePrimary = Color(0xFFFF6B35)
@@ -120,9 +121,6 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(20.dp))
-
-        var showEditNameDialog by remember { mutableStateOf(false) }
-        var showPasswordDialog by remember { mutableStateOf(false) }
 
 
         // ── Account ───────────────────────────────────────────────────────
@@ -296,6 +294,126 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(40.dp))
+    }
+
+    // ── Edit Display Name Dialog ──────────────────────────────────────────
+    if (showEditNameDialog) {
+        var nameInput by remember { mutableStateOf(currentUser.displayName) }
+        var isSaving  by remember { mutableStateOf(false) }
+        val scope     = rememberCoroutineScope()
+        AlertDialog(
+            onDismissRequest = { showEditNameDialog = false },
+            title   = { Text("Edit Display Name") },
+            text    = {
+                OutlinedTextField(
+                    value         = nameInput,
+                    onValueChange = { nameInput = it },
+                    label         = { Text("Name") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick  = {
+                        if (nameInput.isNotBlank()) {
+                            isSaving = true
+                            scope.launch {
+                                try {
+                                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                                        .collection("users")
+                                        .document(currentUser.userId)
+                                        .update("displayName", nameInput.trim())
+                                        .await()
+                                } catch (_: Exception) {}
+                                isSaving = false
+                                showEditNameDialog = false
+                            }
+                        }
+                    },
+                    enabled = !isSaving
+                ) { Text(if (isSaving) "Saving..." else "Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // ── Change Password Dialog ────────────────────────────────────────────
+    if (showPasswordDialog) {
+        var currentPw  by remember { mutableStateOf("") }
+        var newPw      by remember { mutableStateOf("") }
+        var confirmPw  by remember { mutableStateOf("") }
+        var errorMsg   by remember { mutableStateOf<String?>(null) }
+        var isSaving   by remember { mutableStateOf(false) }
+        val scope      = rememberCoroutineScope()
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false },
+            title   = { Text("Change Password") },
+            text    = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value         = currentPw,
+                        onValueChange = { currentPw = it },
+                        label         = { Text("Current Password") },
+                        singleLine    = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier      = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value         = newPw,
+                        onValueChange = { newPw = it },
+                        label         = { Text("New Password") },
+                        singleLine    = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier      = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value         = confirmPw,
+                        onValueChange = { confirmPw = it },
+                        label         = { Text("Confirm New Password") },
+                        singleLine    = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier      = Modifier.fillMaxWidth()
+                    )
+                    if (errorMsg != null) {
+                        Text(errorMsg!!, color = Color(0xFFE74C3C), fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        when {
+                            newPw.length < 6         -> errorMsg = "Password must be at least 6 characters"
+                            newPw != confirmPw        -> errorMsg = "Passwords do not match"
+                            else -> {
+                                isSaving = true
+                                errorMsg = null
+                                scope.launch {
+                                    try {
+                                        val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser!!
+                                        val credential = com.google.firebase.auth.EmailAuthProvider
+                                            .getCredential(user.email!!, currentPw)
+                                        user.reauthenticate(credential).await()
+                                        user.updatePassword(newPw).await()
+                                        showPasswordDialog = false
+                                    } catch (e: Exception) {
+                                        errorMsg = e.message ?: "Failed to update password"
+                                    }
+                                    isSaving = false
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isSaving
+                ) { Text(if (isSaving) "Updating..." else "Update") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPasswordDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 

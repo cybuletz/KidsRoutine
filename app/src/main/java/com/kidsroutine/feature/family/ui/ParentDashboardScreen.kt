@@ -76,6 +76,7 @@ fun ParentDashboardScreen(
     onContentPacksClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
+    onSwitchToChild: (UserModel) -> Unit = {},   // ← NEW
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val innerNav = rememberNavController()
@@ -137,7 +138,8 @@ fun ParentDashboardScreen(
                     currentUser       = currentUser,
                     familyMembers     = familyMembers.filter { it.userId != currentUser.userId },
                     uiState           = uiState,
-                    onChallengesClick = { innerNav.navigate("tasks_challenges") }  // fix: was "discover"
+                    onChallengesClick = { innerNav.navigate("tasks_challenges") },
+                    onSwitchToChild   = onSwitchToChild   // ← NEW
                 )
             }
             composable("discover") {
@@ -394,7 +396,7 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
         db.collection("task_instances")
             .whereEqualTo("userId", child.userId)
-            .whereEqualTo("date", today)
+            .whereEqualTo("assignedDate", today)
             .addSnapshotListener { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
                 totalToday     = snap.size()
@@ -460,6 +462,7 @@ private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, i
     var showCreateTask     by remember { mutableStateOf(false) }
     var createdTask        by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
     var showStartChallenge by remember { mutableStateOf(false) }
+    var selectedChallenge  by remember { mutableStateOf<com.kidsroutine.core.model.ChallengeModel?>(null) }
 
     when {
         createdTask != null -> {
@@ -536,10 +539,59 @@ private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, i
             2 -> ActiveChallengesScreen(currentUser = currentUser, onBackClick = { }, onStartChallengeClick = { showStartChallenge = true }, onChallengeClick = { })
         }
     }
+
+    // Challenge detail sheet
+    selectedChallenge?.let { challenge ->
+        @OptIn(ExperimentalMaterial3Api::class)
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { selectedChallenge = null },
+            containerColor   = Color.White,
+            shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 40.dp)
+            ) {
+                Text(challenge.title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                Spacer(Modifier.height(8.dp))
+                Text(challenge.description, fontSize = 14.sp, color = Color.Gray)
+                Spacer(Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFE8F5E9)) {
+                        Text("⭐ +${challenge.dailyXpReward} XP/day", fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    }
+                    Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFEDE7F6)) {
+                        Text("📅 ${challenge.duration} days", fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold, color = Color(0xFF4527A0),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+                Button(
+                    onClick   = { selectedChallenge = null },
+                    modifier  = Modifier.fillMaxWidth().height(52.dp),
+                    shape     = RoundedCornerShape(14.dp),
+                    colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C5CE7))
+                ) {
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun ParentFamilyTab(currentUser: UserModel, familyMembers: List<UserModel>, uiState: ParentDashboardUiState, onChallengesClick: () -> Unit) {
+private fun ParentFamilyTab(
+    currentUser: UserModel,
+    familyMembers: List<UserModel>,
+    uiState: ParentDashboardUiState,
+    onChallengesClick: () -> Unit,
+    onSwitchToChild: (UserModel) -> Unit = {}
+) {
     LazyColumn(modifier = Modifier.fillMaxSize().background(BgLight), contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
             Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
@@ -569,7 +621,7 @@ private fun ParentFamilyTab(currentUser: UserModel, familyMembers: List<UserMode
                         familyMembers.forEachIndexed { index, child ->
                             FamilyMemberRowWithLogin(
                                 child = child,
-                                onLoginAsChild = { /* navigate to child login */ }
+                                onLoginAsChild = { onSwitchToChild(child) }
                             )
                             if (index < familyMembers.lastIndex) {
                                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF0F0F0))
