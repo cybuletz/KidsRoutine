@@ -37,9 +37,6 @@ import kotlin.math.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.PathEffect
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WORLD PALETTE
-// ─────────────────────────────────────────────────────────────────────────────
 private val SkyTop       = Color(0xFF0D0D2B)
 private val SkyMid       = Color(0xFF1A1042)
 private val SkyBottom    = Color(0xFF0F2B4A)
@@ -57,14 +54,12 @@ private val GlowSpecial  = Color(0x55FFD700)
 private val CardBg       = Color(0xFF1E1E3F)
 private val CardBorder   = Color(0xFF3A3A6A)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN SCREEN
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun WorldScreen(
     currentUser: UserModel,
     onBackClick: () -> Unit = {},
-    onLootBoxClick: () -> Unit = {},        // ← NEW: wired from ChildMainScreen
+    onLootBoxClick: () -> Unit = {},
+    onNodeDetailVisibilityChange: (Boolean) -> Unit = {},
     viewModel: WorldViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -73,8 +68,11 @@ fun WorldScreen(
         viewModel.loadWorld(currentUser.userId, fallbackUser = currentUser)
     }
 
+    LaunchedEffect(uiState.showNodeDetail) {
+        onNodeDetailVisibilityChange(uiState.showNodeDetail)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -93,7 +91,6 @@ fun WorldScreen(
         when {
             uiState.isLoading -> WorldLoadingSkeleton()
             uiState.world != null -> {
-                // ── Scrollable map canvas ─────────────────────────────────
                 WorldMapCanvas(
                     world        = uiState.world!!,
                     userXp       = uiState.currentUser.xp,
@@ -102,7 +99,6 @@ fun WorldScreen(
             }
         }
 
-        // HUD always on top
         WorldHud(
             displayName = currentUser.displayName,
             userXp      = uiState.currentUser.xp,
@@ -111,32 +107,35 @@ fun WorldScreen(
             onBackClick = onBackClick
         )
 
-        // Node detail bottom sheet
-        AnimatedVisibility(
-            visible  = uiState.showNodeDetail && uiState.selectedNode != null,
-            enter    = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit     = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(bottom = 80.dp)   // ← clears the FAB bubbles + nav bar
-                .zIndex(10f)
-        ) {
-            uiState.selectedNode?.let { node ->
-                NodeDetailCard(
-                    node          = node,
-                    userXp        = uiState.currentUser.xp,
-                    onLootBoxClick = onLootBoxClick,    // ← wired
-                    onDismiss     = { viewModel.dismissNodeDetail() }
-                )
+        if (uiState.showNodeDetail && uiState.selectedNode != null) {
+            // Scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .zIndex(9f)
+                    .pointerInput(Unit) { detectTapGestures { viewModel.dismissNodeDetail() } }
+            )
+            // Card anchored at bottom
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .zIndex(10f)
+            ) {
+                uiState.selectedNode?.let { node ->
+                    NodeDetailCard(
+                        node           = node,
+                        userXp         = uiState.currentUser.xp,
+                        onLootBoxClick = onLootBoxClick,
+                        onDismiss      = { viewModel.dismissNodeDetail() }
+                    )
+                }
             }
         }
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STAR FIELD — 60 twinkling stars
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun StarField() {
     val stars = remember {
@@ -187,9 +186,6 @@ private fun TwinklingStar(xFrac: Float, yFrac: Float, sizeDp: Float, delayMs: Lo
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NEBULA BLOBS
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun NebulaClouds() {
     val infiniteTransition = rememberInfiniteTransition(label = "nebula")
@@ -234,10 +230,6 @@ private fun NebulaClouds() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WORLD MAP CANVAS — SCROLLABLE
-// nodes.size * 160.dp tall so the full map is explorable
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun WorldMapCanvas(
     world: com.kidsroutine.core.model.WorldModel,
@@ -251,7 +243,6 @@ private fun WorldMapCanvas(
     val mapHeightDp = (nodes.size * 260).dp + 200.dp
 
     val density = androidx.compose.ui.platform.LocalDensity.current
-    // Compute mapHeightPx in Compose scope so Canvas can capture it
     val mapHeightPx = with(density) { mapHeightDp.toPx() }
 
     val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
@@ -277,7 +268,6 @@ private fun WorldMapCanvas(
                 .fillMaxWidth()
                 .height(mapHeightDp)
         ) {
-            // mapHeightPx is captured from Compose scope above — accessible here
             Canvas(modifier = Modifier.fillMaxWidth().height(mapHeightDp)) {
                 for (i in 0 until nodes.size - 1) {
                     val from  = nodes[i]
@@ -287,8 +277,9 @@ private fun WorldMapCanvas(
                     val toX   = to.positionX * size.width
                     val toY   = to.positionY * mapHeightPx
 
-                    // Control point bulges sideways — creates an organic curve
-                    val ctrlX = size.width * 0.5f + (fromX - size.width * 0.5f) * -1.2f
+                    // S-curve: control point pulls toward the opposite side from the 'from' node
+                    val fromSide = if (fromX < size.width * 0.5f) -1f else 1f
+                    val ctrlX = size.width * 0.5f + fromSide * size.width * 0.38f
                     val ctrlY = (fromY + toY) / 2f
 
                     val pathDone = from.status == WorldNodeStatus.COMPLETED
@@ -300,11 +291,11 @@ private fun WorldMapCanvas(
                     }
 
                     drawPath(
-                        path   = path,
-                        color  = color,
-                        style  = Stroke(
-                            width       = 5f,
-                            pathEffect  = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
+                        path  = path,
+                        color = color,
+                        style = Stroke(
+                            width      = 6f,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
                         )
                     )
                 }
@@ -312,7 +303,7 @@ private fun WorldMapCanvas(
 
             nodes.forEachIndexed { index, node ->
                 val nodeX      = canvasW * node.positionX
-                val nodeY      = mapHeightDp * node.positionY  // ← Dp * Float = Dp ✓
+                val nodeY      = mapHeightDp * node.positionY
                 val enterDelay = 150L + index * 80L
 
                 AnimatedVisibility(
@@ -333,9 +324,6 @@ private fun WorldMapCanvas(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SINGLE WORLD NODE — unchanged from original
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun WorldNodeItem(node: WorldNode, onTap: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "node_${node.nodeId}")
@@ -424,7 +412,20 @@ private fun WorldNodeItem(node: WorldNode, onTap: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             if (node.status == WorldNodeStatus.LOCKED) {
-                Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(22.dp))
+                Text(node.emoji, fontSize = 26.sp, modifier = Modifier.alpha(0.75f))
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.Black.copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = "Locked",
+                        tint     = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             } else {
                 Text(node.emoji, fontSize = 26.sp)
             }
@@ -434,10 +435,13 @@ private fun WorldNodeItem(node: WorldNode, onTap: () -> Unit) {
         }
         if (node.status == WorldNodeStatus.COMPLETED) {
             Surface(
-                shape  = CircleShape,
-                color  = NodeDone,
-                border = BorderStroke(1.dp, Color.White),
-                modifier = Modifier.size(18.dp).align(Alignment.BottomEnd).offset(x = 2.dp, y = 2.dp)
+                shape    = CircleShape,
+                color    = NodeDone,
+                border   = BorderStroke(1.dp, Color.White),
+                modifier = Modifier
+                    .size(18.dp)
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 2.dp, y = 2.dp)
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -447,18 +451,14 @@ private fun WorldNodeItem(node: WorldNode, onTap: () -> Unit) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TOP HUD — unchanged
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun WorldHud(
     displayName: String,
     userXp: Int,
     totalXp: Int,
-    nodes: List<WorldNode>,      // ADD this parameter
+    nodes: List<WorldNode>,
     onBackClick: () -> Unit
 ) {
-    // Find next node to unlock
     val nextLockedNode = nodes.firstOrNull { it.status == WorldNodeStatus.LOCKED }
     val xpToNext = if (nextLockedNode != null) (nextLockedNode.requiredXp - userXp).coerceAtLeast(0) else 0
     val currentNode = nodes.lastOrNull { it.status != WorldNodeStatus.LOCKED }
@@ -467,15 +467,15 @@ private fun WorldHud(
     } else 1f
 
     val animatedProgress by animateFloatAsState(
-        targetValue = progressToNext,
+        targetValue   = progressToNext,
         animationSpec = tween(1200, easing = EaseOutCubic),
-        label = "xpProgress"
+        label         = "xpProgress"
     )
     val shimmerInfinite = rememberInfiniteTransition(label = "hudShimmer")
     val shimmerX by shimmerInfinite.animateFloat(
-        initialValue = -200f, targetValue = 600f,
+        initialValue  = -200f, targetValue = 600f,
         animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing)),
-        label = "shimmerX"
+        label         = "shimmerX"
     )
 
     Box(
@@ -486,31 +486,33 @@ private fun WorldHud(
             .zIndex(5f)
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            color = Color(0x99000000),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+            modifier       = Modifier.fillMaxWidth(),
+            shape          = RoundedCornerShape(20.dp),
+            color          = Color(0x99000000),
+            border         = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
             tonalElevation = 0.dp
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(36.dp).background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    onClick  = onBackClick,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color.White.copy(alpha = 0.12f), CircleShape)
                 ) {
                     Text("←", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
-                            text = currentNode?.title?.let { "🌍 $it" } ?: "🌍 Your World",
-                            color = Color.White,
-                            fontSize = 14.sp,
+                            text       = currentNode?.title?.let { "🌍 $it" } ?: "🌍 Your World",
+                            color      = Color.White,
+                            fontSize   = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            maxLines   = 1
                         )
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                             Icon(Icons.Default.Star, contentDescription = null, tint = XpGold, modifier = Modifier.size(14.dp))
@@ -518,7 +520,10 @@ private fun WorldHud(
                         }
                     }
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
                             .background(Color.White.copy(alpha = 0.15f))
                     ) {
                         Box(
@@ -537,7 +542,7 @@ private fun WorldHud(
                     if (nextLockedNode != null) {
                         Text(
                             "$xpToNext XP to unlock ${nextLockedNode.emoji} ${nextLockedNode.title}",
-                            color = Color.White.copy(alpha = 0.6f),
+                            color    = Color.White.copy(alpha = 0.6f),
                             fontSize = 10.sp
                         )
                     } else {
@@ -549,19 +554,16 @@ private fun WorldHud(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NODE DETAIL CARD — TODO loot box is now wired to onLootBoxClick
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun NodeDetailCard(
     node: WorldNode,
     userXp: Int,
-    onLootBoxClick: () -> Unit,   // ← NEW parameter
+    onLootBoxClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val isLocked  = node.status == WorldNodeStatus.LOCKED
     val nodeColor = when {
-        node.isSpecial && !isLocked          -> NodeSpecial
+        node.isSpecial && !isLocked              -> NodeSpecial
         node.status == WorldNodeStatus.COMPLETED -> NodeDone
         node.status == WorldNodeStatus.UNLOCKED  -> NodeUnlocked
         else                                     -> NodeLocked
@@ -576,24 +578,32 @@ private fun NodeDetailCard(
     LaunchedEffect(Unit) { bounced = true }
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        shape    = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
-        color    = CardBg,
-        border   = BorderStroke(1.dp, CardBorder),
+        modifier        = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 100.dp),   // clears both FABs sitting at offset y=(-90.dp)
+        shape           = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+        color           = CardBg,
+        border          = BorderStroke(1.dp, CardBorder),
         shadowElevation = 24.dp,
         tonalElevation  = 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(max = 520.dp)          // ← cap height
-                .verticalScroll(rememberScrollState())   // ← scrollable inside
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Drag handle
-            Box(modifier = Modifier.width(40.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(2.dp)))
+            Box(
+                modifier = Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(2.dp))
+            )
 
             // Big emoji
             Box(
@@ -622,8 +632,10 @@ private fun NodeDetailCard(
                         WorldNodeStatus.UNLOCKED  -> "🔓 Unlocked — Ready!"
                         WorldNodeStatus.LOCKED    -> "🔒 Requires ${node.requiredXp} XP"
                     },
-                    color = nodeColor, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    color      = nodeColor,
+                    fontSize   = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier   = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                 )
             }
 
@@ -661,7 +673,11 @@ private fun NodeDetailCard(
                         Text("$xpNeeded XP to unlock", color = NodeLocked.copy(alpha = 0.8f), fontSize = 11.sp)
                     }
                     Box(
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = 0.1f))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color.White.copy(alpha = 0.1f))
                     ) {
                         Box(
                             modifier = Modifier
@@ -685,19 +701,17 @@ private fun NodeDetailCard(
                         Text("✨ Quests in this world", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             node.subtitle.ifBlank { "Complete daily tasks to progress through this world node and unlock the next one!" },
-                            color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp
+                            color    = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
                         )
                     }
                 }
             }
 
-            // ── Loot Box button — WIRED (no more TODO) ────────────────────
+            // Loot Box button
             if (node.status == WorldNodeStatus.COMPLETED) {
                 Button(
-                    onClick  = {
-                        onDismiss()          // close the detail card first
-                        onLootBoxClick()     // then navigate to loot box
-                    },
+                    onClick  = { onDismiss(); onLootBoxClick() },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape    = RoundedCornerShape(14.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700))
@@ -706,7 +720,7 @@ private fun NodeDetailCard(
                 }
             }
 
-            // Dismiss
+            // Close button — always visible, always last
             OutlinedButton(
                 onClick  = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -720,16 +734,13 @@ private fun NodeDetailCard(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LOADING SKELETON — unchanged
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun WorldLoadingSkeleton() {
     val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f, targetValue = 0.5f,
+        initialValue  = 0.2f, targetValue = 0.5f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "skeletonAlpha"
+        label         = "skeletonAlpha"
     )
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {

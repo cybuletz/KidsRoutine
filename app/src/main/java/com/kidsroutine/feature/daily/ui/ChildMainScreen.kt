@@ -56,7 +56,6 @@ private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight       = Color(0xFFFFFBF0)
 private val PinkPropose   = Color(0xFFFF6B9D)
 
-// ── Seasonal banner ───────────────────────────────────────────────────────────
 @Composable
 fun SeasonalBanner(themeManager: SeasonalThemeManager) {
     val theme = remember { themeManager.getActiveTheme() }
@@ -90,7 +89,6 @@ fun SeasonalBanner(themeManager: SeasonalThemeManager) {
     }
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
 @Composable
 fun ChildMainScreen(
     currentUser: UserModel,
@@ -103,6 +101,9 @@ fun ChildMainScreen(
 
     val notificationViewModel: NotificationViewModel = hiltViewModel()
     val notificationUiState by notificationViewModel.uiState.collectAsState()
+
+    // Tracks whether the world node detail card is open — used to hide FABs
+    var worldDetailShowing by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUser.userId) {
         notificationViewModel.loadNotifications(currentUser.userId)
@@ -129,7 +130,7 @@ fun ChildMainScreen(
                     onProfileClick         = { parentNavController.navigate(Routes.CHILD_PROFILE) },
                     onNotificationsClick   = { innerNavController.navigate("notifications") },
                     onLootBoxClick         = { innerNavController.navigate("lootbox") },
-                    onWorldClick           = { innerNavController.navigate("world") }   // ← NEW
+                    onWorldClick           = { innerNavController.navigate("world") }
                 )
             }
 
@@ -162,9 +163,10 @@ fun ChildMainScreen(
             composable("world") {
                 currentRoute = "world"
                 WorldScreen(
-                    currentUser    = currentUser,
-                    onBackClick    = { innerNavController.navigate("daily") },
-                    onLootBoxClick = { innerNavController.navigate("lootbox") }   // ← NEW
+                    currentUser                  = currentUser,
+                    onBackClick                  = { innerNavController.navigate("daily") },
+                    onLootBoxClick               = { innerNavController.navigate("lootbox") },
+                    onNodeDetailVisibilityChange = { worldDetailShowing = it }
                 )
             }
 
@@ -216,10 +218,10 @@ fun ChildMainScreen(
             }
         }
 
-        // ── Persistent bottom nav bar ─────────────────────────────────────
         PersistentNavBar(
             currentRoute            = currentRoute,
             currentUser             = currentUser,
+            hideOverlayButtons      = worldDetailShowing,
             onDailyClick            = { innerNavController.navigate("daily")         { popUpTo("daily") } },
             onChallengesClick       = { innerNavController.navigate("challenges")    { popUpTo("daily") } },
             onLeaderboardClick      = { innerNavController.navigate("leaderboard")   { popUpTo("daily") } },
@@ -235,7 +237,6 @@ fun ChildMainScreen(
     }
 }
 
-// ── Overloaded SeasonalBanner with modifier ────────────────────────────────────
 @Composable
 fun SeasonalBanner(
     themeManager: SeasonalThemeManager,
@@ -272,11 +273,11 @@ fun SeasonalBanner(
     }
 }
 
-// ── Nav bar — WITH animated pill on active tab ────────────────────────────────
 @Composable
 private fun PersistentNavBar(
     currentRoute: String,
     currentUser: UserModel,
+    hideOverlayButtons: Boolean = false,
     onDailyClick: () -> Unit,
     onChallengesClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
@@ -290,7 +291,6 @@ private fun PersistentNavBar(
     pendingRewardCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
-    // Define the 5 nav items in order
     data class NavItem(val route: String, val icon: ImageVector, val label: String, val onClick: () -> Unit)
     val items = listOf(
         NavItem("daily",       Icons.Default.Home,         "Daily",       onDailyClick),
@@ -318,13 +318,11 @@ private fun PersistentNavBar(
                 ) {
                     items.forEach { item ->
                         val isSelected = currentRoute == item.route
-                        // Animate pill alpha — fades in when selected
                         val pillAlpha by animateFloatAsState(
                             targetValue   = if (isSelected) 1f else 0f,
                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
                             label         = "pill_${item.route}"
                         )
-                        // Animate icon scale — slight bounce when selected
                         val iconScale by animateFloatAsState(
                             targetValue   = if (isSelected) 1.15f else 1f,
                             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
@@ -338,7 +336,6 @@ private fun PersistentNavBar(
                                 .clickable(onClick = item.onClick),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Animated pill background behind active item
                             Box(
                                 modifier = Modifier
                                     .size(width = 56.dp, height = 36.dp)
@@ -346,12 +343,10 @@ private fun PersistentNavBar(
                                     .clip(RoundedCornerShape(18.dp))
                                     .background(OrangePrimary.copy(alpha = 0.12f))
                             )
-
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                // Badge for rewards
                                 Box {
                                     Icon(
                                         item.icon,
@@ -390,7 +385,6 @@ private fun PersistentNavBar(
                     }
                 }
 
-                // Absorbs the system navigation bar height
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -400,43 +394,47 @@ private fun PersistentNavBar(
             }
         }
 
-        // Propose Task FAB — bottom-left
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = 16.dp, y = (-90).dp)
-                .zIndex(10f)
-                .navigationBarsPadding()
-        ) {
-            Button(
-                onClick        = onProposeTaskClick,
-                modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-                shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 16.dp),
-                colors         = ButtonDefaults.buttonColors(containerColor = PinkPropose),
-                contentPadding = PaddingValues(0.dp),
-                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+        // Propose Task FAB — hidden when world node detail is open
+        if (!hideOverlayButtons) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = 16.dp, y = (-90).dp)
+                    .zIndex(10f)
+                    .navigationBarsPadding()
             ) {
-                Text("👶", fontSize = 22.sp)
+                Button(
+                    onClick        = onProposeTaskClick,
+                    modifier       = Modifier.size(width = 56.dp, height = 50.dp),
+                    shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 16.dp),
+                    colors         = ButtonDefaults.buttonColors(containerColor = PinkPropose),
+                    contentPadding = PaddingValues(0.dp),
+                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                ) {
+                    Text("👶", fontSize = 22.sp)
+                }
             }
         }
 
-        // Chat bubble — bottom-right
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (-16).dp, y = (-90).dp)
-                .zIndex(10f)
-                .navigationBarsPadding()
-        ) {
-            Button(
-                onClick        = onChatClick,
-                modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-                shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
-                colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
-                contentPadding = PaddingValues(0.dp),
-                elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+        // Chat FAB — hidden when world node detail is open
+        if (!hideOverlayButtons) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-16).dp, y = (-90).dp)
+                    .zIndex(10f)
+                    .navigationBarsPadding()
             ) {
-                Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
+                Button(
+                    onClick        = onChatClick,
+                    modifier       = Modifier.size(width = 56.dp, height = 50.dp),
+                    shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
+                    colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
+                    contentPadding = PaddingValues(0.dp),
+                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                ) {
+                    Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
+                }
             }
         }
     }

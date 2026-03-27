@@ -74,7 +74,8 @@ class WorldRepositoryImpl @Inject constructor() : WorldRepository {
 
     private fun positionY(level: Int): Float {
         val posInZone = ((level - 1) % 50).toFloat()
-        return 0.08f + (posInZone / 49f) * 0.88f  // starts at 8%, ends at 96%
+        // Invert: level 1 = bottom (0.92), higher levels = top (0.08)
+        return 0.92f - (posInZone / 49f) * 0.84f
     }
 
     private fun themeTitle(theme: WorldTheme) = when (theme) {
