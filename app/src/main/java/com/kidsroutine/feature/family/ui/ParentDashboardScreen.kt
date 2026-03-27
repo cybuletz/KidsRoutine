@@ -137,7 +137,7 @@ fun ParentDashboardScreen(
                     currentUser       = currentUser,
                     familyMembers     = familyMembers.filter { it.userId != currentUser.userId },
                     uiState           = uiState,
-                    onChallengesClick = { innerNav.navigate("discover") }
+                    onChallengesClick = { innerNav.navigate("tasks_challenges") }  // fix: was "discover"
                 )
             }
             composable("discover") {
