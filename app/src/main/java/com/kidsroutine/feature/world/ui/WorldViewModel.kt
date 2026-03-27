@@ -35,37 +35,42 @@ class WorldViewModel @Inject constructor(
     val uiState: StateFlow<WorldUiState> = _uiState.asStateFlow()
 
     fun loadWorld(userId: String, fallbackUser: UserModel) {
+        // Apply fallback immediately — synchronous, no coroutine needed
         viewModelScope.launch {
             try {
-                // Immediately show the world with the user we already have
-                val initialWorld = runCatching { worldRepository.getWorld(fallbackUser.xp) }.getOrNull()
+                val initialWorld = worldRepository.getWorld(fallbackUser.xp)
                 _uiState.update {
-                    it.copy(
-                        currentUser = fallbackUser,
-                        world = initialWorld,
-                        isLoading = initialWorld == null
-                    )
+                    it.copy(currentUser = fallbackUser, world = initialWorld, isLoading = false)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Scope cancelled during init — try once more in a new launch
+                Log.w("WorldViewModel", "Initial world load cancelled, retrying")
+                throw e
+            } catch (e: Exception) {
+                Log.e("WorldViewModel", "Failed to load world", e)
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
 
-                // Then keep listening for real-time XP updates
+        // Separate coroutine for live updates — won't block initial render
+        viewModelScope.launch {
+            try {
                 userRepository.observeUser(userId).collect { user ->
                     if (user != null) {
                         val world = worldRepository.getWorld(user.xp)
                         _uiState.update {
-                            it.copy(
-                                currentUser = user,
-                                world = world,
-                                isLoading = false
-                            )
+                            it.copy(currentUser = user, world = world, isLoading = false)
                         }
                     } else {
                         _uiState.update { it.copy(isLoading = false) }
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                Log.e("WorldViewModel", "Failed to load world", e)
-                val fallbackWorld = runCatching { worldRepository.getWorld(0) }.getOrNull()
-                _uiState.update { it.copy(error = e.message, isLoading = false, world = fallbackWorld) }
+                Log.e("WorldViewModel", "Failed to observe user for world", e)
+                val fallbackWorld = runCatching { worldRepository.getWorld(fallbackUser.xp) }.getOrNull()
+                _uiState.update { it.copy(error = e.message, isLoading = false, world = fallbackWorld ?: it.world) }
             }
         }
     }

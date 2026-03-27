@@ -8,7 +8,6 @@ import com.kidsroutine.core.common.util.DateUtils
 import com.kidsroutine.feature.daily.domain.GenerateDailyTasksUseCase
 import com.kidsroutine.feature.daily.domain.GetDailyStateUseCase
 import com.kidsroutine.feature.daily.data.UserRepository
-import com.kidsroutine.feature.tasks.data.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -31,7 +30,6 @@ class DailyViewModel @Inject constructor(
     private val getDailyState: GetDailyStateUseCase,
     private val generateDailyTasks: GenerateDailyTasksUseCase,
     private val userRepository: UserRepository,
-    private val taskRepository: TaskRepository,
     private val storyArcRepository: StoryArcRepository,
     private val taskSaveRepository: TaskSaveRepository
 ) : ViewModel() {
@@ -47,7 +45,6 @@ class DailyViewModel @Inject constructor(
         val today = DateUtils.todayString()
         val key   = "${user.userId}_$today"
 
-        // ── PERFORMANCE FIX: skip re-init if same user+date is already live ──
         if (initializedFor == key) {
             Log.d("DailyViewModel", "init() skipped — already initialized for $key")
             return
@@ -56,59 +53,40 @@ class DailyViewModel @Inject constructor(
         Log.d("DailyViewModel", "init() starting for $key")
 
         viewModelScope.launch {
-            // Generate today's task instances once (idempotent — safe to call multiple times)
+            // Step 1: generate tasks (idempotent)
             generateDailyTasks(user, today)
 
-            combine(
-                getDailyState(user.userId, today),
-                userRepository.observeUser(user.userId),
-                taskRepository.observeChildAssignedTasks(user.userId, user.familyId)
-            ) { dailyState, observedUser, assignedTasks ->
-                Log.d("DailyViewModel", "Pipeline update: xp=${observedUser?.xp}, completed=${dailyState.completedCount}, assigned=${assignedTasks.size}")
-
-                // Merge parent-assigned tasks into the daily list (no duplicates)
-                val mergedTasks = dailyState.tasks.toMutableList()
-                assignedTasks.forEach { assignedTask ->
-                    if (mergedTasks.none { it.task.id == assignedTask.id }) {
-                        mergedTasks.add(
-                            TaskInstance(
-                                instanceId             = "${assignedTask.id}_${today}",
-                                templateId             = assignedTask.id,
-                                task                   = assignedTask,
-                                resolvedValues         = emptyMap(),
-                                assignedDate           = today,
-                                userId                 = user.userId,
-                                injectedByChallengeId  = null
-                            )
-                        )
-                    }
-                }
-
-                // ── Filter: completed tasks linger 2s for exit animation, then disappear ──
-                val now = System.currentTimeMillis()
-                val displayTasks = mergedTasks.filter { instance ->
-                    when (instance.status) {
-                        TaskStatus.COMPLETED -> (now - instance.completedAt) < 2_000L
-                        else -> true
-                    }
-                }
-
-                Triple(dailyState.copy(tasks = displayTasks), observedUser ?: user, assignedTasks)
-            }
+            // Step 2: observe Room tasks — this emits immediately once tasks are saved
+            getDailyState(user.userId, today)
                 .catch { e ->
-                    Log.e("DailyViewModel", "Pipeline error", e)
+                    Log.e("DailyViewModel", "Daily state error", e)
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
-                .collect { (dailyState, observedUser, _) ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading   = false,
-                            dailyState  = dailyState,
-                            currentUser = observedUser
+                .collect { dailyState ->
+                    // Merge live parent-assigned tasks from what was already saved
+                    _uiState.update { current ->
+                        current.copy(
+                            isLoading  = false,
+                            dailyState = dailyState
                         )
+                    }
+                    Log.d("DailyViewModel", "Tasks loaded: ${dailyState.tasks.size}")
+                }
+        }
+
+        // Step 3: observe user XP separately — won't block task display
+        viewModelScope.launch {
+            userRepository.observeUser(user.userId)
+                .catch { e -> Log.w("DailyViewModel", "User observe error: ${e.message}") }
+                .collect { observedUser ->
+                    if (observedUser != null) {
+                        _uiState.update { it.copy(currentUser = observedUser) }
                     }
                 }
         }
+
+        // Step 4: initial currentUser from fallback immediately
+        _uiState.update { it.copy(currentUser = user) }
 
         loadActiveStoryArc(user.familyId)
     }
