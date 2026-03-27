@@ -43,9 +43,9 @@ class WorldViewModel @Inject constructor(
                     it.copy(currentUser = fallbackUser, world = initialWorld, isLoading = false)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                // Scope cancelled during init — try once more in a new launch
-                Log.w("WorldViewModel", "Initial world load cancelled, retrying")
-                throw e
+                Log.w("WorldViewModel", "Initial world load cancelled — applying fallback")
+                val fallback = runCatching { worldRepository.getWorld(fallbackUser.xp) }.getOrNull()
+                _uiState.update { it.copy(currentUser = fallbackUser, world = fallback, isLoading = false) }
             } catch (e: Exception) {
                 Log.e("WorldViewModel", "Failed to load world", e)
                 _uiState.update { it.copy(isLoading = false) }

@@ -31,12 +31,13 @@ class CompleteTaskUseCase @Inject constructor(
     suspend operator fun invoke(
         task: TaskModel,
         userId: String,
+        instanceId: String = task.id,   // ← NEW: actual Room instanceId
         photoUrl: String? = null,
         currentStreak: Int = 0,
         lastActiveDate: String = "",
-        childName: String = "",      // ← NEW param — pass from ExecutionViewModel
-        childAge: Int = 8,           // ← NEW param
-        familyId: String = ""        // ← NEW param (already on task.familyId, kept for clarity)
+        childName: String = "",
+        childAge: Int = 8,
+        familyId: String = ""
     ): CompletionResult {
         Log.d("CompleteTaskUseCase", "=== START TASK COMPLETION ===")
         Log.d("CompleteTaskUseCase", "userId=$userId, taskId=${task.id}, baseXp=${task.reward.xp}")
@@ -112,7 +113,7 @@ class CompleteTaskUseCase @Inject constructor(
         // ── Update Room local DB so the Flow in DailyViewModel picks up COMPLETED status ──
         try {
             taskInstanceDao.updateStatus(
-                instanceId  = task.id,
+                instanceId  = instanceId,
                 status      = status.name,
                 completedAt = completionTimestamp
             )

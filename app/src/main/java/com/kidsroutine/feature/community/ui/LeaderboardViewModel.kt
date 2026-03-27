@@ -20,11 +20,11 @@ import javax.inject.Inject
 data class LeaderboardUiState(
     val isLoading: Boolean = false,
     val activeTab: LeaderboardTab = LeaderboardTab.CHILDREN,
-    val childLeaderboard: List<ChildLeaderboardEntry> = emptyList(),
-    val familyLeaderboard: List<FamilyLeaderboardEntry> = emptyList(),
-    val challengeLeaderboard: List<ChallengeLeaderboardEntry> = emptyList(),
-    val myFamilyLeaderboard: List<LeaderboardEntry> = emptyList(),
-    val lastUpdated: String = "",   // human-readable "Updated at HH:mm"
+    val childEntries: List<ChildLeaderboardEntry> = emptyList(),         // was childLeaderboard
+    val familyEntries: List<FamilyLeaderboardEntry> = emptyList(),       // was familyLeaderboard
+    val challengeEntries: List<ChallengeLeaderboardEntry> = emptyList(), // was challengeLeaderboard
+    val myFamilyEntries: List<LeaderboardEntry> = emptyList(),           // was myFamilyLeaderboard
+    val lastUpdated: String = "",
     val error: String? = null
 )
 
@@ -135,12 +135,12 @@ class LeaderboardViewModel @Inject constructor(
                 } else "Live data"
 
                 _uiState.value = _uiState.value.copy(
-                    isLoading          = false,
-                    childLeaderboard   = childEntries,
-                    familyLeaderboard  = familyEntries,
-                    challengeLeaderboard = challengeEntries,
-                    lastUpdated        = updatedText,
-                    error              = null
+                    isLoading        = false,
+                    childEntries     = childEntries,
+                    familyEntries    = familyEntries,
+                    challengeEntries = challengeEntries,
+                    lastUpdated      = updatedText,
+                    error            = null
                 )
                 Log.d("LeaderboardVM", "Snapshots loaded. Children: ${childEntries.size}")
 
@@ -160,7 +160,7 @@ class LeaderboardViewModel @Inject constructor(
             try {
                 val familyLeaderboard = communityRepository.getWeeklyFamilyLeaderboard(familyId)
                 val entries = familyLeaderboard.entries
-                _uiState.value = _uiState.value.copy(myFamilyLeaderboard = entries)
+                _uiState.value = _uiState.value.copy(myFamilyEntries = entries)
             } catch (e: Exception) {
                 Log.e("LeaderboardVM", "Error loading family leaderboard", e)
             }

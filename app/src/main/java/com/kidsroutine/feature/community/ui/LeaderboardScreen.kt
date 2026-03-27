@@ -126,6 +126,38 @@ fun LeaderboardScreen(
             }
             Spacer(Modifier.height(8.dp))
         }
+
+        // Content area — rendered below the gradient header
+        val headerHeightApprox = 180.dp   // approximate height of the gradient header
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = headerHeightApprox)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = GradientStart)
+                    }
+                }
+                uiState.error != null -> {
+                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text(uiState.error!!, color = TextDark)
+                    }
+                }
+                else -> {
+                    when (uiState.activeTab) {
+                        LeaderboardTab.CHILDREN   -> ChildLeaderboardContent(uiState.childEntries)
+                        LeaderboardTab.FAMILIES   -> FamilyLeaderboardContent(uiState.familyEntries)
+                        LeaderboardTab.CHALLENGES -> ChallengeLeaderboardContent(uiState.challengeEntries)
+                        LeaderboardTab.MY_FAMILY  -> MyFamilyLeaderboardContent(
+                            entries       = uiState.myFamilyEntries,
+                            currentUserId = currentUser.userId
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
