@@ -248,14 +248,14 @@ private fun WorldMapCanvas(
 
     // Auto-scroll to the current unlocked node on first load
     val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
+    val density = androidx.compose.ui.platform.LocalDensity.current
     LaunchedEffect(firstUnlockedIndex) {
-        if (firstUnlockedIndex > 0) {
-            // Scroll so the unlocked node is roughly centred
-            val targetPx = ((firstUnlockedIndex * 160) - 200).coerceAtLeast(0)
+        if (firstUnlockedIndex >= 0) {
+            val nodeHeightPx = with(density) { 160.dp.toPx() }.toInt()
+            val targetPx = ((firstUnlockedIndex * nodeHeightPx) - nodeHeightPx * 2).coerceAtLeast(0)
             scrollState.animateScrollTo(targetPx)
         }
     }
-
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()

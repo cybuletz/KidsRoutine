@@ -15,6 +15,7 @@ import android.util.Log
 
 data class ExecutionUiState(
     val task: TaskModel = TaskModel(),
+    val instanceId: String = "",
     val currentBlockIndex: Int = 0,
     val blockAnswers: Map<String, Any> = emptyMap(),
     val photoUrl: String? = null,
@@ -54,11 +55,11 @@ class ExecutionViewModel @Inject constructor(
         currentUser = user
     }
 
-    fun loadTask(task: TaskModel) {
+    fun loadTask(task: TaskModel, instanceId: String = task.id) {
         val firstBlock = task.interactionBlocks.firstOrNull()
         val timerSec   = if (firstBlock?.type == InteractionBlockType.TIMER)
             (firstBlock.config["durationSec"] as? Int) ?: 0 else 0
-        _uiState.update { it.copy(task = task, timerSecondsLeft = timerSec) }
+        _uiState.update { it.copy(task = task, instanceId = instanceId, timerSecondsLeft = timerSec) }
     }
 
     fun onEvent(event: ExecutionEvent) {
@@ -89,6 +90,7 @@ class ExecutionViewModel @Inject constructor(
 
             val result = completeTaskUseCase(
                 task           = state.task,
+                instanceId     = state.instanceId.ifBlank { state.task.id },   // ← ADD
                 userId         = userId,
                 photoUrl       = state.photoUrl,
                 currentStreak  = user?.streak ?: 0,

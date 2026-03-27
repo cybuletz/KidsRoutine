@@ -32,6 +32,7 @@ import com.kidsroutine.feature.world.ui.WorldScreen
 
 object TaskPassthrough {
     var pendingTask: TaskModel? = null
+    var pendingInstanceId: String = ""          // ← ADD
 }
 
 fun NavGraphBuilder.childNavGraph(
@@ -46,8 +47,9 @@ fun NavGraphBuilder.childNavGraph(
         composable(Routes.DAILY) {
             ChildMainScreen(
                 currentUser            = currentUser,
-                onTaskClick            = { instance ->
-                    TaskPassthrough.pendingTask = instance.task
+                onTaskClick = { instance ->
+                    TaskPassthrough.pendingTask       = instance.task
+                    TaskPassthrough.pendingInstanceId = instance.instanceId   // ← ADD
                     navController.navigate(Routes.execution(instance.instanceId))
                 },
                 onFamilyMessagingClick = { navController.navigate(Routes.FAMILY_MESSAGING) },
@@ -94,10 +96,12 @@ fun NavGraphBuilder.childNavGraph(
             if (task != null) {
                 TaskExecutionScreen(
                     task        = task,
-                    currentUser = currentUser,      // ← ADDED
+                    instanceId  = TaskPassthrough.pendingInstanceId,   // ← ADD
+                    currentUser = currentUser,
                     onBack      = { navController.popBackStack() },
                     onCompleted = { _ ->
-                        TaskPassthrough.pendingTask = null
+                        TaskPassthrough.pendingTask       = null
+                        TaskPassthrough.pendingInstanceId = ""          // ← ADD cleanup
                         navController.popBackStack()
                     }
                 )

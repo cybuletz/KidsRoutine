@@ -36,6 +36,7 @@ import com.kidsroutine.feature.lootbox.ui.LootBoxViewModel
 @Composable
 fun TaskExecutionScreen(
     task: TaskModel,
+    instanceId: String,
     currentUser: UserModel,
     onBack: () -> Unit,
     onCompleted: (xpGained: Int) -> Unit,
@@ -49,7 +50,7 @@ fun TaskExecutionScreen(
     Log.d("TaskExecution", "Task: ${task.title}, GameType: ${task.gameType}")
 
     LaunchedEffect(task.id) {
-        viewModel.loadTask(task)
+        viewModel.loadTask(task, instanceId)   // ← WAS: loadTask(task)
         viewModel.setCurrentUser(currentUser)
     }
 

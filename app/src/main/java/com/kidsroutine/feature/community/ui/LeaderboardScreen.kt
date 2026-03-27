@@ -128,7 +128,7 @@ fun LeaderboardScreen(
         }
 
         // Content area — rendered below the gradient header
-        val headerHeightApprox = 180.dp   // approximate height of the gradient header
+        val headerHeightApprox = 0.dp
         Box(
             modifier = Modifier
                 .fillMaxSize()
