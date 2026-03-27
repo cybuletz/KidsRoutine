@@ -238,11 +238,8 @@ private fun WorldMapCanvas(
     userXp: Int,
     onNodeTapped: (WorldNode) -> Unit
 ) {
-    var revealed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(300)
-        revealed = true
-    }
+    var revealed by remember { mutableStateOf(true) }
+
 
     val scrollState = rememberScrollState()
     val nodes       = world.nodes

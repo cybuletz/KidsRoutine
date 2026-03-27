@@ -7,8 +7,10 @@ import androidx.room.PrimaryKey
 data class TaskInstanceEntity(
     @PrimaryKey val instanceId: String,
     val templateId: String,
-    val taskJson: String,          // full TaskModel serialized as JSON
+    val taskJson: String,
     val assignedDate: String,
     val userId: String,
-    val injectedByChallengeId: String? = null
+    val injectedByChallengeId: String? = null,
+    val status: String = "PENDING",           // ← NEW
+    val completedAt: Long = 0L                // ← NEW
 )

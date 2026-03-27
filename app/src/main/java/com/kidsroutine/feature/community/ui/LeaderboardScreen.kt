@@ -2,6 +2,7 @@ package com.kidsroutine.feature.community.ui
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -55,105 +56,75 @@ fun LeaderboardScreen(
             .background(BgLight)
     ) {
         // Gradient background
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.25f)
-                .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-        )
-
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
                 .statusBarsPadding()
+                .padding(horizontal = 20.dp)
+                .padding(top = 20.dp, bottom = 0.dp)
         ) {
-            // Top bar
+            Text(
+                "🏆 Leaderboards",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+            Text(
+                "Compete with the world",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+            Spacer(Modifier.height(20.dp))
+
+            // Pill tab selector — replaces the TabRow
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Text(
-                    text = "🏆 Leaderboards",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f)
-                )
-                Spacer(Modifier.width(40.dp))
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Tab selector
-            TabRow(
-                selectedTabIndex = uiState.activeTab.ordinal,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                containerColor = Color.Transparent,
-                divider = {}
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 LeaderboardTab.entries.forEach { tab ->
-                    Tab(
-                        selected = uiState.activeTab == tab,
-                        onClick = { viewModel.selectTab(tab) },
-                        text = {
+                    val isSelected = uiState.activeTab == tab
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { viewModel.selectTab(tab) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) Color.White else Color.Transparent,
+                        shadowElevation = if (isSelected) 2.dp else 0.dp
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
                             Text(
                                 text = when (tab) {
-                                    LeaderboardTab.CHILDREN -> "👶 Kids"
-                                    LeaderboardTab.FAMILIES -> "👨‍👩‍👧 Families"
-                                    LeaderboardTab.CHALLENGES -> "🎯 Challenges"
-                                    LeaderboardTab.MY_FAMILY -> "👪 My Family"
+                                    LeaderboardTab.CHILDREN   -> "👶"
+                                    LeaderboardTab.FAMILIES   -> "👨‍👩‍👧"
+                                    LeaderboardTab.CHALLENGES -> "🎯"
+                                    LeaderboardTab.MY_FAMILY  -> "👪"
                                 },
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                fontSize = 18.sp
                             )
-                        },
-                        selectedContentColor = Color.White,
-                        unselectedContentColor = Color.White.copy(alpha = 0.6f)
-                    )
+                            Text(
+                                text = when (tab) {
+                                    LeaderboardTab.CHILDREN   -> "Kids"
+                                    LeaderboardTab.FAMILIES   -> "Families"
+                                    LeaderboardTab.CHALLENGES -> "Challenges"
+                                    LeaderboardTab.MY_FAMILY  -> "My Family"
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) GradientStart else Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
                 }
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.error != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(uiState.error!!, color = Color.Red)
-                }
-            } else {
-                when (uiState.activeTab) {
-                    LeaderboardTab.CHILDREN -> ChildLeaderboardContent(uiState.childLeaderboard)
-                    LeaderboardTab.FAMILIES -> FamilyLeaderboardContent(uiState.familyLeaderboard)
-                    LeaderboardTab.CHALLENGES -> ChallengeLeaderboardContent(uiState.challengeLeaderboard)
-                    LeaderboardTab.MY_FAMILY -> MyFamilyLeaderboardContent(uiState.myFamilyLeaderboard, currentUser.userId)
-                }
-            }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

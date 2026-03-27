@@ -38,6 +38,7 @@ fun ActiveChallengesScreen(
     onBackClick: () -> Unit,
     onStartChallengeClick: () -> Unit,
     onChallengeClick: (ChallengeModel) -> Unit,
+    onViewDetailClick: (ChallengeModel) -> Unit = { onChallengeClick(it) },
     viewModel: ActiveChallengesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -117,10 +118,11 @@ fun ActiveChallengesScreen(
                 ) {
                     items(uiState.activeChallenges) { (challenge, progress) ->
                         ChallengeCard(
-                            challenge     = challenge,
-                            progress      = progress,
-                            currentUserId = currentUser.userId,
-                            onClick       = { onChallengeClick(challenge) }
+                            challenge       = challenge,
+                            progress        = progress,
+                            currentUserId   = currentUser.userId,
+                            onClick         = { onChallengeClick(challenge) },
+                            onViewDetail    = { onViewDetailClick(challenge) }
                         )
                     }
                 }
@@ -134,7 +136,8 @@ private fun ChallengeCard(
     challenge: ChallengeModel,
     progress: ChallengeProgress,
     currentUserId: String = "",
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onViewDetail: () -> Unit = onClick
 ) {
     Card(
         modifier = Modifier
@@ -242,7 +245,7 @@ private fun ChallengeCard(
             Spacer(Modifier.height(8.dp))
 
             Button(
-                onClick = onClick,
+                onClick = onViewDetail,
                 modifier = Modifier.fillMaxWidth().height(40.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = ChallengeAccent)

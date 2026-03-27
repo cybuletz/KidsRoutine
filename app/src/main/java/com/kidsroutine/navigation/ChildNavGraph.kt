@@ -111,6 +111,9 @@ fun NavGraphBuilder.childNavGraph(
                 onStartChallengeClick = { navController.navigate(Routes.CHALLENGES) },
                 onChallengeClick      = { challenge ->
                     navController.navigate(Routes.challengeDetail(challenge.challengeId))
+                },
+                onViewDetailClick     = { challenge ->
+                    navController.navigate(Routes.challengeDetail(challenge.challengeId))
                 }
             )
         }

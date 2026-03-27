@@ -174,7 +174,7 @@ private fun DailyContent(
 
             item {
                 Text(
-                    text       = "Today's Tasks",
+                    text = "⚔️ Today's Quests",
                     style      = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier   = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
@@ -419,10 +419,17 @@ fun TaskCard(
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(instance.instanceId) { visible = true }
+    LaunchedEffect(instance.status, instance.completedAt) {
+        if (instance.status == TaskStatus.COMPLETED && instance.completedAt > 0L) {
+            kotlinx.coroutines.delay(1600)
+            visible = false
+        }
+    }
 
     AnimatedVisibility(
         visible = visible,
         enter   = slideInVertically(initialOffsetY = { 40 }) + fadeIn(tween(300)),
+        exit    = slideOutHorizontally(targetOffsetX = { it }) + fadeOut(tween(400))
     ) {
         // Outer box provides the left stripe
         Box(

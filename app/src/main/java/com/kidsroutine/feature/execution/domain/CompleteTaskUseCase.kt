@@ -25,6 +25,7 @@ class CompleteTaskUseCase @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val achievementRepository: AchievementRepository,
     private val storyArcRepository: StoryArcRepository,
+    private val taskInstanceDao: com.kidsroutine.core.database.dao.TaskInstanceDao,
     private val aiGenerationService: AIGenerationService   // ← NEW injection
 ) {
     suspend operator fun invoke(
@@ -87,7 +88,8 @@ class CompleteTaskUseCase @Inject constructor(
             Log.e("CompleteTaskUseCase", "taskProgress Firestore sync failed", e)
         }
 
-        // 1.6 ── NEW: Write task_instances doc (feeds ChildSummaryCard ring) ──
+        // 1.6 — Write task_instances to Firestore AND update local Room DB
+        val completionTimestamp = System.currentTimeMillis()
         try {
             firestore.collection("task_instances")
                 .document("${userId}_${task.id}_$today")
@@ -98,13 +100,25 @@ class CompleteTaskUseCase @Inject constructor(
                     "taskTitle"      to task.title,
                     "status"         to status.name,
                     "date"           to today,
-                    "completedAt"    to System.currentTimeMillis(),
+                    "completedAt"    to completionTimestamp,
                     "xpReward"       to task.reward.xp
                 ))
                 .await()
-            Log.d("CompleteTaskUseCase", "task_instances doc written ✓")
+            Log.d("CompleteTaskUseCase", "task_instances Firestore doc written ✓")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "task_instances write failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "task_instances Firestore write failed (non-fatal)", e)
+        }
+
+        // ── Update Room local DB so the Flow in DailyViewModel picks up COMPLETED status ──
+        try {
+            taskInstanceDao.updateStatus(
+                instanceId  = task.id,
+                status      = status.name,
+                completedAt = completionTimestamp
+            )
+            Log.d("CompleteTaskUseCase", "Room task_instances updated to COMPLETED ✓")
+        } catch (e: Exception) {
+            Log.e("CompleteTaskUseCase", "Room task_instances update failed (non-fatal)", e)
         }
 
         // 2. Calculate XP
@@ -115,12 +129,26 @@ class CompleteTaskUseCase @Inject constructor(
             isStreakBonus = newStreak > 1
         )
 
-        // 3. Update XP
+        // 3. Update XP and streak
         try {
             userRepository.updateUserXp(userId, xpGained)
         } catch (e: Exception) {
             Log.e("CompleteTaskUseCase", "XP update FAILED", e)
             throw e
+        }
+
+        // 3.1 Write streak + lastActiveDate back to Firestore users doc
+        try {
+            firestore.collection("users").document(userId).update(
+                mapOf(
+                    "streak"         to newStreak,
+                    "lastActiveAt"   to System.currentTimeMillis(),
+                    "lastActiveDate" to today
+                )
+            ).await()
+            Log.d("CompleteTaskUseCase", "Streak updated to $newStreak ✓")
+        } catch (e: Exception) {
+            Log.e("CompleteTaskUseCase", "Streak write failed (non-fatal)", e)
         }
 
         // 4. Check achievements

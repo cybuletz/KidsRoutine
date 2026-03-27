@@ -49,7 +49,7 @@ val MIGRATION_1_TO_2 = object : Migration(1, 2) {
         UserEntity::class,
         AvatarEntity::class  // ← ADD THIS
     ],
-    version = 3,  // ← CHANGE FROM 1 TO 2
+    version = 4,  // ← CHANGE FROM 1 TO 2
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

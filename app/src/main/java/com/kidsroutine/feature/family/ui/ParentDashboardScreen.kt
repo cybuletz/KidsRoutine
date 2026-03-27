@@ -112,6 +112,7 @@ fun ParentDashboardScreen(
                     onFamilyMessagingClick    = onFamilyMessagingClick,
                     onCreateTaskClick         = { innerNav.navigate("tasks") },
                     onPrivilegeApprovalsClick = { innerNav.navigate("privilege_approvals") },
+                    onChallengesClick         = { innerNav.navigate("tasks_challenges") },
                     onGenerateForChild        = { innerNav.navigate("generation") }
                 )
             }
@@ -120,6 +121,14 @@ fun ParentDashboardScreen(
                 ParentTasksTab(
                     currentUser    = currentUser,
                     onUpgradeClick = onUpgradeClick
+                )
+            }
+            composable("tasks_challenges") {
+                currentTab = "tasks"
+                ParentTasksTab(
+                    currentUser          = currentUser,
+                    onUpgradeClick       = onUpgradeClick,
+                    initialSegment       = 2
                 )
             }
             composable("family") {
@@ -231,6 +240,7 @@ private fun ParentHomeTab(
     onFamilyMessagingClick: () -> Unit,
     onCreateTaskClick: () -> Unit,
     onPrivilegeApprovalsClick: () -> Unit,
+    onChallengesClick: () -> Unit = {},
     onGenerateForChild: (UserModel) -> Unit = {}
 ) {
     var selectedChild by remember { mutableStateOf<UserModel?>(null) }
@@ -340,7 +350,7 @@ private fun ParentHomeTab(
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickActionRow(Icons.Default.Add,         Color(0xFF4A90E2), "Create a Task",       "Assign a new task to your children",  onCreateTaskClick)
             QuickActionRow(Icons.Default.Pending,     Color(0xFFFF9800), "Child Proposals",     "Tasks your children want to do",      onPendingClick)
-            QuickActionRow(Icons.Default.EmojiEvents, Color(0xFF9B59B6), "Start a Challenge",   "Set a family-wide goal",              onPendingClick)
+            QuickActionRow(Icons.Default.EmojiEvents, Color(0xFF9B59B6), "Start a Challenge",   "Set a family-wide goal",              onChallengesClick)
             QuickActionRow(Icons.Default.Shield,      Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",  onPrivilegeApprovalsClick)
         }
 
@@ -384,7 +394,7 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
         db.collection("users").document(child.userId)
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
         db.collection("task_instances")
-            .whereEqualTo("childId", child.userId)
+            .whereEqualTo("userId", child.userId)
             .whereEqualTo("date", today)
             .addSnapshotListener { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
@@ -446,8 +456,8 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit) {
-    var selectedSegment    by remember { mutableStateOf(0) }
+private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, initialSegment: Int = 0) {
+    var selectedSegment    by remember { mutableStateOf(initialSegment) }
     var showCreateTask     by remember { mutableStateOf(false) }
     var createdTask        by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
     var showStartChallenge by remember { mutableStateOf(false) }

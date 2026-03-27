@@ -84,11 +84,13 @@ class DailyViewModel @Inject constructor(
                     }
                 }
 
-                // ── Filter: completed tasks disappear after 1.5-second linger ──
+                // ── Filter: completed tasks linger 2s for exit animation, then disappear ──
                 val now = System.currentTimeMillis()
                 val displayTasks = mergedTasks.filter { instance ->
-                    instance.status != TaskStatus.COMPLETED ||
-                            (now - instance.completedAt) < 1_500L
+                    when (instance.status) {
+                        TaskStatus.COMPLETED -> (now - instance.completedAt) < 2_000L
+                        else -> true
+                    }
                 }
 
                 Triple(dailyState.copy(tasks = displayTasks), observedUser ?: user, assignedTasks)

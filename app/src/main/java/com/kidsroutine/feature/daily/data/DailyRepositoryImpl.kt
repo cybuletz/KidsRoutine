@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.onStart
+
 
 @Singleton
 class DailyRepositoryImpl @Inject constructor(
@@ -25,18 +27,20 @@ class DailyRepositoryImpl @Inject constructor(
     override fun observeDailyState(userId: String, date: String): Flow<DailyStateModel> {
         val tasksFlow    = taskInstanceDao.getTasksForDate(userId, date)
         val progressFlow = taskProgressDao.getProgressForDate(userId, date)
+            .onStart { emit(emptyList()) }   // ← guarantee at least one emission so combine() doesn't stall
 
         return combine(tasksFlow, progressFlow) { taskEntities, progressEntities ->
-            val progressMap = progressEntities.associateBy { it.taskInstanceId }
             val instances = taskEntities.map { entity ->
                 val taskModel = json.fromJson(entity.taskJson, TaskModel::class.java)
                 TaskInstance(
-                    instanceId  = entity.instanceId,
-                    templateId  = entity.templateId,
-                    task        = taskModel,
-                    assignedDate = entity.assignedDate,
-                    userId      = entity.userId,
-                    injectedByChallengeId = entity.injectedByChallengeId
+                    instanceId            = entity.instanceId,
+                    templateId            = entity.templateId,
+                    task                  = taskModel,
+                    assignedDate          = entity.assignedDate,
+                    userId                = entity.userId,
+                    injectedByChallengeId = entity.injectedByChallengeId,
+                    status                = runCatching { TaskStatus.valueOf(entity.status) }.getOrDefault(TaskStatus.PENDING),
+                    completedAt           = entity.completedAt
                 )
             }
             val completedCount = progressEntities.count { it.status == "COMPLETED" }
