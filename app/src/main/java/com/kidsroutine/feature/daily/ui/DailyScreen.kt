@@ -430,30 +430,30 @@ fun TaskCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .scale(scale)
+                .clip(RoundedCornerShape(20.dp))   // ← ADD THIS — clips the stripe artefact
         ) {
-            // ── 4dp left accent stripe ────────────────────────────────────
+            // ── 4dp left accent stripe ────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .width(4.dp)
                     .matchParentSize()
-                    .clip(RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp))
                     .background(cardColor.copy(alpha = if (isDone) 0.4f else 1f))
+                    // NO clip here — the parent clip handles it
                     .align(Alignment.CenterStart)
             )
-
-            // ── Card body (left-padded 4dp to clear the stripe) ──────────
+            // ── Card body ──────────────────────────────────────────────────────
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 4.dp)    // clear the stripe
+                    .padding(start = 4.dp)
                     .alpha(if (isDone) 0.65f else 1f)
                     .clickable(enabled = !isDone) {
                         pressed = true
                         onClick()
                     },
-                shape     = RoundedCornerShape(
+                shape = RoundedCornerShape(
                     topStart = 0.dp, bottomStart = 0.dp,
-                    topEnd   = 20.dp, bottomEnd   = 20.dp
+                    topEnd = 20.dp, bottomEnd = 20.dp
                 ),
                 colors    = CardDefaults.cardColors(
                     containerColor = if (isDone) DoneGreenLight else Color.White

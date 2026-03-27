@@ -86,70 +86,137 @@ fun TaskExecutionScreen(
                 .background(Color(0xFFFFFBF0))
                 .verticalScroll(rememberScrollState())
         ) {
+            // Replace the header Box entirely:
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.linearGradient(listOf(taskColor, taskColor.copy(alpha = 0.6f))))
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .background(Brush.linearGradient(listOf(taskColor, taskColor.copy(alpha = 0.7f))))
+                    .statusBarsPadding()
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
-                    }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // ── Back button row — full width, correct touch target ──────────
                     Row(
-                        verticalAlignment     = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 4.dp, top = 8.dp, end = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick  = onBack,
+                            modifier = Modifier.size(48.dp)    // 48dp minimum touch target
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        // Task type chip
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White.copy(alpha = 0.25f)
+                        ) {
+                            Text(
+                                text = task.type.name.lowercase().replaceFirstChar { it.uppercase() },
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+
+                    // ── Title + icon row ────────────────────────────────────────────
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(60.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.25f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(taskTypeIcon(task.type), null, tint = Color.White, modifier = Modifier.size(30.dp))
+                            Icon(taskTypeIcon(task.type), null, tint = Color.White, modifier = Modifier.size(32.dp))
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 task.title,
-                                style      = MaterialTheme.typography.headlineMedium,
+                                style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.ExtraBold,
-                                color      = Color.White
+                                color = Color.White
                             )
-                            Text(
-                                "⭐ ${task.reward.xp} XP  ·  ~${task.estimatedDurationSec}s",
-                                color = Color.White.copy(0.85f),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Spacer(Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = RoundedCornerShape(20.dp), color = Color.White.copy(alpha = 0.2f)) {
+                                    Text("⭐ ${task.reward.xp} XP", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                                }
+                                Surface(shape = RoundedCornerShape(20.dp), color = Color.White.copy(alpha = 0.2f)) {
+                                    Text("⏱ ~${task.estimatedDurationSec}s", color = Color.White.copy(0.9f), fontSize = 12.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                                }
+                            }
                         }
                     }
-                    if (task.requiresCoop) CoopBadge()
+                    if (task.requiresCoop) {
+                        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) { CoopBadge() }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
 
-                    if (task.description.isNotEmpty()) {
+// ── Description — BELOW the header, on white background ──────────────────
+            if (task.description.isNotEmpty()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .offset(y = (-12).dp),   // overlaps header slightly for a modern card effect
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape    = RoundedCornerShape(12.dp),
-                            color    = Color.White.copy(alpha = 0.18f)
+                            modifier = Modifier.size(36.dp),
+                            shape = CircleShape,
+                            color = taskColor.copy(alpha = 0.12f)
                         ) {
-                            Row(
-                                modifier              = Modifier.padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment     = Alignment.Top
-                            ) {
-                                Text("📋", fontSize = 16.sp)
-                                Text(
-                                    text       = task.description,
-                                    color      = Color.White.copy(alpha = 0.95f),
-                                    fontSize   = 13.sp,
-                                    lineHeight = 19.sp
-                                )
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Text("📋", fontSize = 18.sp)
                             }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Quest Description",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = task.description,
+                                fontSize = 14.sp,
+                                lineHeight = 21.sp,
+                                color = Color(0xFF2D3436)
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(8.dp))
 
             Column(
                 modifier            = Modifier.padding(horizontal = 20.dp),
