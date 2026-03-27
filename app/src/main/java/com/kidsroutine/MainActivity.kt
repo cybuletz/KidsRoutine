@@ -27,6 +27,7 @@ import com.kidsroutine.feature.auth.ui.AuthViewModel
 import com.kidsroutine.feature.auth.ui.ParentLoginScreen
 import com.kidsroutine.feature.auth.ui.ParentSignUpScreen
 import com.kidsroutine.feature.family.ui.FamilySetupScreen
+import com.kidsroutine.feature.family.ui.ParentFamilyEntryScreen
 import com.kidsroutine.navigation.KidsRoutineNavGraph
 import dagger.hilt.android.AndroidEntryPoint
 import com.kidsroutine.feature.auth.ui.ChildLoginScreen
@@ -232,7 +233,12 @@ fun MainContent() {
 
         is AppScreen.ParentSignUp -> {
             ParentSignUpScreen(
-                onSignUpSuccess = { user -> currentScreen = AppScreen.MainApp(user) },
+                onSignUpSuccess = { user ->
+                    currentScreen = if (user.familyId.isEmpty())
+                        AppScreen.FamilySetup(user)
+                    else
+                        AppScreen.MainApp(user)
+                },
                 onBackClick = { currentScreen = AppScreen.ParentLogin }
             )
         }
@@ -253,9 +259,9 @@ fun MainContent() {
 
         is AppScreen.FamilySetup -> {
             val user = (currentScreen as AppScreen.FamilySetup).user
-            FamilySetupScreen(
+            ParentFamilyEntryScreen(
                 currentUser = user,
-                onFamilyCreated = { _ -> currentScreen = AppScreen.MainApp(user.copy(familyId = "created")) }
+                onFamilySet = { currentScreen = AppScreen.MainApp(user) }
             )
         }
 

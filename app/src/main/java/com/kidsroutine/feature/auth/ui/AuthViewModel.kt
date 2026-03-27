@@ -21,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val signInAnonymously: SignInAnonymouslyUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val userDao: com.kidsroutine.core.database.dao.UserDao
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated)
@@ -63,6 +64,21 @@ class AuthViewModel @Inject constructor(
                             lastActiveAt = (userDoc.data?.get("lastActiveAt") as? Number)?.toLong()
                                 ?: 0L
                         )
+                        // Sync Firestore → Room so observeUser() always has fresh data
+                        userDao.upsert(com.kidsroutine.core.database.entity.UserEntity(
+                            userId      = user.userId,
+                            role        = user.role.name,
+                            familyId    = user.familyId,
+                            displayName = user.displayName,
+                            email       = user.email,
+                            avatarUrl   = user.avatarUrl,
+                            isAdmin     = user.isAdmin,
+                            xp          = user.xp,
+                            level       = user.level,
+                            streak      = user.streak,
+                            createdAt   = user.createdAt,
+                            lastActiveAt = user.lastActiveAt
+                        ))
                         Log.d("AuthViewModel", "Session restored for user: ${user.displayName}")
                         _authState.value = AuthState.Authenticated(user)
                     }
