@@ -25,13 +25,15 @@ class DailyRepositoryImpl @Inject constructor(
     private val json: com.google.gson.Gson
 ) : DailyRepository {
 
-    override fun observeDailyState(userId: String, date: String): Flow<DailyStateModel> {
-        val tasksFlow    = taskInstanceDao.getTasksForDate(userId, date)
-        val progressFlow = taskProgressDao.getProgressForDate(userId, date)
-            .onStart { emit(emptyList()) }   // ← guarantee at least one emission so combine() doesn't stall
 
-        return combine(tasksFlow, progressFlow) { taskEntities, progressEntities ->
-            val instances = taskEntities.map { entity ->
+    override fun observeDailyState(userId: String, date: String): Flow<DailyStateModel> {
+        val tasksFlow    = taskInstanceDao.getTasksForDate(userId, date)         // ← PENDING only
+        val allTasksFlow = taskInstanceDao.getAllTasksForDate(userId, date)      // ← ALL for progress
+        val progressFlow = taskProgressDao.getProgressForDate(userId, date)
+            .onStart { emit(emptyList()) }
+
+        return combine(tasksFlow, allTasksFlow, progressFlow) { pendingEntities, allEntities, progressEntities ->
+            val instances = pendingEntities.map { entity ->
                 val taskModel = json.fromJson(entity.taskJson, TaskModel::class.java)
                 TaskInstance(
                     instanceId            = entity.instanceId,
@@ -48,19 +50,44 @@ class DailyRepositoryImpl @Inject constructor(
             val totalXp = progressEntities
                 .filter { it.status == "COMPLETED" }
                 .sumOf { p ->
-                    val task = taskEntities.find { it.instanceId == p.taskInstanceId }
+                    val task = allEntities.find { it.instanceId == p.taskInstanceId }
                         ?.let { json.fromJson(it.taskJson, TaskModel::class.java) }
                     task?.reward?.xp ?: 0
                 }
             DailyStateModel(
                 date           = date,
                 userId         = userId,
-                tasks          = instances,
+                tasks          = instances,   // ← only PENDING tasks shown
                 completedCount = completedCount,
                 totalXpEarned  = totalXp,
-                isGenerated    = taskEntities.isNotEmpty()
+                isGenerated    = allEntities.isNotEmpty()
             )
         }
+    }
+
+    // Guard mergeAssignedTasks — only insert truly NEW task IDs:
+    override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
+        val existingIds = taskInstanceDao.countTasksForDate(userId, date).let {
+            // Use a direct suspend query instead of collecting a Flow
+            taskInstanceDao.getExistingInstanceIds(userId, date)  // ← add this DAO method below
+        }
+        val toInsert = newTasks
+            .filter { it.instanceId !in existingIds }
+            .map { instance ->
+                TaskInstanceEntity(
+                    instanceId            = instance.instanceId,
+                    templateId            = instance.templateId,
+                    taskJson              = json.toJson(instance.task),
+                    assignedDate          = instance.assignedDate,
+                    userId                = instance.userId,
+                    injectedByChallengeId = instance.injectedByChallengeId
+                )
+            }
+        if (toInsert.isNotEmpty()) {
+            taskInstanceDao.insertAll(toInsert)
+            Log.d("DailyRepository", "Merged ${toInsert.size} new assigned tasks")
+        }
+        // If toInsert is empty → nothing written → Room Flow does NOT emit → no recompose ✅
     }
 
     override suspend fun saveDailyTasks(userId: String, date: String, tasks: List<TaskInstance>) {
@@ -98,31 +125,6 @@ class DailyRepositoryImpl @Inject constructor(
                 ))
             }
             batch.commit().await()
-        }
-    }
-
-    override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
-        // Get existing instance IDs to avoid duplicates
-        val existingIds = taskInstanceDao.getTasksForDate(userId, date)
-            .map { entities -> entities.map { it.instanceId } }
-            .firstOrNull() ?: emptyList()
-
-        val toInsert = newTasks
-            .filter { it.instanceId !in existingIds }
-            .map { instance ->
-                TaskInstanceEntity(
-                    instanceId            = instance.instanceId,
-                    templateId            = instance.templateId,
-                    taskJson              = json.toJson(instance.task),
-                    assignedDate          = instance.assignedDate,
-                    userId                = instance.userId,
-                    injectedByChallengeId = instance.injectedByChallengeId
-                )
-            }
-
-        if (toInsert.isNotEmpty()) {
-            taskInstanceDao.insertAll(toInsert)
-            Log.d("DailyRepository", "Merged ${toInsert.size} newly assigned tasks into today's list")
         }
     }
 

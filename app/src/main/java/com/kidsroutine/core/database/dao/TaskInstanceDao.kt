@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskInstanceDao {
 
-    @Query("SELECT * FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    @Query("SELECT * FROM task_instances WHERE userId = :userId AND assignedDate = :date AND status != 'COMPLETED'")
     fun getTasksForDate(userId: String, date: String): Flow<List<TaskInstanceEntity>>
 
     @Query("SELECT COUNT(*) FROM task_instances WHERE userId = :userId AND assignedDate = :date")
@@ -24,5 +24,11 @@ interface TaskInstanceDao {
 
     @Query("UPDATE task_instances SET status = :status, completedAt = :completedAt WHERE instanceId = :instanceId")
     suspend fun updateStatus(instanceId: String, status: String, completedAt: Long)
+
+    @Query("SELECT instanceId FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    suspend fun getExistingInstanceIds(userId: String, date: String): List<String>
+
+    @Query("SELECT * FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    fun getAllTasksForDate(userId: String, date: String): Flow<List<TaskInstanceEntity>>
 
 }

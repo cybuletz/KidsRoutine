@@ -419,12 +419,6 @@ fun TaskCard(
 
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(instance.instanceId) { visible = true }
-    LaunchedEffect(instance.status, instance.completedAt) {
-        if (instance.status == TaskStatus.COMPLETED && instance.completedAt > 0L) {
-            kotlinx.coroutines.delay(1600)
-            visible = false
-        }
-    }
 
     AnimatedVisibility(
         visible = visible,

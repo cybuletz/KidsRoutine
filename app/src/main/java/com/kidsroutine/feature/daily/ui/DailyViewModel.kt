@@ -3,25 +3,28 @@ package com.kidsroutine.feature.daily.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.kidsroutine.core.model.*
 import com.kidsroutine.core.common.util.DateUtils
+import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.domain.GenerateDailyTasksUseCase
 import com.kidsroutine.feature.daily.domain.GetDailyStateUseCase
 import com.kidsroutine.feature.daily.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import com.kidsroutine.feature.daily.data.StoryArcRepository
 import com.kidsroutine.feature.generation.data.GeneratedTask
 import com.kidsroutine.feature.generation.data.TaskSaveRepository
 
-
 data class DailyUiState(
     val isLoading: Boolean = true,
     val dailyState: DailyStateModel = DailyStateModel(),
     val currentUser: UserModel = UserModel(),
-    val activeStoryArc: com.kidsroutine.core.model.StoryArc? = null,
+    val activeStoryArc: StoryArc? = null,
     val error: String? = null
 )
 
@@ -31,15 +34,19 @@ class DailyViewModel @Inject constructor(
     private val generateDailyTasks: GenerateDailyTasksUseCase,
     private val userRepository: UserRepository,
     private val storyArcRepository: StoryArcRepository,
-    private val taskSaveRepository: TaskSaveRepository
+    private val taskSaveRepository: TaskSaveRepository,
+    private val dailyRepository: DailyRepository,      // ← injected directly for mergeAssignedTasks
+    private val firestore: FirebaseFirestore            // ← injected for the snapshot listener
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DailyUiState())
     val uiState: StateFlow<DailyUiState> = _uiState.asStateFlow()
 
-    // Guard: track which userId+date we have already initialized for,
-    // so navigating away and back does NOT re-trigger the whole Firestore pipeline
+    // Guard: prevent re-initialization when navigating back to this screen
     private var initializedFor: String = ""
+
+    // Holds the Firestore listener so we can remove it when the ViewModel is cleared
+    private var assignmentListener: ListenerRegistration? = null
 
     fun init(user: UserModel) {
         val today = DateUtils.todayString()
@@ -52,29 +59,25 @@ class DailyViewModel @Inject constructor(
         initializedFor = key
         Log.d("DailyViewModel", "init() starting for $key")
 
+        // Step 1: Run initial generation (idempotent — skips if already done today)
         viewModelScope.launch {
-            // Step 1: generate tasks (idempotent)
             generateDailyTasks(user, today)
+        }
 
-            // Step 2: observe Room tasks — this emits immediately once tasks are saved
+        // Step 2: Observe Room — emits whenever tasks change (completion, new inserts)
+        viewModelScope.launch {
             getDailyState(user.userId, today)
                 .catch { e ->
                     Log.e("DailyViewModel", "Daily state error", e)
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
                 .collect { dailyState ->
-                    // Merge live parent-assigned tasks from what was already saved
-                    _uiState.update { current ->
-                        current.copy(
-                            isLoading  = false,
-                            dailyState = dailyState
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false, dailyState = dailyState) }
                     Log.d("DailyViewModel", "Tasks loaded: ${dailyState.tasks.size}")
                 }
         }
 
-        // Step 3: observe user XP separately — won't block task display
+        // Step 3: Observe user XP/profile changes
         viewModelScope.launch {
             userRepository.observeUser(user.userId)
                 .catch { e -> Log.w("DailyViewModel", "User observe error: ${e.message}") }
@@ -85,15 +88,87 @@ class DailyViewModel @Inject constructor(
                 }
         }
 
-        // Step 4: initial currentUser from fallback immediately
+        // Step 4: Set current user immediately (don't wait for Firestore)
         _uiState.update { it.copy(currentUser = user) }
 
+        // Step 5: Story arc
         loadActiveStoryArc(user.familyId)
+
+        // Step 6: Live Firestore listener for newly assigned tasks — fires ONLY on real changes
+        listenForNewAssignments(user, today)
+    }
+
+    /**
+     * Attaches a Firestore real-time listener to taskAssignments for this child.
+     * Fires only when the parent actually assigns a new task — not on a timer.
+     * Replaces the previous polling/merging approach in GenerateDailyTasksUseCase.
+     */
+    private fun listenForNewAssignments(user: UserModel, date: String) {
+        // Remove any previous listener first (e.g. on forceRefresh)
+        assignmentListener?.remove()
+
+        assignmentListener = firestore
+            .collection("taskAssignments")
+            .whereEqualTo("childId", user.userId)
+            .whereEqualTo("status", "ASSIGNED")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("DailyViewModel", "Assignment listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot == null || snapshot.isEmpty) return@addSnapshotListener
+
+                // hasPendingWrites / fromCache guard: only process confirmed server writes
+                // documentChanges being empty means only metadata changed (e.g. local write confirmed)
+                val realChanges = snapshot.documentChanges.filter {
+                    it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
+                }
+                if (realChanges.isEmpty()) return@addSnapshotListener
+
+                Log.d("DailyViewModel", "🔔 ${realChanges.size} new assignment(s) detected from Firestore")
+
+                viewModelScope.launch {
+                    val newInstances = mutableListOf<TaskInstance>()
+
+                    for (change in realChanges) {
+                        val taskId = change.document.getString("taskId") ?: continue
+                        try {
+                            val taskDoc = firestore
+                                .collection("tasks")
+                                .document(taskId)
+                                .get()
+                                .await()
+                            val taskModel = taskDoc.toObject(TaskModel::class.java)
+                            if (taskModel != null && taskModel.title.isNotBlank()) {
+                                newInstances.add(
+                                    TaskInstance(
+                                        instanceId            = "${taskId}_assigned",  // stable, dedup-safe
+                                        templateId            = taskId,
+                                        task                  = taskModel,
+                                        assignedDate          = date,
+                                        userId                = user.userId,
+                                        injectedByChallengeId = null
+                                    )
+                                )
+                                Log.d("DailyViewModel", "New assigned task fetched: ${taskModel.title}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DailyViewModel", "Failed to fetch task $taskId: ${e.message}")
+                        }
+                    }
+
+                    if (newInstances.isNotEmpty()) {
+                        // mergeAssignedTasks only inserts IDs not already in Room → no duplicate emissions
+                        dailyRepository.mergeAssignedTasks(user.userId, date, newInstances)
+                        // Room Flow (Step 2) emits automatically → UI updates with no extra work
+                    }
+                }
+            }
     }
 
     // Called only by push-notification refresh — bypasses the guard key
     fun forceRefresh(user: UserModel) {
-        initializedFor = ""   // clear the guard so init() re-runs fully
+        initializedFor = ""
         init(user)
     }
 
@@ -110,8 +185,6 @@ class DailyViewModel @Inject constructor(
                 )
                 result.onSuccess {
                     Log.d("DailyVM", "AI suggested task added: ${task.title}")
-                    // The existing combine() pipeline observes taskRepository,
-                    // which will pick up the new task automatically — no manual reload needed.
                 }
                 result.onFailure { e ->
                     Log.e("DailyVM", "Failed to add suggested task: ${e.message}")
@@ -122,7 +195,6 @@ class DailyViewModel @Inject constructor(
             }
         }
     }
-
 
     private fun loadActiveStoryArc(familyId: String) {
         if (familyId.isEmpty()) return
@@ -136,4 +208,9 @@ class DailyViewModel @Inject constructor(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        assignmentListener?.remove()  // ← clean up Firestore listener when ViewModel is destroyed
+        Log.d("DailyViewModel", "ViewModel cleared, Firestore listener removed")
+    }
 }
