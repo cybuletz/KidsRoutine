@@ -46,7 +46,10 @@ import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
 import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
+import com.kidsroutine.feature.lootbox.ui.LootBoxOverlay
+import com.kidsroutine.feature.lootbox.ui.LootBoxPhase
 import com.kidsroutine.feature.lootbox.ui.LootBoxScreen
+import com.kidsroutine.feature.lootbox.ui.LootBoxViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.rewards.ui.RewardsScreen
@@ -199,22 +202,26 @@ fun ChildMainScreen(
 
             composable("lootbox") {
                 currentRoute = "lootbox"
-                val sampleBox = LootBox(
-                    earnedFor = "All tasks done today!",
-                    reward = LootBoxReward(
-                        type        = LootBoxRewardType.XP_BOOST,
-                        rarity      = LootBoxRarity.RARE,
-                        title       = "XP Surge",
-                        description = "You earned a rare XP boost for finishing every task!",
-                        emoji       = "⚡",
-                        xpValue     = 75
+                val lootBoxViewModel: LootBoxViewModel = hiltViewModel()
+                val lootBoxUiState by lootBoxViewModel.uiState.collectAsState()
+
+                // Seed a box if the viewmodel is idle (i.e. arrived here via nav, not from TaskExecution)
+                LaunchedEffect(Unit) {
+                    if (lootBoxUiState.phase == LootBoxPhase.IDLE) {
+                        lootBoxViewModel.presentBox(
+                            box    = LootBox(earnedFor = "All tasks done today!"),
+                            userId = currentUser.userId
+                        )
+                    }
+                }
+
+                lootBoxUiState.lootBox?.let { box ->
+                    LootBoxScreen(
+                        lootBox = box,
+                        onBack  = { innerNavController.popBackStack() },
+                        onClaim = { lootBoxViewModel.dismiss() }
                     )
-                )
-                LootBoxScreen(
-                    lootBox = sampleBox,
-                    onBack  = { innerNavController.popBackStack() },
-                    onClaim = { }
-                )
+                }
             }
         }
 
