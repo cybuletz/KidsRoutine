@@ -123,27 +123,22 @@ class DailyRepositoryImpl @Inject constructor(
 
     // Guard mergeAssignedTasks — only insert truly NEW task IDs:
     override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
-        val existingIds = taskInstanceDao.countTasksForDate(userId, date).let {
-            // Use a direct suspend query instead of collecting a Flow
-            taskInstanceDao.getExistingInstanceIds(userId, date)  // ← add this DAO method below
+        Log.d("DailyRepository", "Merging ${newTasks.size} tasks (will update existing + insert new)")
+
+        val entities = newTasks.map { instance ->
+            TaskInstanceEntity(
+                instanceId            = instance.instanceId,
+                templateId            = instance.templateId,
+                taskJson              = json.toJson(instance.task),
+                assignedDate          = instance.assignedDate,
+                userId                = instance.userId,
+                injectedByChallengeId = instance.injectedByChallengeId
+            )
         }
-        val toInsert = newTasks
-            .filter { it.instanceId !in existingIds }
-            .map { instance ->
-                TaskInstanceEntity(
-                    instanceId            = instance.instanceId,
-                    templateId            = instance.templateId,
-                    taskJson              = json.toJson(instance.task),
-                    assignedDate          = instance.assignedDate,
-                    userId                = instance.userId,
-                    injectedByChallengeId = instance.injectedByChallengeId
-                )
-            }
-        if (toInsert.isNotEmpty()) {
-            taskInstanceDao.insertAll(toInsert)
-            Log.d("DailyRepository", "Merged ${toInsert.size} new assigned tasks")
-        }
-        // If toInsert is empty → nothing written → Room Flow does NOT emit → no recompose ✅
+
+        // insertAll already has OnConflictStrategy.REPLACE, so it will update existing tasks
+        taskInstanceDao.insertAll(entities)  // ← No filtering, just insert/replace all
+        Log.d("DailyRepository", "✅ Merged ${newTasks.size} tasks")
     }
 
     // ✨ NEW: Delete a task instance

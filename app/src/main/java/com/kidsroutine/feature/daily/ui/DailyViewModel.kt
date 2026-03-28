@@ -135,6 +135,7 @@ class DailyViewModel @Inject constructor(
                 }
 
                 val modifiedChanges = documentChanges.filter {
+                    Log.d("DailyViewModel", "Checking MODIFIED: ${it.document.id}, status=${it.document.getString("status")}")  // ← ADD THIS LOG
                     it.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED
                             && it.document.getString("status") == "ASSIGNED"
                 }

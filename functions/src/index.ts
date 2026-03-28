@@ -806,28 +806,15 @@ export const notifyTaskDeletion = functions.firestore
   });
 
 // ===== TASK UPDATE NOTIFICATIONS =====
+// ===== TASK UPDATE NOTIFICATIONS =====
 exports.notifyTaskUpdate = functions.firestore
     .document('tasks/{taskId}')
-    .onWrite(async (change, context) => {
+    .onUpdate(async (change, context) => {  // ← CHANGE: onWrite → onUpdate
         const taskId = context.params.taskId;
         const beforeData = change.before.data();
         const afterData = change.after.data();
 
         console.log("🔍 notifyTaskUpdate TRIGGERED for taskId: " + taskId);
-
-        // Skip if delete
-        if (!afterData) {
-            console.log("⏭️ Skipping - document deleted");
-            return;
-        }
-
-        // Skip if create
-        if (!beforeData) {
-            console.log("⏭️ Skipping - document created");
-            return;
-        }
-
-        console.log("✅ This is an UPDATE");
 
         try {
             const db = admin.firestore();
