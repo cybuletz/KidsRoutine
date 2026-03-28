@@ -5,6 +5,8 @@ import com.kidsroutine.core.database.dao.AvatarDao
 import com.kidsroutine.core.database.AppDatabase
 import com.kidsroutine.feature.avatar.data.AvatarRepository
 import com.kidsroutine.feature.avatar.data.AvatarRepositoryImpl
+import com.kidsroutine.feature.daily.data.UserRepository
+import com.kidsroutine.feature.daily.data.UserRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +26,8 @@ object AvatarModule {
     @Singleton
     fun provideAvatarRepository(
         firestore: FirebaseFirestore,
-        avatarDao: AvatarDao
+        avatarDao: AvatarDao,
+        userRepository: UserRepository
     ): AvatarRepository =
-        AvatarRepositoryImpl(firestore, avatarDao)
+        AvatarRepositoryImpl(firestore, avatarDao, userRepository)
 }

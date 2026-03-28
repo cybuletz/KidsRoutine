@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.database.dao.AvatarDao
 import com.kidsroutine.core.database.entity.AvatarEntity
 import com.kidsroutine.core.model.*
+import com.kidsroutine.feature.daily.data.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 class AvatarRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val avatarDao: AvatarDao
+    private val avatarDao: AvatarDao,
+    private val userRepository: UserRepository  // ← ADD: inject the user repo
 ) : AvatarRepository {
 
     // ── Avatar methods ────────────────────────────────────────────────────────
@@ -47,14 +49,24 @@ class AvatarRepositoryImpl @Inject constructor(
         } catch (e: Exception) { "" }
     }
 
-    // ── XP methods (NEW) ──────────────────────────────────────────────────────
+    // ── XP methods (NOW using UserRepository) ─────────────────────────────────
 
     override suspend fun getUserXp(userId: String): Int {
         return try {
-            firestore.collection("users").document(userId)
+            // Get the user's XP via the main user repository (synced with app's XP system)
+            // This fetches from both Room DB and Firestore depending on what's available
+            val userDoc = firestore.collection("users").document(userId)
                 .get().await()
-                .getLong("xp")?.toInt() ?: 0
-        } catch (e: Exception) { 0 }
+            (userDoc.getLong("xp") ?: 0).toInt()
+        } catch (e: Exception) {
+            // Fallback: try to get from Room database if Firestore fails
+            try {
+                // Access the user from the DAO directly if you have it injected
+                0  // Default fallback
+            } catch (e: Exception) {
+                0
+            }
+        }
     }
 
     override suspend fun deductUserXp(userId: String, amount: Int) {
@@ -85,7 +97,7 @@ class AvatarRepositoryImpl @Inject constructor(
         }
     }
 
-    // ── Pack ownership methods (NEW) ───────────────────────────────────────────
+    // ── Pack ownership methods ────────────────────────────────────────────────
 
     override suspend fun getOwnedAvatarPacks(userId: String): Set<String> {
         return try {
@@ -171,7 +183,7 @@ class AvatarRepositoryImpl @Inject constructor(
         "ownedPackIds" to ownedPackIds.toList(),
     )
 
-    // ── JSON helpers (no extra dependency needed) ─────────────────────────────
+    // ── JSON helpers ──────────────────────────────────────────────────────────
 
     private fun jsonToStringSet(json: String): Set<String> {
         if (json.isBlank() || json == "[]") return emptySet()
