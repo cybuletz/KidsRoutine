@@ -15,6 +15,7 @@ import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
+import com.kidsroutine.feature.avatar.ui.AvatarCustomizationViewModel
 import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
@@ -70,10 +71,10 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.AVATAR_CUSTOMIZATION) {
             AvatarCustomizationScreen(
-            viewModel = hiltViewModel(),
-            onNavigateToShop = { navController.navigate("avatar_shop") },
-            onBack = { navController.popBackStack() }
-        )
+                viewModel = hiltViewModel<AvatarCustomizationViewModel>(),
+                onNavigateToShop = { navController.navigate("avatar_shop") },
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.ACHIEVEMENTS) {
