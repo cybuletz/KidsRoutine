@@ -147,8 +147,16 @@ fun ParentDashboardScreen(
 
                 TaskDetailsScreen(
                     task = task,
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
+                    familyId = currentUser.familyId,
+                    onBackClick = { innerNav.popBackStack() },
+                    onTaskDeleted = {
+                        innerNav.popBackStack()
+                        taskManagementViewModel.loadFamilyTasks(currentUser.familyId)
+                    },
+                    onTaskUpdated = {
+                        taskManagementViewModel.loadFamilyTasks(currentUser.familyId)
+                    },
+                    viewModel = taskManagementViewModel
                 )
             }
 

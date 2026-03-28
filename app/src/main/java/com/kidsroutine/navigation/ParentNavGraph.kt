@@ -176,8 +176,10 @@ fun NavGraphBuilder.parentNavGraph(
 
             TaskDetailsScreen(
                 task = task,
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
+                familyId = currentUser.familyId,
+                onBackClick = { navController.popBackStack() },
+                onTaskDeleted = { navController.popBackStack() },
+                onTaskUpdated = { navController.popBackStack() }
             )
         }
 
