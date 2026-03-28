@@ -79,218 +79,37 @@ class TaskRepository @Inject constructor(
             Log.d("TaskRepository", "Deleting task: $taskId and all its assignments")
             val batch = firestore.batch()
 
-            val taskRef = firestore
+            // Delete from global /tasks collection
+            val globalTaskRef = firestore.collection("tasks").document(taskId)
+            batch.delete(globalTaskRef)
+
+            // Also delete from family subcollection
+            val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
                 .collection("tasks")
                 .document(taskId)
-            batch.delete(taskRef)
+            batch.delete(familyTaskRef)
 
+            // ✨ FIX: Query ALL assignments with just taskId (no familyId filter)
             val assignments = firestore
                 .collection("taskAssignments")
-                .whereEqualTo("taskId", taskId)
-                .whereEqualTo("familyId", familyId)
+                .whereEqualTo("taskId", taskId)  // ← ONLY filter by taskId
                 .get()
                 .await()
 
+            Log.d("TaskRepository", "Found ${assignments.size()} assignments to delete for taskId=$taskId")
+
             for (doc in assignments.documents) {
-                batch.delete(doc.reference)
+                Log.d("TaskRepository", "Deleting assignment: ${doc.id}")
+                batch.delete(doc.reference)  // ← This triggers notifyTaskDeletion Cloud Function
             }
 
             batch.commit().await()
-            Log.d("TaskRepository", "Task and ${assignments.size()} assignments deleted successfully")
+            Log.d("TaskRepository", "✅ Task and ${assignments.size()} assignments deleted successfully")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error deleting task", e)
             throw e
         }
     }
-
-    suspend fun getTaskById(familyId: String, taskId: String): TaskModel? {
-        return try {
-            Log.d("TaskRepository", "Fetching task: $taskId")
-            val doc = firestore
-                .collection("families")
-                .document(familyId)
-                .collection("tasks")
-                .document(taskId)
-                .get()
-                .await()
-
-            doc.toObject(TaskModel::class.java)?.copy(id = doc.id)
-        } catch (e: Exception) {
-            Log.e("TaskRepository", "Error fetching task", e)
-            null
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // REAL-TIME LISTENER — PARENT SIDE: all tasks for a family
-    // ════════════════════════════════════════════════════════════════════════
-    fun observeFamilyTasks(familyId: String): Flow<List<TaskModel>> =
-        callbackFlow {
-            Log.d("TaskRepository", "Starting real-time family tasks listener for: $familyId")
-
-            val listener = firestore
-                .collection("families")
-                .document(familyId)
-                .collection("tasks")
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("TaskRepository", "Family tasks listener error: ${error.message}")
-                        close(error)
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val tasks = snapshot.documents.mapNotNull { doc ->
-                            try {
-                                doc.toObject(TaskModel::class.java)?.copy(id = doc.id)
-                            } catch (e: Exception) {
-                                Log.w("TaskRepository", "Error parsing task doc", e)
-                                null
-                            }
-                        }
-                        Log.d("TaskRepository", "Family tasks update: ${tasks.size} tasks")
-                        trySend(tasks).isSuccess
-                    }
-                }
-
-            awaitClose {
-                Log.d("TaskRepository", "Closing family tasks listener")
-                listener.remove()
-            }
-        }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // REAL-TIME LISTENER — CHILD SIDE: assigned tasks for one child
-    // ════════════════════════════════════════════════════════════════════════
-    fun observeChildAssignedTasks(childId: String, familyId: String): Flow<List<TaskModel>> =
-        callbackFlow {
-            Log.d("TaskRepository", "Starting real-time listener for child: $childId")
-
-            val listener = firestore.collection("taskAssignments")
-                .whereEqualTo("childId", childId)
-                .whereEqualTo("familyId", familyId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("TaskRepository", "Listener error: ${error.message}")
-                        close(error)
-                        return@addSnapshotListener
-                    }
-
-                    if (snapshot != null) {
-                        try {
-                            val taskIds = snapshot.documents.mapNotNull { doc ->
-                                doc.getString("taskId")
-                            }
-
-                            Log.d("TaskRepository", "Got ${taskIds.size} task IDs for child")
-
-                            if (taskIds.isEmpty()) {
-                                trySend(emptyList()).isSuccess
-                                return@addSnapshotListener
-                            }
-
-                            firestore.collection("tasks")
-                                .whereIn("id", taskIds)
-                                .addSnapshotListener { taskSnapshot, taskError ->
-                                    if (taskError != null) {
-                                        Log.e("TaskRepository", "Task fetch error: ${taskError.message}")
-                                        return@addSnapshotListener
-                                    }
-
-                                    if (taskSnapshot != null) {
-                                        try {
-                                            val tasks = taskSnapshot.documents.mapNotNull { doc ->
-                                                try {
-                                                    doc.toObject(TaskModel::class.java)?.copy(id = doc.id)
-                                                } catch (e: Exception) {
-                                                    Log.w("TaskRepository", "Error parsing task", e)
-                                                    null
-                                                }
-                                            }
-                                            Log.d("TaskRepository", "Emitting ${tasks.size} tasks")
-                                            trySend(tasks).isSuccess
-                                        } catch (e: Exception) {
-                                            Log.e("TaskRepository", "Error processing tasks: ${e.message}")
-                                        }
-                                    }
-                                }
-                        } catch (e: Exception) {
-                            Log.e("TaskRepository", "Error processing assignments: ${e.message}")
-                        }
-                    }
-                }
-
-            awaitClose {
-                Log.d("TaskRepository", "Closing listener")
-                listener.remove()
-            }
-        }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // REAL-TIME LISTENER — CHILD CHALLENGES
-    // ════════════════════════════════════════════════════════════════════════
-    fun observeChildAssignedChallenges(childId: String, familyId: String): Flow<List<GeneratedChallenge>> =
-        callbackFlow {
-            Log.d("TaskRepository", "Starting real-time listener for child challenges: $childId")
-
-            val listener = firestore.collection("challengeAssignments")
-                .whereEqualTo("childId", childId)
-                .whereEqualTo("familyId", familyId)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.e("TaskRepository", "Challenge listener error: ${error.message}")
-                        close(error)
-                        return@addSnapshotListener
-                    }
-
-                    if (snapshot != null) {
-                        try {
-                            val challengeIds = snapshot.documents.mapNotNull { doc ->
-                                doc.getString("challengeId")
-                            }
-
-                            Log.d("TaskRepository", "Got ${challengeIds.size} challenge IDs for child")
-
-                            if (challengeIds.isEmpty()) {
-                                trySend(emptyList()).isSuccess
-                                return@addSnapshotListener
-                            }
-
-                            firestore.collection("challenges")
-                                .whereIn("id", challengeIds)
-                                .addSnapshotListener { challengeSnapshot, challengeError ->
-                                    if (challengeError != null) {
-                                        Log.e("TaskRepository", "Challenge fetch error: ${challengeError.message}")
-                                        return@addSnapshotListener
-                                    }
-
-                                    if (challengeSnapshot != null) {
-                                        try {
-                                            val challenges = challengeSnapshot.documents.mapNotNull { doc ->
-                                                try {
-                                                    doc.toObject(GeneratedChallenge::class.java)
-                                                } catch (e: Exception) {
-                                                    Log.w("TaskRepository", "Error parsing challenge", e)
-                                                    null
-                                                }
-                                            }
-                                            Log.d("TaskRepository", "Emitting ${challenges.size} challenges")
-                                            trySend(challenges).isSuccess
-                                        } catch (e: Exception) {
-                                            Log.e("TaskRepository", "Error processing challenges: ${e.message}")
-                                        }
-                                    }
-                                }
-                        } catch (e: Exception) {
-                            Log.e("TaskRepository", "Error processing challenge assignments: ${e.message}")
-                        }
-                    }
-                }
-
-            awaitClose {
-                Log.d("TaskRepository", "Closing challenge listener")
-                listener.remove()
-            }
-        }
 }

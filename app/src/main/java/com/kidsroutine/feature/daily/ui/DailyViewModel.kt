@@ -106,29 +106,40 @@ class DailyViewModel @Inject constructor(
         // Remove any previous listener first
         assignmentListener?.remove()
 
+        Log.d("DailyViewModel", "🔌 STARTING listener for child: ${user.userId}")
+
         assignmentListener = firestore
             .collection("taskAssignments")
             .whereEqualTo("childId", user.userId)
-            .whereEqualTo("status", "ASSIGNED")
+            // ✨ REMOVE the status filter to catch REMOVED events!
             .addSnapshotListener { snapshot, error ->
+                Log.d("DailyViewModel", "📡 Snapshot received, documentChanges: ${snapshot?.documentChanges?.size ?: 0}")
+
                 if (error != null) {
                     Log.e("DailyViewModel", "Assignment listener error: ${error.message}")
                     return@addSnapshotListener
                 }
-                if (snapshot == null) return@addSnapshotListener
-
-                // ✨ Process ALL changes (ADDED + REMOVED)
-                val documentChanges = snapshot.documentChanges
-
-                // Handle ADDED assignments
-                val addedChanges = documentChanges.filter {
-                    it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
+                if (snapshot == null) {
+                    Log.d("DailyViewModel", "⚠️ Snapshot is NULL")
+                    return@addSnapshotListener
                 }
 
-                // ✨ Handle REMOVED assignments (task deleted)
+                val documentChanges = snapshot.documentChanges
+                Log.d("DailyViewModel", "📊 Document changes count: ${documentChanges.size}")
+                documentChanges.forEach { change ->
+                    Log.d("DailyViewModel", "  - ${change.type}: ${change.document.id}")
+                }
+
+                val addedChanges = documentChanges.filter {
+                    it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
+                            && it.document.getString("status") == "ASSIGNED"  // ✨ Filter here instead
+                }
+
                 val removedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED
                 }
+
+                Log.d("DailyViewModel", "✅ Added: ${addedChanges.size}, ❌ Removed: ${removedChanges.size}")
 
                 if (addedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🔔 ${addedChanges.size} new task assignment(s)")
@@ -168,7 +179,7 @@ class DailyViewModel @Inject constructor(
                     }
                 }
 
-                // ✨ Handle REMOVED assignments
+                // ✨ Handle REMOVED assignments - NOW IT WILL WORK!
                 if (removedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🗑️ ${removedChanges.size} task assignment(s) deleted")
                     viewModelScope.launch {

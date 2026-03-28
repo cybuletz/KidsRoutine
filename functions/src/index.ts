@@ -727,7 +727,8 @@ export const notifyTaskDeletion = functions.firestore
     const taskId = assignment.taskId;
     const familyId = assignment.familyId;
 
-    console.log(`[Task Deletion] 🗑�� Assignment deleted for child: ${childId}, taskId: ${taskId}`);
+    console.log(`[Task Deletion] 🗑️ Assignment deleted for child: ${childId}, taskId: ${taskId}`);
+    console.log(`[Task Deletion] Assignment data:`, JSON.stringify(assignment));  // ← ADD LOG
 
     if (!childId || !taskId) {
       console.warn(`[Task Deletion] ⚠️ Missing childId or taskId. childId=${childId}, taskId=${taskId}`);
