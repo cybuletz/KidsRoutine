@@ -727,7 +727,12 @@ export const notifyTaskDeletion = functions.firestore
     const taskId = assignment.taskId;
     const familyId = assignment.familyId;
 
-    console.log(`[Task Deletion] Task assignment deleted for child: ${childId}, taskId: ${taskId}`);
+    console.log(`[Task Deletion] 🗑�� Assignment deleted for child: ${childId}, taskId: ${taskId}`);
+
+    if (!childId || !taskId) {
+      console.warn(`[Task Deletion] ⚠️ Missing childId or taskId. childId=${childId}, taskId=${taskId}`);
+      return;
+    }
 
     try {
       // Get task details (may already be deleted, so this is optional)
@@ -736,56 +741,65 @@ export const notifyTaskDeletion = functions.firestore
         const taskDoc = await db.collection("tasks").doc(taskId).get();
         if (taskDoc.exists) {
           taskTitle = taskDoc.data()?.title || "Task";
+          console.log(`[Task Deletion] Found task title: ${taskTitle}`);
+        } else {
+          console.log(`[Task Deletion] Task doc not found in global collection: ${taskId}`);
         }
-      } catch (e) {
-        console.log(`[Task Deletion] Could not fetch task details for ${taskId}`);
+      } catch (e: any) {
+        console.log(`[Task Deletion] Could not fetch task details: ${e.message}`);
       }
 
       // Get child's FCM token
+      console.log(`[Task Deletion] Looking up child doc: ${childId}`);
       const childDoc = await db.collection("users").doc(childId).get();
+
       if (!childDoc.exists) {
-        console.log(`[Task Deletion] Child not found: ${childId}`);
+        console.warn(`[Task Deletion] ⚠️ Child user not found: ${childId}`);
         return;
       }
 
       const fcmToken = childDoc.data()?.fcmToken;
+      console.log(`[Task Deletion] Child FCM token exists: ${!!fcmToken}`);
+
       if (!fcmToken) {
-        console.log(`[Task Deletion] No FCM token for child: ${childId}`);
+        console.log(`[Task Deletion] ⚠️ No FCM token for child: ${childId} (child hasn't opened app yet?)`);
         return;
       }
 
       // Send notification to child
       try {
-        await messaging.send({
+        console.log(`[Task Deletion] 📤 Sending FCM notification to token: ${fcmToken.substring(0, 20)}...`);
+
+        const messageId = await messaging.send({
           token: fcmToken,
           notification: {
             title: `📋 Task Removed`,
-            body: `"${taskTitle}" has been removed from your task list`,
+            body: `"${taskTitle}" has been deleted`,
           },
           data: {
             type: "TASK_DELETED",
             userId: childId,
             taskId: taskId,
             icon: "🗑️",
-            refreshTrigger: "true"
+            refreshTrigger: "true"  // ← This triggers child UI refresh
           },
           android: {
             priority: "high",
           },
         });
 
-        console.log(`[Task Deletion] ✅ Notification sent to child: ${childId}`);
+        console.log(`[Task Deletion] ✅ FCM sent successfully! Message ID: ${messageId}`);
 
       } catch (error: any) {
         if (error?.code === "messaging/registration-token-not-registered") {
-          console.log(`[Task Deletion] Invalid token for child: ${childId}, clearing...`);
+          console.log(`[Task Deletion] 🔄 Invalid token for child: ${childId}, clearing from DB...`);
           await db.collection("users").doc(childId).update({ fcmToken: "" });
         } else {
-          console.error(`[Task Deletion] Error sending notification:`, error);
+          console.error(`[Task Deletion] ❌ FCM error: ${error.code} - ${error.message}`);
         }
       }
 
-    } catch (error) {
-      console.error("[Task Deletion] Error:", error);
+    } catch (error: any) {
+      console.error(`[Task Deletion] ❌ Unexpected error: ${error.message}`);
     }
   });

@@ -40,6 +40,7 @@ import com.kidsroutine.feature.tasks.ui.TaskListScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.kidsroutine.feature.avatar.ui.AvatarShopViewModel
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -242,8 +243,16 @@ fun NavGraphBuilder.parentNavGraph(
         }
 
         composable(Routes.AVATAR_SHOP) {
+            val viewModel = hiltViewModel<AvatarShopViewModel>()
+
+            // ✨ Initialize with current user ID
+            LaunchedEffect(currentUser.userId) {
+                viewModel.init(currentUser.userId)
+            }
+
             AvatarShopScreen(
-                viewModel = hiltViewModel(),
+                viewModel = viewModel,
+                currentUserId = currentUser.userId,
                 onBack = { navController.popBackStack() },
                 onPackPurchased = { navController.popBackStack() }
             )

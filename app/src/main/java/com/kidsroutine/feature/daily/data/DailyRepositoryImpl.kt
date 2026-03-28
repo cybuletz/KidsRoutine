@@ -90,6 +90,17 @@ class DailyRepositoryImpl @Inject constructor(
         // If toInsert is empty → nothing written → Room Flow does NOT emit → no recompose ✅
     }
 
+    // ✨ NEW: Delete a task instance
+    override suspend fun deleteTaskInstance(userId: String, instanceId: String) {
+        try {
+            Log.d("DailyRepository", "Deleting task instance: $instanceId for user: $userId")
+            taskInstanceDao.deleteByInstanceId(userId, instanceId)
+            Log.d("DailyRepository", "✅ Task instance deleted: $instanceId")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "❌ Error deleting task instance: ${e.message}", e)
+        }
+    }
+
     override suspend fun saveDailyTasks(userId: String, date: String, tasks: List<TaskInstance>) {
         // DELETE existing tasks for this date first
         taskInstanceDao.deleteTasksForDate(userId, date)  // ← ADD THIS

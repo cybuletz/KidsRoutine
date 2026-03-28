@@ -31,4 +31,8 @@ interface TaskInstanceDao {
     @Query("SELECT * FROM task_instances WHERE userId = :userId AND assignedDate = :date")
     fun getAllTasksForDate(userId: String, date: String): Flow<List<TaskInstanceEntity>>
 
+
+    @Query("DELETE FROM task_instances WHERE userId = :userId AND instanceId = :instanceId")
+    suspend fun deleteByInstanceId(userId: String, instanceId: String)
+
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,9 +23,17 @@ import com.kidsroutine.feature.avatar.data.AvatarSeeder
 fun AvatarShopScreen(
     viewModel: AvatarShopViewModel,
     onBack: () -> Unit,
-    onPackPurchased: (AvatarContentPack) -> Unit
+    onPackPurchased: (AvatarContentPack) -> Unit,
+    currentUserId: String  // ✨ ADD THIS PARAMETER
 ) {
-    val uiState by viewModel.uiState.collectAsState()  // ← Already have this
+    // ✨ Initialize ViewModel on first compose
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotBlank()) {
+            viewModel.init(currentUserId)
+        }
+    }
+
+    val uiState by viewModel.uiState.collectAsState()
     var selectedCategory by remember { mutableStateOf("all") }
 
     Box(
@@ -38,9 +47,16 @@ fun AvatarShopScreen(
 
             // ── Shop Top Bar ─────────────────────────────────────────────────
             ShopTopBar(
-                xp = uiState.xp,              // ← PASS XP instead of coins
+                xp = uiState.xp,              // ← NOW will display correctly
                 onBack = onBack
             )
+
+            // ── XP Balance Banner ───────────────────────────────────────────
+            XpBalanceBanner(
+                xp = uiState.xp,              // ← NOW will display correctly
+                onBuyXp = { viewModel.openCoinStore() }
+            )
+
 
             // ── XP Balance Banner ───────────────────────────────────────────
             XpBalanceBanner(
@@ -172,7 +188,14 @@ fun ShopPackCard(
                 else accentColor.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable { onPreview() }
+            // ✨ CHANGED: Only preview on long press, not regular click
+            .combinedClickable(
+                onClick = {
+                    if (!isOwned) onBuy()  // ← Buy on click if not owned
+                    else onPreview()        // ← Preview if already owned
+                },
+                onLongClick = { onPreview() }
+            )
     ) {
         Column(
             modifier = Modifier
@@ -288,8 +311,7 @@ fun ShopPackCard(
                             Brush.horizontalGradient(
                                 listOf(accentColor, accentColor.copy(alpha = 0.7f))
                             )
-                        )
-                        .clickable { onBuy() },
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -324,7 +346,7 @@ fun ShopTopBar(xp: Int, onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Avatar Shop", style = MaterialTheme.typography.titleLarge,

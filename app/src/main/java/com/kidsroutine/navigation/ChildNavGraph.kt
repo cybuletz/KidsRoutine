@@ -18,6 +18,7 @@ import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.avatar.ui.AvatarCustomizationScreen
 import com.kidsroutine.feature.avatar.ui.AvatarCustomizationViewModel
 import com.kidsroutine.feature.avatar.ui.AvatarShopScreen
+import com.kidsroutine.feature.avatar.ui.AvatarShopViewModel
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
@@ -151,8 +152,16 @@ fun NavGraphBuilder.childNavGraph(
         }
 
         composable(Routes.AVATAR_SHOP) {
+            val viewModel = hiltViewModel<AvatarShopViewModel>()
+
+            // ✨ Initialize with current user ID
+            LaunchedEffect(currentUser.userId) {
+                viewModel.init(currentUser.userId)
+            }
+
             AvatarShopScreen(
-                viewModel = hiltViewModel(),
+                viewModel = viewModel,
+                currentUserId = currentUser.userId,
                 onBack = { navController.popBackStack() },
                 onPackPurchased = { navController.popBackStack() }
             )

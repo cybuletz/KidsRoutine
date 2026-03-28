@@ -28,36 +28,6 @@ class TaskManagementViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TaskManagementUiState())
     val uiState: StateFlow<TaskManagementUiState> = _uiState.asStateFlow()
 
-    // ── Real-time listener — replaces the one-shot suspend call ──────────
-    // Called from TaskListScreen / ParentTasksTab LaunchedEffect
-    fun observeFamilyTasks(familyId: String) {
-        if (familyId.isEmpty()) {
-            _uiState.value = _uiState.value.copy(error = "Invalid family ID")
-            return
-        }
-
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-        viewModelScope.launch {
-            taskRepository.observeFamilyTasks(familyId)
-                .catch { e ->
-                    Log.e("TaskManagementViewModel", "Real-time listener error", e)
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error     = e.message ?: "Failed to load tasks"
-                    )
-                }
-                .collect { tasks ->
-                    Log.d("TaskManagementViewModel", "Real-time update: ${tasks.size} tasks")
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        tasks     = tasks,
-                        error     = null
-                    )
-                }
-        }
-    }
-
     // ── Keep loadFamilyTasks as a one-shot fallback for screens that need it ──
     fun loadFamilyTasks(familyId: String) {
         if (familyId.isEmpty()) {
@@ -117,29 +87,16 @@ class TaskManagementViewModel @Inject constructor(
                 Log.d("TaskManagementViewModel", "Deleting task: $taskId")
                 taskRepository.deleteTask(familyId, taskId)
                 Log.d("TaskManagementViewModel", "Task deleted successfully")
-                // Flow will push the removal automatically
-                _uiState.value = _uiState.value.copy(successMessage = "Task deleted!")
+
+                // ✅ IMMEDIATELY update UI state to remove the task
+                _uiState.value = _uiState.value.copy(
+                    tasks = _uiState.value.tasks.filter { it.id != taskId },
+                    successMessage = "Task deleted!"
+                )
             } catch (e: Exception) {
                 Log.e("TaskManagementViewModel", "Error deleting task", e)
                 _uiState.value = _uiState.value.copy(
                     error = e.message ?: "Failed to delete task"
-                )
-            }
-        }
-    }
-
-    fun updateTask(familyId: String, task: TaskModel) {
-        viewModelScope.launch {
-            try {
-                Log.d("TaskManagementViewModel", "Updating task: ${task.id}")
-                taskRepository.updateTask(familyId, task)
-                Log.d("TaskManagementViewModel", "Task updated successfully")
-                // Flow will push the updated doc automatically
-                _uiState.value = _uiState.value.copy(successMessage = "Task updated!")
-            } catch (e: Exception) {
-                Log.e("TaskManagementViewModel", "Error updating task", e)
-                _uiState.value = _uiState.value.copy(
-                    error = e.message ?: "Failed to update task"
                 )
             }
         }

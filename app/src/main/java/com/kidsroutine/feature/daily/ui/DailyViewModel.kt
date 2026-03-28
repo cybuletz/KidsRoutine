@@ -100,11 +100,10 @@ class DailyViewModel @Inject constructor(
 
     /**
      * Attaches a Firestore real-time listener to taskAssignments for this child.
-     * Fires only when the parent actually assigns a new task — not on a timer.
-     * Replaces the previous polling/merging approach in GenerateDailyTasksUseCase.
+     * Handles BOTH new assignments AND deletions.
      */
     private fun listenForNewAssignments(user: UserModel, date: String) {
-        // Remove any previous listener first (e.g. on forceRefresh)
+        // Remove any previous listener first
         assignmentListener?.remove()
 
         assignmentListener = firestore
@@ -116,51 +115,74 @@ class DailyViewModel @Inject constructor(
                     Log.e("DailyViewModel", "Assignment listener error: ${error.message}")
                     return@addSnapshotListener
                 }
-                if (snapshot == null || snapshot.isEmpty) return@addSnapshotListener
+                if (snapshot == null) return@addSnapshotListener
 
-                // hasPendingWrites / fromCache guard: only process confirmed server writes
-                // documentChanges being empty means only metadata changed (e.g. local write confirmed)
-                val realChanges = snapshot.documentChanges.filter {
+                // ✨ Process ALL changes (ADDED + REMOVED)
+                val documentChanges = snapshot.documentChanges
+
+                // Handle ADDED assignments
+                val addedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
                 }
-                if (realChanges.isEmpty()) return@addSnapshotListener
 
-                Log.d("DailyViewModel", "🔔 ${realChanges.size} new assignment(s) detected from Firestore")
+                // ✨ Handle REMOVED assignments (task deleted)
+                val removedChanges = documentChanges.filter {
+                    it.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED
+                }
 
-                viewModelScope.launch {
-                    val newInstances = mutableListOf<TaskInstance>()
+                if (addedChanges.isNotEmpty()) {
+                    Log.d("DailyViewModel", "🔔 ${addedChanges.size} new task assignment(s)")
+                    viewModelScope.launch {
+                        val newInstances = mutableListOf<TaskInstance>()
 
-                    for (change in realChanges) {
-                        val taskId = change.document.getString("taskId") ?: continue
-                        try {
-                            val taskDoc = firestore
-                                .collection("tasks")
-                                .document(taskId)
-                                .get()
-                                .await()
-                            val taskModel = taskDoc.toObject(TaskModel::class.java)
-                            if (taskModel != null && taskModel.title.isNotBlank()) {
-                                newInstances.add(
-                                    TaskInstance(
-                                        instanceId            = "${taskId}_assigned",  // stable, dedup-safe
-                                        templateId            = taskId,
-                                        task                  = taskModel,
-                                        assignedDate          = date,
-                                        userId                = user.userId,
-                                        injectedByChallengeId = null
+                        for (change in addedChanges) {
+                            val taskId = change.document.getString("taskId") ?: continue
+                            try {
+                                val taskDoc = firestore
+                                    .collection("tasks")
+                                    .document(taskId)
+                                    .get()
+                                    .await()
+                                val taskModel = taskDoc.toObject(TaskModel::class.java)
+                                if (taskModel != null && taskModel.title.isNotBlank()) {
+                                    newInstances.add(
+                                        TaskInstance(
+                                            instanceId            = "${taskId}_assigned",
+                                            templateId            = taskId,
+                                            task                  = taskModel,
+                                            assignedDate          = date,
+                                            userId                = user.userId,
+                                            injectedByChallengeId = null
+                                        )
                                     )
-                                )
-                                Log.d("DailyViewModel", "New assigned task fetched: ${taskModel.title}")
+                                    Log.d("DailyViewModel", "New task: ${taskModel.title}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("DailyViewModel", "Failed to fetch task $taskId: ${e.message}")
                             }
-                        } catch (e: Exception) {
-                            Log.e("DailyViewModel", "Failed to fetch task $taskId: ${e.message}")
+                        }
+
+                        if (newInstances.isNotEmpty()) {
+                            dailyRepository.mergeAssignedTasks(user.userId, date, newInstances)
                         }
                     }
+                }
 
-                    if (newInstances.isNotEmpty()) {
-                        // mergeAssignedTasks only inserts IDs not already in Room → no duplicate emissions
-                        dailyRepository.mergeAssignedTasks(user.userId, date, newInstances)
-                        // Room Flow (Step 2) emits automatically → UI updates with no extra work
+                // ✨ Handle REMOVED assignments
+                if (removedChanges.isNotEmpty()) {
+                    Log.d("DailyViewModel", "🗑️ ${removedChanges.size} task assignment(s) deleted")
+                    viewModelScope.launch {
+                        for (change in removedChanges) {
+                            val taskId = change.document.getString("taskId") ?: continue
+                            try {
+                                val instanceId = "${taskId}_assigned"
+                                Log.d("DailyViewModel", "Deleting task instance: $instanceId")
+                                dailyRepository.deleteTaskInstance(user.userId, instanceId)
+                                // Room Flow will emit and update UI automatically
+                            } catch (e: Exception) {
+                                Log.e("DailyViewModel", "Error deleting task instance: ${e.message}")
+                            }
+                        }
                     }
                 }
             }
