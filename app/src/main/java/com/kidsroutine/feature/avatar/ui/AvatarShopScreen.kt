@@ -24,7 +24,7 @@ fun AvatarShopScreen(
     onBack: () -> Unit,
     onPackPurchased: (AvatarContentPack) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()  // ← Already have this
     var selectedCategory by remember { mutableStateOf("all") }
 
     Box(
@@ -38,14 +38,14 @@ fun AvatarShopScreen(
 
             // ── Shop Top Bar ─────────────────────────────────────────────────
             ShopTopBar(
-                coins = uiState.coins,
+                xp = uiState.xp,              // ← PASS XP instead of coins
                 onBack = onBack
             )
 
-            // ── Coin Balance Banner ───────────────────────────────────────────
-            CoinBalanceBanner(
-                coins = uiState.coins,
-                onBuyCoins = { viewModel.openCoinStore() }
+            // ── XP Balance Banner ───────────────────────────────────────────
+            XpBalanceBanner(
+                xp = uiState.xp,              // ← Update to show XP
+                onBuyXp = { viewModel.openCoinStore() }
             )
 
             // ── Category Filter Chips ─────────────────────────────────────────
@@ -86,120 +86,13 @@ fun AvatarShopScreen(
         uiState.pendingPurchasePack?.let { pack ->
             PurchaseConfirmDialog(
                 pack = pack,
-                coins = uiState.coins,
+                xp = uiState.xp,              // ← Pass XP instead of coins
                 onConfirm = {
                     viewModel.confirmPurchase(pack)
                     onPackPurchased(pack)
                 },
                 onDismiss = { viewModel.dismissPurchase() }
             )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Shop Top Bar
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun ShopTopBar(coins: Int, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Avatar Shop", style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold, color = Color.White)
-            Text("Unlock epic character packs", style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f))
-        }
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = Color(0xFFFFD700).copy(alpha = 0.15f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("🪙", style = MaterialTheme.typography.labelLarge)
-                Text("$coins", style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold, color = Color(0xFFFFD700))
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Coin Balance Banner
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun CoinBalanceBanner(coins: Int, onBuyCoins: () -> Unit) {
-    val pulse = rememberInfiniteTransition(label = "coinPulse")
-    val glow by pulse.animateFloat(
-        initialValue = 0.5f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
-        label = "glow"
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(Color(0xFF2A2200), Color(0xFF3D3300))
-                )
-            )
-            .border(
-                1.dp,
-                Color(0xFFFFD700).copy(alpha = 0.3f * glow),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text("🪙", style = MaterialTheme.typography.headlineMedium)
-            Column {
-                Text(
-                    "$coins Coins",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFD700)
-                )
-                Text("Your current balance",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f))
-            }
-        }
-
-        Surface(
-            onClick = onBuyCoins,
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFFFFD700)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(Icons.Default.Add, "Buy", tint = Color.Black, modifier = Modifier.size(16.dp))
-                Text("Get More", style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold, color = Color.Black)
-            }
         }
     }
 }
@@ -418,18 +311,125 @@ fun ShopPackCard(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Purchase Confirm Dialog
+//  Shop Top Bar (UPDATED)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun ShopTopBar(xp: Int, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Avatar Shop", style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Unlock epic character packs", style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.5f))
+        }
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = Color(0xFF00FFD700).copy(alpha = 0.15f)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("⭐", style = MaterialTheme.typography.labelLarge)
+                Text("$xp XP", style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold, color = Color(0xFF00FFD700))
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  XP Balance Banner (RENAMED from CoinBalanceBanner)
+// ─────────────────────────���───────────────────────────────────────────────────
+
+@Composable
+fun XpBalanceBanner(xp: Int, onBuyXp: () -> Unit) {
+    val pulse = rememberInfiniteTransition(label = "xpPulse")
+    val glow by pulse.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label = "glow"
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(Color(0xFF1A2000), Color(0xFF2D3300))
+                )
+            )
+            .border(
+                1.dp,
+                Color(0xFF00FFD700).copy(alpha = 0.3f * glow),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("⭐", style = MaterialTheme.typography.headlineMedium)
+            Column {
+                Text(
+                    "$xp XP",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF00FFD700)
+                )
+                Text("Your current XP balance",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.5f))
+            }
+        }
+
+        Surface(
+            onClick = onBuyXp,
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF00FFD700)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(Icons.Default.Add, "Buy", tint = Color.Black, modifier = Modifier.size(16.dp))
+                Text("Earn XP", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold, color = Color.Black)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Purchase Confirm Dialog (UPDATED)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun PurchaseConfirmDialog(
     pack: AvatarContentPack,
-    coins: Int,
+    xp: Int,                              // Changed from coins to xp
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val accentColor = Color(pack.accentColor)
-    val canAfford = coins >= pack.packPrice
+    val canAfford = xp >= pack.packPrice
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -476,10 +476,10 @@ fun PurchaseConfirmDialog(
                         style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text("🪙", style = MaterialTheme.typography.bodyMedium)
-                        Text("${pack.packPrice}",
+                        Text("⭐", style = MaterialTheme.typography.bodyMedium)
+                        Text("${pack.packPrice} XP",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFD700),
+                            color = Color(0xFF00FFD700),
                             style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -487,12 +487,12 @@ fun PurchaseConfirmDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Your balance:", color = Color.White.copy(alpha = 0.6f),
+                    Text("Your XP:", color = Color.White.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text("🪙", style = MaterialTheme.typography.bodyMedium)
-                        Text("$coins",
+                        Text("⭐", style = MaterialTheme.typography.bodyMedium)
+                        Text("$xp XP",
                             fontWeight = FontWeight.Bold,
                             color = if (canAfford) Color(0xFF4CAF50) else Color(0xFFE53935),
                             style = MaterialTheme.typography.bodyMedium)
@@ -504,7 +504,7 @@ fun PurchaseConfirmDialog(
                         color = Color(0xFFE53935).copy(alpha = 0.15f)
                     ) {
                         Text(
-                            "⚠️ Not enough coins. Earn more by completing tasks!",
+                            "⚠️ Not enough XP. Earn more by completing tasks!",
                             modifier = Modifier.padding(10.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = Color(0xFFE53935)
@@ -531,7 +531,7 @@ fun PurchaseConfirmDialog(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (canAfford) "✅ Confirm Purchase" else "Not enough coins",
+                    if (canAfford) "✅ Confirm Purchase" else "Not enough XP",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (canAfford) Color.White else Color.White.copy(alpha = 0.3f)

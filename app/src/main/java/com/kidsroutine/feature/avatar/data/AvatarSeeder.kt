@@ -148,7 +148,7 @@ object AvatarSeeder {
         )
     )
 
-    // ── Premium Content Packs ──────────────────────────────────────────────
+    // ── Premium Content Packs (NOW XP-BASED) ──────────────────────────────
     val premiumPacks = listOf(
 
         AvatarContentPack(
@@ -159,7 +159,7 @@ object AvatarSeeder {
             accentColor = 0xFF16213E,
             isTrending = true,
             isNew = false,
-            packPrice = 500,
+            packPrice = 2500,  // Total XP cost for entire pack
             billingProductId = "pack_ninja_warriors_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -170,7 +170,7 @@ object AvatarSeeder {
                     tintColor = 0xFF1A1A2E,
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 150
+                    coinCost = 500  // XP cost per item
                 ),
                 AvatarLayerItem(
                     id = "ninja_outfit_red",
@@ -180,7 +180,7 @@ object AvatarSeeder {
                     tintColor = 0xFFC1121F,
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 200
+                    coinCost = 750
                 ),
                 AvatarLayerItem(
                     id = "ninja_bg_dojo",
@@ -188,7 +188,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF1A0000, 0xFF8B0000, "Dojo"),
                     isPremium = true,
-                    packId = "pack_ninja_warriors"
+                    packId = "pack_ninja_warriors",
+                    coinCost = 300
                 ),
                 AvatarLayerItem(
                     id = "ninja_fx_fire",
@@ -197,7 +198,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.fx_fire),
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 300
+                    coinCost = 600
                 ),
                 AvatarLayerItem(
                     id = "ninja_accessory_headband",
@@ -207,7 +208,7 @@ object AvatarSeeder {
                     tintColor = 0xFFC1121F,
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 150
+                    coinCost = 350
                 )
             )
         ),
@@ -220,7 +221,7 @@ object AvatarSeeder {
             accentColor = 0xFFFFCB05,
             isTrending = true,
             isNew = true,
-            packPrice = 500,
+            packPrice = 2200,  // Total XP cost
             billingProductId = "pack_monster_trainers_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -231,7 +232,7 @@ object AvatarSeeder {
                     tintColor = 0xFFCC0000,
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 120
+                    coinCost = 400
                 ),
                 AvatarLayerItem(
                     id = "mt_outfit_trainer",
@@ -241,7 +242,7 @@ object AvatarSeeder {
                     tintColor = 0xFF003087,
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 180
+                    coinCost = 700
                 ),
                 AvatarLayerItem(
                     id = "mt_bg_tall_grass",
@@ -249,7 +250,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF2D6A4F, 0xFF74C69D, "Plains"),
                     isPremium = true,
-                    packId = "pack_monster_trainers"
+                    packId = "pack_monster_trainers",
+                    coinCost = 250
                 ),
                 AvatarLayerItem(
                     id = "mt_bg_gym",
@@ -257,7 +259,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF1B4332, 0xFF40916C, "Gym"),
                     isPremium = true,
-                    packId = "pack_monster_trainers"
+                    packId = "pack_monster_trainers",
+                    coinCost = 250
                 ),
                 AvatarLayerItem(
                     id = "mt_accessory_belt",
@@ -266,7 +269,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 100
+                    coinCost = 600
                 )
             )
         ),
@@ -279,7 +282,7 @@ object AvatarSeeder {
             accentColor = 0xFF7B2FBE,
             isTrending = false,
             isNew = true,
-            packPrice = 450,
+            packPrice = 2000,  // Total XP cost
             billingProductId = "pack_space_explorer_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -290,7 +293,7 @@ object AvatarSeeder {
                     tintColor = 0xFFE0E0E0,
                     isPremium = true,
                     packId = "pack_space_explorer",
-                    coinCost = 200
+                    coinCost = 800
                 ),
                 AvatarLayerItem(
                     id = "space_bg_galaxy",
@@ -298,7 +301,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF10002B, 0xFF7B2FBE, "Galaxy"),
                     isPremium = true,
-                    packId = "pack_space_explorer"
+                    packId = "pack_space_explorer",
+                    coinCost = 300
                 ),
                 AvatarLayerItem(
                     id = "space_bg_nebula",
@@ -306,7 +310,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF1B263B, 0xFF415A77, "Nebula"),
                     isPremium = true,
-                    packId = "pack_space_explorer"
+                    packId = "pack_space_explorer",
+                    coinCost = 300
                 ),
                 AvatarLayerItem(
                     id = "space_fx_stars",
@@ -315,7 +320,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
                     isPremium = true,
                     packId = "pack_space_explorer",
-                    coinCost = 250
+                    coinCost = 600
                 )
             )
         ),
@@ -328,7 +333,7 @@ object AvatarSeeder {
             accentColor = 0xFFD62828,
             isTrending = false,
             isNew = false,
-            packPrice = 450,
+            packPrice = 2300,  // Total XP cost
             billingProductId = "pack_superhero_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -339,7 +344,7 @@ object AvatarSeeder {
                     tintColor = 0xFFD62828,
                     isPremium = true,
                     packId = "pack_superhero",
-                    coinCost = 200
+                    coinCost = 800
                 ),
                 AvatarLayerItem(
                     id = "hero_outfit_blue",
@@ -349,7 +354,7 @@ object AvatarSeeder {
                     tintColor = 0xFF023E8A,
                     isPremium = true,
                     packId = "pack_superhero",
-                    coinCost = 200
+                    coinCost = 800
                 ),
                 AvatarLayerItem(
                     id = "hero_bg_city",
@@ -357,7 +362,8 @@ object AvatarSeeder {
                     layerType = AvatarLayerType.BACKGROUND,
                     source = AvatarAssetSource.GradientBackground(0xFF03071E, 0xFF370617, "City Night"),
                     isPremium = true,
-                    packId = "pack_superhero"
+                    packId = "pack_superhero",
+                    coinCost = 300
                 ),
                 AvatarLayerItem(
                     id = "hero_fx_lightning",
@@ -366,7 +372,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.fx_lightning),
                     isPremium = true,
                     packId = "pack_superhero",
-                    coinCost = 300
+                    coinCost = 250
                 ),
                 AvatarLayerItem(
                     id = "hero_accessory_mask",
@@ -376,7 +382,7 @@ object AvatarSeeder {
                     tintColor = 0xFFD62828,
                     isPremium = true,
                     packId = "pack_superhero",
-                    coinCost = 100
+                    coinCost = 150
                 )
             )
         )

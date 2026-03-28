@@ -15,23 +15,15 @@ class AvatarRepositoryImpl @Inject constructor(
     private val avatarDao: AvatarDao
 ) : AvatarRepository {
 
-    // ── Interface implementations ─────────────────────────────────────────────
+    // ── Avatar methods ────────────────────────────────────────────────────────
 
     override suspend fun getAvatar(userId: String): AvatarState? {
         return avatarDao.getAvatar(userId)?.toAvatarState()
     }
 
-    override fun observeAvatar(userId: String): Flow<AvatarState?> {
-        return avatarDao.observeAvatar(userId).map { it?.toAvatarState() }
-    }
-
     override suspend fun saveAvatar(state: AvatarState) {
         avatarDao.saveAvatar(state.toEntity())
         syncToFirestore(state)
-    }
-
-    override suspend fun deleteAvatar(userId: String) {
-        avatarDao.deleteAvatar(userId)
     }
 
     override suspend fun getUnlockedItemIds(userId: String): Set<String> {
@@ -53,6 +45,70 @@ class AvatarRepositoryImpl @Inject constructor(
                 .get().await()
                 .getString("name") ?: ""
         } catch (e: Exception) { "" }
+    }
+
+    // ── XP methods (NEW) ──────────────────────────────────────────────────────
+
+    override suspend fun getUserXp(userId: String): Int {
+        return try {
+            firestore.collection("users").document(userId)
+                .get().await()
+                .getLong("xp")?.toInt() ?: 0
+        } catch (e: Exception) { 0 }
+    }
+
+    override suspend fun deductUserXp(userId: String, amount: Int) {
+        try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val currentXp = userDoc.getLong("xp")?.toInt() ?: 0
+            val newXp = maxOf(0, currentXp - amount)
+
+            firestore.collection("users").document(userId)
+                .update("xp", newXp.toLong())
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Failed to deduct XP: ${e.message}")
+        }
+    }
+
+    override suspend fun addUserXp(userId: String, amount: Int) {
+        try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val currentXp = userDoc.getLong("xp")?.toInt() ?: 0
+            val newXp = currentXp + amount
+
+            firestore.collection("users").document(userId)
+                .update("xp", newXp.toLong())
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Failed to add XP: ${e.message}")
+        }
+    }
+
+    // ── Pack ownership methods (NEW) ───────────────────────────────────────────
+
+    override suspend fun getOwnedAvatarPacks(userId: String): Set<String> {
+        return try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            @Suppress("UNCHECKED_CAST")
+            val packsList = userDoc.get("ownedAvatarPacks") as? List<String> ?: emptyList()
+            packsList.toSet()
+        } catch (e: Exception) {
+            emptySet()
+        }
+    }
+
+    override suspend fun addOwnedAvatarPack(userId: String, packId: String) {
+        try {
+            val currentPacks = getOwnedAvatarPacks(userId).toMutableSet()
+            currentPacks.add(packId)
+
+            firestore.collection("users").document(userId)
+                .update("ownedAvatarPacks", currentPacks.toList())
+                .await()
+        } catch (e: Exception) {
+            throw Exception("Failed to add pack: ${e.message}")
+        }
     }
 
     // ── Firestore sync ────────────────────────────────────────────────────────

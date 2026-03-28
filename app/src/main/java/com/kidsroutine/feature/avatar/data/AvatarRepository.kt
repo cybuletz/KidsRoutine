@@ -4,18 +4,19 @@ import com.kidsroutine.core.model.AvatarState
 import kotlinx.coroutines.flow.Flow
 
 interface AvatarRepository {
-
+    // Existing methods
     suspend fun getAvatar(userId: String): AvatarState?
-
-    fun observeAvatar(userId: String): Flow<AvatarState?>
-
-    suspend fun saveAvatar(state: AvatarState)
-
-    suspend fun deleteAvatar(userId: String)
-
+    suspend fun saveAvatar(avatar: AvatarState)
+    suspend fun getCoins(userId: String): Int
+    suspend fun getPlayerName(userId: String): String
     suspend fun getUnlockedItemIds(userId: String): Set<String>
 
-    suspend fun getCoins(userId: String): Int
+    // NEW XP methods (replace coin methods)
+    suspend fun getUserXp(userId: String): Int
+    suspend fun deductUserXp(userId: String, amount: Int)
+    suspend fun addUserXp(userId: String, amount: Int)
 
-    suspend fun getPlayerName(userId: String): String
+    // Pack ownership
+    suspend fun getOwnedAvatarPacks(userId: String): Set<String>
+    suspend fun addOwnedAvatarPack(userId: String, packId: String)
 }
