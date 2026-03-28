@@ -1,0 +1,36 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="300dp"
+    android:viewportWidth="200"
+    android:viewportHeight="300">
+    <path
+        android:name="outerGlow"
+        android:pathData="M20,280 Q5,200 30,140 Q50,90 100,60 Q150,90 170,140 Q195,200 180,280 Z"
+        android:fillColor="#FF0000"
+        android:fillAlpha="0.3"/>
+    <path
+        android:name="midFlame"
+        android:pathData="M40,280 Q25,220 50,160 Q70,110 100,80 Q130,110 150,160 Q175,220 160,280 Z"
+        android:fillColor="#FF6600"
+        android:fillAlpha="0.55"/>
+    <path
+        android:name="innerFlame"
+        android:pathData="M60,280 Q50,230 70,180 Q85,140 100,110 Q115,140 130,180 Q150,230 140,280 Z"
+        android:fillColor="#FFDD00"
+        android:fillAlpha="0.75"/>
+    <path
+        android:name="spikeLeft"
+        android:pathData="M55,200 Q40,160 60,120 Q75,150 72,200 Z"
+        android:fillColor="#FF4500"
+        android:fillAlpha="0.7"/>
+    <path
+        android:name="spikeRight"
+        android:pathData="M145,200 Q160,160 140,120 Q125,150 128,200 Z"
+        android:fillColor="#FF4500"
+        android:fillAlpha="0.7"/>
+    <path
+        android:name="tipFlame"
+        android:pathData="M85,110 Q100,60 115,110 Q105,130 95,130 Z"
+        android:fillColor="#FFFFAA"
+        android:fillAlpha="0.9"/>
+</vector>

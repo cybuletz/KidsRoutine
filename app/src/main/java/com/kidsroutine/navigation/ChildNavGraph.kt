@@ -1,5 +1,6 @@
 package com.kidsroutine.navigation
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -70,8 +71,13 @@ fun NavGraphBuilder.childNavGraph(
         }
 
         composable(Routes.AVATAR_CUSTOMIZATION) {
+            val viewModel = hiltViewModel<AvatarCustomizationViewModel>()
+            LaunchedEffect(Unit) {
+                viewModel.initWithUserId(currentUser.userId)
+            }
+
             AvatarCustomizationScreen(
-                viewModel = hiltViewModel<AvatarCustomizationViewModel>(),
+                viewModel = viewModel,
                 onNavigateToShop = { navController.navigate("avatar_shop") },
                 onBack = { navController.popBackStack() }
             )

@@ -1,0 +1,74 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="300dp"
+    android:viewportWidth="200"
+    android:viewportHeight="300">
+    <path
+        android:name="boltLeft"
+        android:pathData="M55,30 L40,105 L58,105 L38,185 L70,185 L50,260"
+        android:strokeColor="#00CFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"/>
+    <path
+        android:pathData="M55,30 L40,105 L58,105 L38,185 L70,185 L50,260"
+        android:strokeColor="#00CFFF"
+        android:strokeWidth="12"
+        android:strokeAlpha="0.22"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"/>
+    <path
+        android:name="boltRight"
+        android:pathData="M145,30 L160,105 L142,105 L162,185 L130,185 L150,260"
+        android:strokeColor="#00CFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"/>
+    <path
+        android:pathData="M145,30 L160,105 L142,105 L162,185 L130,185 L150,260"
+        android:strokeColor="#00CFFF"
+        android:strokeWidth="12"
+        android:strokeAlpha="0.22"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"/>
+    <circle
+        android:centerX="58"
+        android:centerY="105"
+        android:radius="9dp"
+        android:fillColor="#00CFFF"
+        android:fillAlpha="0.45"/>
+    <circle
+        android:centerX="38"
+        android:centerY="185"
+        android:radius="9dp"
+        android:fillColor="#00CFFF"
+        android:fillAlpha="0.45"/>
+    <circle
+        android:centerX="142"
+        android:centerY="105"
+        android:radius="9dp"
+        android:fillColor="#00CFFF"
+        android:fillAlpha="0.45"/>
+    <circle
+        android:centerX="162"
+        android:centerY="185"
+        android:radius="9dp"
+        android:fillColor="#00CFFF"
+        android:fillAlpha="0.45"/>
+    <path
+        android:pathData="M45,95 Q52,88 60,95"
+        android:strokeColor="#ffffff"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M140,95 Q148,88 155,95"
+        android:strokeColor="#ffffff"
+        android:strokeWidth="2"
+        android:fillColor="@android:color/transparent"
+        android:strokeLineCap="round"/>
+</vector>

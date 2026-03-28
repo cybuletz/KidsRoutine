@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.avatar.data
 
+import com.kidsroutine.R
 import com.kidsroutine.core.model.*
 
 object AvatarSeeder {
@@ -64,33 +65,87 @@ object AvatarSeeder {
 
     // ── Free Hair Options ──────────────────────────────────────────────────
     val freeHair = listOf(
-        AvatarLayerItem("hair_short_brown", "Short Brown", AvatarLayerType.HAIR,
-            AvatarAssetSource.VectorRes(0 /* R.drawable.hair_short_boy */),
-            tintColor = 0xFF5C3317, compatibleGenders = setOf(AvatarGender.BOY)),
-        AvatarLayerItem("hair_short_black", "Short Black", AvatarLayerType.HAIR,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A1A,
-            compatibleGenders = setOf(AvatarGender.BOY)),
-        AvatarLayerItem("hair_long_brown", "Long Brown", AvatarLayerType.HAIR,
-            AvatarAssetSource.VectorRes(0 /* R.drawable.hair_long_girl */),
-            tintColor = 0xFF5C3317, compatibleGenders = setOf(AvatarGender.GIRL)),
-        AvatarLayerItem("hair_ponytail_black", "Ponytail Black", AvatarLayerType.HAIR,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A1A,
-            compatibleGenders = setOf(AvatarGender.GIRL)),
-        AvatarLayerItem("hair_curly_auburn", "Curly Auburn", AvatarLayerType.HAIR,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFFC1440E,
-            compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL))
+        AvatarLayerItem(
+            id = "hair_short_brown",
+            name = "Short Brown",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
+            tintColor = 0xFF5C3317,
+            compatibleGenders = setOf(AvatarGender.BOY),
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "hair_short_black",
+            name = "Short Black",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
+            tintColor = 0xFF1A1A1A,
+            compatibleGenders = setOf(AvatarGender.BOY),
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "hair_long_brown",
+            name = "Long Brown",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
+            tintColor = 0xFF5C3317,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "hair_ponytail_black",
+            name = "Ponytail Black",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
+            tintColor = 0xFF1A1A1A,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "hair_curly_auburn",
+            name = "Curly Auburn",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_curly),
+            tintColor = 0xFFC1440E,
+            compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL),
+            sortOrder = 5
+        )
     )
 
     // ── Free Outfits ───────────────────────────────────────────────────────
     val freeOutfits = listOf(
-        AvatarLayerItem("outfit_casual_blue", "Casual Blue", AvatarLayerType.OUTFIT,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1D3557),
-        AvatarLayerItem("outfit_casual_red", "Casual Red", AvatarLayerType.OUTFIT,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFFE63946),
-        AvatarLayerItem("outfit_school", "School Uniform", AvatarLayerType.OUTFIT,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFF457B9D),
-        AvatarLayerItem("outfit_sport", "Sports Gear", AvatarLayerType.OUTFIT,
-            AvatarAssetSource.VectorRes(0), tintColor = 0xFF2DC653)
+        AvatarLayerItem(
+            id = "outfit_casual_blue",
+            name = "Casual Blue",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF1D3557,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "outfit_casual_red",
+            name = "Casual Red",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFE63946,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "outfit_school",
+            name = "School Uniform",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF457B9D,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "outfit_sport",
+            name = "Sports Gear",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_sport),
+            tintColor = 0xFF2DC653,
+            sortOrder = 4
+        )
     )
 
     // ── Premium Content Packs ──────────────────────────────────────────────
@@ -100,7 +155,6 @@ object AvatarSeeder {
             id = "pack_ninja_warriors",
             name = "Ninja Warriors",
             description = "Train like a true ninja warrior! Epic outfits, fire & water FX.",
-            // Use a placeholder URL — replace with your actual CDN assets
             coverImageUrl = "https://placehold.co/400x300/1a1a2e/ffffff?text=Ninja+Warriors",
             accentColor = 0xFF16213E,
             isTrending = true,
@@ -108,21 +162,53 @@ object AvatarSeeder {
             packPrice = 500,
             billingProductId = "pack_ninja_warriors_v1",
             items = listOf(
-                AvatarLayerItem("ninja_outfit_dark", "Dark Ninja Gi", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A2E,
-                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 150),
-                AvatarLayerItem("ninja_outfit_red", "Red Demon Gi", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFC1121F,
-                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 200),
-                AvatarLayerItem("ninja_bg_dojo", "Ancient Dojo", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF1A0000, 0xFF8B0000, "Dojo"),
-                    isPremium = true, packId = "pack_ninja_warriors"),
-                AvatarLayerItem("ninja_fx_fire", "Fire Aura", AvatarLayerType.SPECIAL_FX,
-                    AvatarAssetSource.VectorRes(0),
-                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 300),
-                AvatarLayerItem("ninja_accessory_headband", "Ninja Headband",
-                    AvatarLayerType.ACCESSORY, AvatarAssetSource.VectorRes(0),
-                    tintColor = 0xFFC1121F, isPremium = true, packId = "pack_ninja_warriors")
+                AvatarLayerItem(
+                    id = "ninja_outfit_dark",
+                    name = "Dark Ninja Gi",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_ninja),
+                    tintColor = 0xFF1A1A2E,
+                    isPremium = true,
+                    packId = "pack_ninja_warriors",
+                    coinCost = 150
+                ),
+                AvatarLayerItem(
+                    id = "ninja_outfit_red",
+                    name = "Red Demon Gi",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_ninja),
+                    tintColor = 0xFFC1121F,
+                    isPremium = true,
+                    packId = "pack_ninja_warriors",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "ninja_bg_dojo",
+                    name = "Ancient Dojo",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF1A0000, 0xFF8B0000, "Dojo"),
+                    isPremium = true,
+                    packId = "pack_ninja_warriors"
+                ),
+                AvatarLayerItem(
+                    id = "ninja_fx_fire",
+                    name = "Fire Aura",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_fire),
+                    isPremium = true,
+                    packId = "pack_ninja_warriors",
+                    coinCost = 300
+                ),
+                AvatarLayerItem(
+                    id = "ninja_accessory_headband",
+                    name = "Ninja Headband",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_headband),
+                    tintColor = 0xFFC1121F,
+                    isPremium = true,
+                    packId = "pack_ninja_warriors",
+                    coinCost = 150
+                )
             )
         ),
 
@@ -137,28 +223,58 @@ object AvatarSeeder {
             packPrice = 500,
             billingProductId = "pack_monster_trainers_v1",
             items = listOf(
-                AvatarLayerItem("mt_outfit_red_cap", "Trainer Red Cap", AvatarLayerType.ACCESSORY,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFCC0000,
-                    isPremium = true, packId = "pack_monster_trainers", coinCost = 120),
-                AvatarLayerItem("mt_outfit_trainer", "Trainer Jacket", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF003087,
-                    isPremium = true, packId = "pack_monster_trainers", coinCost = 180),
-                AvatarLayerItem("mt_bg_tall_grass", "Tall Grass Plains", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF2D6A4F, 0xFF74C69D, "Plains"),
-                    isPremium = true, packId = "pack_monster_trainers"),
-                AvatarLayerItem("mt_bg_gym", "Trainer Gym", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF1B4332, 0xFF40916C, "Gym"),
-                    isPremium = true, packId = "pack_monster_trainers"),
-                AvatarLayerItem("mt_accessory_pokeball", "Monster Ball Belt",
-                    AvatarLayerType.ACCESSORY, AvatarAssetSource.VectorRes(0),
-                    isPremium = true, packId = "pack_monster_trainers", coinCost = 100)
+                AvatarLayerItem(
+                    id = "mt_accessory_cap",
+                    name = "Trainer Red Cap",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+                    tintColor = 0xFFCC0000,
+                    isPremium = true,
+                    packId = "pack_monster_trainers",
+                    coinCost = 120
+                ),
+                AvatarLayerItem(
+                    id = "mt_outfit_trainer",
+                    name = "Trainer Jacket",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_trainer),
+                    tintColor = 0xFF003087,
+                    isPremium = true,
+                    packId = "pack_monster_trainers",
+                    coinCost = 180
+                ),
+                AvatarLayerItem(
+                    id = "mt_bg_tall_grass",
+                    name = "Tall Grass Plains",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF2D6A4F, 0xFF74C69D, "Plains"),
+                    isPremium = true,
+                    packId = "pack_monster_trainers"
+                ),
+                AvatarLayerItem(
+                    id = "mt_bg_gym",
+                    name = "Trainer Gym",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF1B4332, 0xFF40916C, "Gym"),
+                    isPremium = true,
+                    packId = "pack_monster_trainers"
+                ),
+                AvatarLayerItem(
+                    id = "mt_accessory_belt",
+                    name = "Monster Ball Belt",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
+                    isPremium = true,
+                    packId = "pack_monster_trainers",
+                    coinCost = 100
+                )
             )
         ),
 
         AvatarContentPack(
             id = "pack_space_explorer",
             name = "Space Explorer",
-            description = "Blast off into the cosmos! Astronaut suits, galaxy backgrounds & cosmic FX.",
+            description = "Blast off into the cosmos! Astronaut suit, galaxy backgrounds & star FX.",
             coverImageUrl = "https://placehold.co/400x300/10002b/c77dff?text=Space+Explorer",
             accentColor = 0xFF7B2FBE,
             isTrending = false,
@@ -166,25 +282,48 @@ object AvatarSeeder {
             packPrice = 450,
             billingProductId = "pack_space_explorer_v1",
             items = listOf(
-                AvatarLayerItem("space_outfit_astronaut", "Astronaut Suit", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFE0E0E0,
-                    isPremium = true, packId = "pack_space_explorer", coinCost = 200),
-                AvatarLayerItem("space_bg_galaxy", "Galaxy", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF10002B, 0xFF7B2FBE, "Galaxy"),
-                    isPremium = true, packId = "pack_space_explorer"),
-                AvatarLayerItem("space_bg_nebula", "Nebula Storm", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF1B263B, 0xFF415A77, "Nebula"),
-                    isPremium = true, packId = "pack_space_explorer"),
-                AvatarLayerItem("space_fx_stars", "Star Trail FX", AvatarLayerType.SPECIAL_FX,
-                    AvatarAssetSource.VectorRes(0),
-                    isPremium = true, packId = "pack_space_explorer", coinCost = 250)
+                AvatarLayerItem(
+                    id = "space_outfit_astronaut",
+                    name = "Astronaut Suit",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_astronaut),
+                    tintColor = 0xFFE0E0E0,
+                    isPremium = true,
+                    packId = "pack_space_explorer",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "space_bg_galaxy",
+                    name = "Galaxy",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF10002B, 0xFF7B2FBE, "Galaxy"),
+                    isPremium = true,
+                    packId = "pack_space_explorer"
+                ),
+                AvatarLayerItem(
+                    id = "space_bg_nebula",
+                    name = "Nebula Storm",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF1B263B, 0xFF415A77, "Nebula"),
+                    isPremium = true,
+                    packId = "pack_space_explorer"
+                ),
+                AvatarLayerItem(
+                    id = "space_fx_stars",
+                    name = "Star Trail FX",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+                    isPremium = true,
+                    packId = "pack_space_explorer",
+                    coinCost = 250
+                )
             )
         ),
 
         AvatarContentPack(
             id = "pack_superhero",
             name = "Superheroes",
-            description = "Save the world! Cape outfits, city skyline backgrounds & lightning FX.",
+            description = "Save the world! Epic costumes, lightning FX & hero masks.",
             coverImageUrl = "https://placehold.co/400x300/d62828/f7b731?text=Superheroes",
             accentColor = 0xFFD62828,
             isTrending = false,
@@ -192,21 +331,53 @@ object AvatarSeeder {
             packPrice = 450,
             billingProductId = "pack_superhero_v1",
             items = listOf(
-                AvatarLayerItem("hero_outfit_cape_red", "Red Cape Suit", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFD62828,
-                    isPremium = true, packId = "pack_superhero", coinCost = 200),
-                AvatarLayerItem("hero_outfit_cape_blue", "Blue Cape Suit", AvatarLayerType.OUTFIT,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF023E8A,
-                    isPremium = true, packId = "pack_superhero", coinCost = 200),
-                AvatarLayerItem("hero_bg_city", "City Skyline", AvatarLayerType.BACKGROUND,
-                    AvatarAssetSource.GradientBackground(0xFF03071E, 0xFF370617, "City Night"),
-                    isPremium = true, packId = "pack_superhero"),
-                AvatarLayerItem("hero_fx_lightning", "Lightning Aura", AvatarLayerType.SPECIAL_FX,
-                    AvatarAssetSource.VectorRes(0),
-                    isPremium = true, packId = "pack_superhero", coinCost = 300),
-                AvatarLayerItem("hero_accessory_mask", "Hero Mask", AvatarLayerType.ACCESSORY,
-                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFD62828,
-                    isPremium = true, packId = "pack_superhero", coinCost = 100)
+                AvatarLayerItem(
+                    id = "hero_outfit_red",
+                    name = "Red Cape Suit",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_ninja),
+                    tintColor = 0xFFD62828,
+                    isPremium = true,
+                    packId = "pack_superhero",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "hero_outfit_blue",
+                    name = "Blue Cape Suit",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_ninja),
+                    tintColor = 0xFF023E8A,
+                    isPremium = true,
+                    packId = "pack_superhero",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "hero_bg_city",
+                    name = "City Skyline",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF03071E, 0xFF370617, "City Night"),
+                    isPremium = true,
+                    packId = "pack_superhero"
+                ),
+                AvatarLayerItem(
+                    id = "hero_fx_lightning",
+                    name = "Lightning Aura",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_lightning),
+                    isPremium = true,
+                    packId = "pack_superhero",
+                    coinCost = 300
+                ),
+                AvatarLayerItem(
+                    id = "hero_accessory_mask",
+                    name = "Hero Mask",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_mask),
+                    tintColor = 0xFFD62828,
+                    isPremium = true,
+                    packId = "pack_superhero",
+                    coinCost = 100
+                )
             )
         )
     )
@@ -216,4 +387,7 @@ object AvatarSeeder {
 
     fun allPremiumItems(): List<AvatarLayerItem> =
         premiumPacks.flatMap { it.items }
+
+    fun allContentPacks(): List<AvatarContentPack> =
+        premiumPacks
 }

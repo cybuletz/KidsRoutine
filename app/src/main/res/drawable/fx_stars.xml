@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="300dp"
+    android:viewportWidth="200"
+    android:viewportHeight="300">
+    <path
+        android:pathData="M100,18 L103,27 L112,27 L105,33 L108,42 L100,36 L92,42 L95,33 L88,27 L97,27 Z"
+        android:fillColor="#FFD700"/>
+    <circle
+        android:centerX="100"
+        android:centerY="30"
+        android:radius="8dp"
+        android:fillColor="#FFD700"
+        android:fillAlpha="0.35"/>
+    <path
+        android:pathData="M165,70 L167,76 L173,76 L168,80 L170,86 L165,82 L160,86 L162,80 L157,76 L163,76 Z"
+        android:fillColor="#FFD700"/>
+    <path
+        android:pathData="M168,210 L170,217 L177,217 L172,221 L174,228 L168,224 L162,228 L164,221 L159,217 L166,217 Z"
+        android:fillColor="#FFD700"/>
+    <path
+        android:pathData="M100,268 L103,277 L112,277 L105,283 L108,292 L100,286 L92,292 L95,283 L88,277 L97,277 Z"
+        android:fillColor="#FFD700"/>
+    <path
+        android:pathData="M32,210 L35,217 L42,217 L37,221 L39,228 L32,224 L25,228 L28,221 L23,217 L30,217 Z"
+        android:fillColor="#FFD700"/>
+    <path
+        android:pathData="M35,70 L38,76 L45,76 L40,80 L42,86 L35,82 L28,86 L31,80 L26,76 L33,76 Z"
+        android:fillColor="#FFD700"/>
+    <circle
+        android:centerX="100"
+        android:centerY="155"
+        android:radius="4dp"
+        android:fillColor="#ffffff"
+        android:fillAlpha="0.5"/>
+    <circle
+        android:centerX="148"
+        android:centerY="140"
+        android:radius="3dp"
+        android:fillColor="#FFD700"
+        android:fillAlpha="0.6"/>
+    <circle
+        android:centerX="52"
+        android:centerY="140"
+        android:radius="3dp"
+        android:fillColor="#FFD700"
+        android:fillAlpha="0.6"/>
+</vector>

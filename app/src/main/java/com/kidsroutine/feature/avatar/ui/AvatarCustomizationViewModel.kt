@@ -2,11 +2,14 @@ package com.kidsroutine.feature.avatar.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import com.kidsroutine.core.model.*
 import com.kidsroutine.feature.avatar.data.AvatarRepository
 import com.kidsroutine.feature.avatar.data.AvatarSeeder
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 // ─── UI State ─────────────────────────────────────────────────────────────────
 data class AvatarUiState(
@@ -24,15 +27,25 @@ data class AvatarUiState(
         get() = currentAvatar != savedAvatar
 }
 
-class AvatarCustomizationViewModel(
+@HiltViewModel
+class AvatarCustomizationViewModel @Inject constructor(
     private val repository: AvatarRepository,
-    private val userId: String
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val userId: String get() = savedStateHandle["userId"] ?: ""
 
     private val _uiState = MutableStateFlow(AvatarUiState())
     val uiState: StateFlow<AvatarUiState> = _uiState.asStateFlow()
 
     init {
+        if (userId.isNotEmpty()) {
+            loadAvatar()
+        }
+    }
+
+    fun initWithUserId(id: String) {
+        savedStateHandle["userId"] = id
         loadAvatar()
     }
 
