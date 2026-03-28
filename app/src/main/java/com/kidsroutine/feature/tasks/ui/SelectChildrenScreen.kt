@@ -48,6 +48,8 @@ fun SelectChildrenScreen(
     var isSaving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    Log.d("SelectChildrenScreen", "Received task object with ID: ${task.id}, title: ${task.title}")
+
     // Load family children
     LaunchedEffect(currentUser.familyId) {
         try {
@@ -276,9 +278,12 @@ fun SelectChildrenScreen(
                                 val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
                                     .format(java.util.Date())
 
-                                val taskId = UUID.randomUUID().toString()
+                                val taskId = task.id
 
                                 Log.d("SelectChildren", "Saving task: title='${task.title}', familyId=${currentUser.familyId}")
+
+                                Log.d("SelectChildrenScreen", "Using taskId: $taskId for assignment")
+
 
                                 firestore.collection("tasks").document(taskId).set(
                                     mapOf(

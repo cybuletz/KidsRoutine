@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.tasks.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,15 +58,17 @@ fun CreateTaskScreen(
     var selectedCategory by remember { mutableStateOf(TaskCategory.MORNING_ROUTINE) }
     var selectedDifficulty by remember { mutableStateOf(DifficultyLevel.EASY) }
     var selectedGame by remember { mutableStateOf(GameType.NONE) }
-    var expirationMode by remember { mutableStateOf("none") } // "none", "days", "date"
+    var expirationMode by remember { mutableStateOf("none") }
     var expirationDays by remember { mutableStateOf("") }
     var expirationDate by remember { mutableStateOf("") }
+    var createdTaskId by remember { mutableStateOf<String?>(null) }
 
-    // Success message handling
+    // ✅ WATCH for when task is successfully created
     LaunchedEffect(uiState.successMessage) {
-        if (uiState.successMessage != null) {
-            val newTask = TaskModel(
-                id = UUID.randomUUID().toString(),
+        if (uiState.successMessage != null && createdTaskId != null) {
+            // Build the EXACT SAME task object with the SAME ID that was saved
+            val taskToPass = TaskModel(
+                id = createdTaskId!!,  // ✅ USE THE SAVED ID
                 title = title,
                 description = description,
                 estimatedDurationSec = (estimatedMinutes.toIntOrNull() ?: 30) * 60,
@@ -77,8 +80,9 @@ fun CreateTaskScreen(
                 expiresAt = resolveExpiresAt(expirationMode, expirationDays, expirationDate),
                 durationDays = if (expirationMode == "days") expirationDays.toIntOrNull() else null
             )
-            onTaskCreated(newTask)
+            onTaskCreated(taskToPass)
             viewModel.clearMessages()
+            createdTaskId = null
         }
     }
 
@@ -472,8 +476,11 @@ fun CreateTaskScreen(
                         if (title.isEmpty()) {
                             // Show error
                         } else {
+                            val taskId = UUID.randomUUID().toString()  // ✅ Generate ONCE
+                            createdTaskId = taskId  // ✅ Store it
+
                             val newTask = TaskModel(
-                                id = UUID.randomUUID().toString(),
+                                id = taskId,  // ✅ Use the SAME ID
                                 title = title,
                                 description = description,
                                 estimatedDurationSec = (estimatedMinutes.toIntOrNull() ?: 30) * 60,
