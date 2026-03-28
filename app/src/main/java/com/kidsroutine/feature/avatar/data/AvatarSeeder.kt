@@ -1,60 +1,219 @@
 package com.kidsroutine.feature.avatar.data
 
-import android.util.Log
-import com.google.firebase.firestore.FirebaseFirestore
-import com.kidsroutine.core.model.AvatarCategory
-import com.kidsroutine.core.model.AvatarItem
-import com.kidsroutine.core.model.AvatarRarity
-import kotlinx.coroutines.tasks.await
+import com.kidsroutine.core.model.*
 
-object AvatarShopSeeder {
+object AvatarSeeder {
 
-    private val items = listOf(
-        // BODY
-        AvatarItem(itemId = "body_blue",     category = AvatarCategory.BODY,        name = "Blue Body",      description = "Classic blue body",         rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = true,  defaultColor = "#4A90E2"),
-        AvatarItem(itemId = "body_green",    category = AvatarCategory.BODY,        name = "Green Body",     description = "Nature green body",          rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = true,  defaultColor = "#2ECC71"),
-        AvatarItem(itemId = "body_purple",   category = AvatarCategory.BODY,        name = "Purple Body",    description = "Royal purple body",          rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = true,  defaultColor = "#9B59B6"),
-        AvatarItem(itemId = "body_gold",     category = AvatarCategory.BODY,        name = "Golden Body",    description = "Legendary golden body",      rarity = AvatarRarity.LEGENDARY, xpCost = 1000, colorable = true,  defaultColor = "#FFD700"),
-        // EYES
-        AvatarItem(itemId = "eyes_star",     category = AvatarCategory.EYES,        name = "Star Eyes",      description = "Sparkly star eyes",          rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = false, defaultColor = "#FFD700"),
-        AvatarItem(itemId = "eyes_heart",    category = AvatarCategory.EYES,        name = "Heart Eyes",     description = "Adorable heart eyes",        rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = false, defaultColor = "#E74C3C"),
-        AvatarItem(itemId = "eyes_cool",     category = AvatarCategory.EYES,        name = "Cool Shades",    description = "Super cool shades",          rarity = AvatarRarity.EPIC,      xpCost = 400,  colorable = true,  defaultColor = "#2C3E50"),
-        // MOUTH
-        AvatarItem(itemId = "mouth_smile",   category = AvatarCategory.MOUTH,       name = "Big Smile",      description = "Big friendly smile",         rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = false, defaultColor = "#FF6B35"),
-        AvatarItem(itemId = "mouth_grin",    category = AvatarCategory.MOUTH,       name = "Cheeky Grin",   description = "Cheeky grin",                rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = false, defaultColor = "#E67E22"),
-        // HAIRSTYLE
-        AvatarItem(itemId = "hair_spiky",    category = AvatarCategory.HAIRSTYLE,   name = "Spiky Hair",     description = "Wild spiky hair",            rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = true,  defaultColor = "#8B4513"),
-        AvatarItem(itemId = "hair_curly",    category = AvatarCategory.HAIRSTYLE,   name = "Curly Hair",     description = "Bouncy curly hair",          rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = true,  defaultColor = "#D4AC0D"),
-        AvatarItem(itemId = "hair_rainbow",  category = AvatarCategory.HAIRSTYLE,   name = "Rainbow Hair",   description = "Rainbow gradient hair",      rarity = AvatarRarity.EPIC,      xpCost = 400,  colorable = false, defaultColor = "#FF69B4"),
-        // ACCESSORIES
-        AvatarItem(itemId = "acc_crown",     category = AvatarCategory.ACCESSORIES, name = "Gold Crown",     description = "Royal gold crown",           rarity = AvatarRarity.LEGENDARY, xpCost = 1000, colorable = false, defaultColor = "#FFD700"),
-        AvatarItem(itemId = "acc_glasses",   category = AvatarCategory.ACCESSORIES, name = "Glasses",        description = "Smart glasses",              rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = true,  defaultColor = "#2C3E50"),
-        AvatarItem(itemId = "acc_bow",       category = AvatarCategory.ACCESSORIES, name = "Bow Tie",        description = "Fancy bow tie",              rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = true,  defaultColor = "#E74C3C"),
-        // CLOTHING
-        AvatarItem(itemId = "cloth_cape",    category = AvatarCategory.CLOTHING,    name = "Hero Cape",      description = "Legendary hero cape",        rarity = AvatarRarity.EPIC,      xpCost = 400,  colorable = true,  defaultColor = "#9B59B6"),
-        AvatarItem(itemId = "cloth_uniform", category = AvatarCategory.CLOTHING,    name = "Star Uniform",   description = "Star student uniform",       rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = true,  defaultColor = "#4A90E2"),
-        AvatarItem(itemId = "cloth_hoodie",  category = AvatarCategory.CLOTHING,    name = "Cool Hoodie",    description = "Cozy cool hoodie",           rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = true,  defaultColor = "#2ECC71"),
-        // BACKGROUND
-        AvatarItem(itemId = "bg_space",      category = AvatarCategory.BACKGROUND,  name = "Space",          description = "Outer space background",     rarity = AvatarRarity.EPIC,      xpCost = 400,  colorable = false, defaultColor = "#0D1B2A"),
-        AvatarItem(itemId = "bg_rainbow",    category = AvatarCategory.BACKGROUND,  name = "Rainbow",        description = "Rainbow sky background",     rarity = AvatarRarity.LEGENDARY, xpCost = 1000, colorable = false, defaultColor = "#FF6B35"),
-        AvatarItem(itemId = "bg_forest",     category = AvatarCategory.BACKGROUND,  name = "Forest",         description = "Calm forest background",     rarity = AvatarRarity.RARE,      xpCost = 150,  colorable = false, defaultColor = "#27AE60"),
-        AvatarItem(itemId = "bg_beach",      category = AvatarCategory.BACKGROUND,  name = "Beach",          description = "Sunny beach background",     rarity = AvatarRarity.COMMON,    xpCost = 50,   colorable = false, defaultColor = "#3498DB"),
+    // ── Free Backgrounds ──────────────────────────────────────────────────
+    val freeBackgrounds = listOf(
+        AvatarLayerItem(
+            id = "bg_sunset",
+            name = "Sunset Beach",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFFFF6B35, bottomColor = 0xFFFFD93D, label = "Sunset"
+            ),
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "bg_forest",
+            name = "Magic Forest",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF2D6A4F, bottomColor = 0xFF95D5B2, label = "Forest"
+            ),
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "bg_ocean",
+            name = "Deep Ocean",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF023E8A, bottomColor = 0xFF90E0EF, label = "Ocean"
+            ),
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "bg_space",
+            name = "Outer Space",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF10002B, bottomColor = 0xFF3C096C, label = "Space"
+            ),
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "bg_candy",
+            name = "Candy World",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFFFF99C8, bottomColor = 0xFFFCF6BD, label = "Candy"
+            ),
+            sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "bg_volcano",
+            name = "Volcano Realm",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF6A040F, bottomColor = 0xFFFFBA08, label = "Volcano"
+            ),
+            sortOrder = 6
+        )
     )
 
-    suspend fun seed() {
-        val db = FirebaseFirestore.getInstance()
-        val collection = db.collection("avatar_items")
+    // ── Free Hair Options ──────────────────────────────────────────────────
+    val freeHair = listOf(
+        AvatarLayerItem("hair_short_brown", "Short Brown", AvatarLayerType.HAIR,
+            AvatarAssetSource.VectorRes(0 /* R.drawable.hair_short_boy */),
+            tintColor = 0xFF5C3317, compatibleGenders = setOf(AvatarGender.BOY)),
+        AvatarLayerItem("hair_short_black", "Short Black", AvatarLayerType.HAIR,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A1A,
+            compatibleGenders = setOf(AvatarGender.BOY)),
+        AvatarLayerItem("hair_long_brown", "Long Brown", AvatarLayerType.HAIR,
+            AvatarAssetSource.VectorRes(0 /* R.drawable.hair_long_girl */),
+            tintColor = 0xFF5C3317, compatibleGenders = setOf(AvatarGender.GIRL)),
+        AvatarLayerItem("hair_ponytail_black", "Ponytail Black", AvatarLayerType.HAIR,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A1A,
+            compatibleGenders = setOf(AvatarGender.GIRL)),
+        AvatarLayerItem("hair_curly_auburn", "Curly Auburn", AvatarLayerType.HAIR,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFFC1440E,
+            compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL))
+    )
 
-        val existing = collection.limit(1).get().await()
-        if (!existing.isEmpty) {
-            Log.d("AvatarShopSeeder", "Already seeded, skipping.")
-            return
-        }
+    // ── Free Outfits ───────────────────────────────────────────────────────
+    val freeOutfits = listOf(
+        AvatarLayerItem("outfit_casual_blue", "Casual Blue", AvatarLayerType.OUTFIT,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFF1D3557),
+        AvatarLayerItem("outfit_casual_red", "Casual Red", AvatarLayerType.OUTFIT,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFFE63946),
+        AvatarLayerItem("outfit_school", "School Uniform", AvatarLayerType.OUTFIT,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFF457B9D),
+        AvatarLayerItem("outfit_sport", "Sports Gear", AvatarLayerType.OUTFIT,
+            AvatarAssetSource.VectorRes(0), tintColor = 0xFF2DC653)
+    )
 
-        items.forEach { item ->
-            collection.document(item.itemId).set(item).await()
-            Log.d("AvatarShopSeeder", "Seeded: ${item.name}")
-        }
-        Log.d("AvatarShopSeeder", "Done — ${items.size} items added.")
-    }
+    // ── Premium Content Packs ──────────────────────────────────────────────
+    val premiumPacks = listOf(
+
+        AvatarContentPack(
+            id = "pack_ninja_warriors",
+            name = "Ninja Warriors",
+            description = "Train like a true ninja warrior! Epic outfits, fire & water FX.",
+            // Use a placeholder URL — replace with your actual CDN assets
+            coverImageUrl = "https://placehold.co/400x300/1a1a2e/ffffff?text=Ninja+Warriors",
+            accentColor = 0xFF16213E,
+            isTrending = true,
+            isNew = false,
+            packPrice = 500,
+            billingProductId = "pack_ninja_warriors_v1",
+            items = listOf(
+                AvatarLayerItem("ninja_outfit_dark", "Dark Ninja Gi", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF1A1A2E,
+                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 150),
+                AvatarLayerItem("ninja_outfit_red", "Red Demon Gi", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFC1121F,
+                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 200),
+                AvatarLayerItem("ninja_bg_dojo", "Ancient Dojo", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF1A0000, 0xFF8B0000, "Dojo"),
+                    isPremium = true, packId = "pack_ninja_warriors"),
+                AvatarLayerItem("ninja_fx_fire", "Fire Aura", AvatarLayerType.SPECIAL_FX,
+                    AvatarAssetSource.VectorRes(0),
+                    isPremium = true, packId = "pack_ninja_warriors", coinCost = 300),
+                AvatarLayerItem("ninja_accessory_headband", "Ninja Headband",
+                    AvatarLayerType.ACCESSORY, AvatarAssetSource.VectorRes(0),
+                    tintColor = 0xFFC1121F, isPremium = true, packId = "pack_ninja_warriors")
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_monster_trainers",
+            name = "Monster Trainers",
+            description = "Catch 'em all! Trainer outfits, Pokéball accessories & adventure backgrounds.",
+            coverImageUrl = "https://placehold.co/400x300/FFCB05/003087?text=Monster+Trainers",
+            accentColor = 0xFFFFCB05,
+            isTrending = true,
+            isNew = true,
+            packPrice = 500,
+            billingProductId = "pack_monster_trainers_v1",
+            items = listOf(
+                AvatarLayerItem("mt_outfit_red_cap", "Trainer Red Cap", AvatarLayerType.ACCESSORY,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFCC0000,
+                    isPremium = true, packId = "pack_monster_trainers", coinCost = 120),
+                AvatarLayerItem("mt_outfit_trainer", "Trainer Jacket", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF003087,
+                    isPremium = true, packId = "pack_monster_trainers", coinCost = 180),
+                AvatarLayerItem("mt_bg_tall_grass", "Tall Grass Plains", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF2D6A4F, 0xFF74C69D, "Plains"),
+                    isPremium = true, packId = "pack_monster_trainers"),
+                AvatarLayerItem("mt_bg_gym", "Trainer Gym", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF1B4332, 0xFF40916C, "Gym"),
+                    isPremium = true, packId = "pack_monster_trainers"),
+                AvatarLayerItem("mt_accessory_pokeball", "Monster Ball Belt",
+                    AvatarLayerType.ACCESSORY, AvatarAssetSource.VectorRes(0),
+                    isPremium = true, packId = "pack_monster_trainers", coinCost = 100)
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_space_explorer",
+            name = "Space Explorer",
+            description = "Blast off into the cosmos! Astronaut suits, galaxy backgrounds & cosmic FX.",
+            coverImageUrl = "https://placehold.co/400x300/10002b/c77dff?text=Space+Explorer",
+            accentColor = 0xFF7B2FBE,
+            isTrending = false,
+            isNew = true,
+            packPrice = 450,
+            billingProductId = "pack_space_explorer_v1",
+            items = listOf(
+                AvatarLayerItem("space_outfit_astronaut", "Astronaut Suit", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFE0E0E0,
+                    isPremium = true, packId = "pack_space_explorer", coinCost = 200),
+                AvatarLayerItem("space_bg_galaxy", "Galaxy", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF10002B, 0xFF7B2FBE, "Galaxy"),
+                    isPremium = true, packId = "pack_space_explorer"),
+                AvatarLayerItem("space_bg_nebula", "Nebula Storm", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF1B263B, 0xFF415A77, "Nebula"),
+                    isPremium = true, packId = "pack_space_explorer"),
+                AvatarLayerItem("space_fx_stars", "Star Trail FX", AvatarLayerType.SPECIAL_FX,
+                    AvatarAssetSource.VectorRes(0),
+                    isPremium = true, packId = "pack_space_explorer", coinCost = 250)
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_superhero",
+            name = "Superheroes",
+            description = "Save the world! Cape outfits, city skyline backgrounds & lightning FX.",
+            coverImageUrl = "https://placehold.co/400x300/d62828/f7b731?text=Superheroes",
+            accentColor = 0xFFD62828,
+            isTrending = false,
+            isNew = false,
+            packPrice = 450,
+            billingProductId = "pack_superhero_v1",
+            items = listOf(
+                AvatarLayerItem("hero_outfit_cape_red", "Red Cape Suit", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFD62828,
+                    isPremium = true, packId = "pack_superhero", coinCost = 200),
+                AvatarLayerItem("hero_outfit_cape_blue", "Blue Cape Suit", AvatarLayerType.OUTFIT,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFF023E8A,
+                    isPremium = true, packId = "pack_superhero", coinCost = 200),
+                AvatarLayerItem("hero_bg_city", "City Skyline", AvatarLayerType.BACKGROUND,
+                    AvatarAssetSource.GradientBackground(0xFF03071E, 0xFF370617, "City Night"),
+                    isPremium = true, packId = "pack_superhero"),
+                AvatarLayerItem("hero_fx_lightning", "Lightning Aura", AvatarLayerType.SPECIAL_FX,
+                    AvatarAssetSource.VectorRes(0),
+                    isPremium = true, packId = "pack_superhero", coinCost = 300),
+                AvatarLayerItem("hero_accessory_mask", "Hero Mask", AvatarLayerType.ACCESSORY,
+                    AvatarAssetSource.VectorRes(0), tintColor = 0xFFD62828,
+                    isPremium = true, packId = "pack_superhero", coinCost = 100)
+            )
+        )
+    )
+
+    fun allFreeItems(): List<AvatarLayerItem> =
+        freeBackgrounds + freeHair + freeOutfits
+
+    fun allPremiumItems(): List<AvatarLayerItem> =
+        premiumPacks.flatMap { it.items }
 }

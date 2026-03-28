@@ -1,58 +1,94 @@
 package com.kidsroutine.core.model
 
-enum class AvatarCategory {
-    BODY, EYES, MOUTH, HAIRSTYLE, ACCESSORIES, CLOTHING, BACKGROUND
+import androidx.compose.ui.graphics.Color
+
+// ─── Gender ────────────────────────────────────────────────────────────────
+enum class AvatarGender { BOY, GIRL }
+
+// ─── Layer Types ───────────────────────────────────────────────────────────
+enum class AvatarLayerType {
+    BACKGROUND,
+    SKIN_BASE,
+    HAIR,
+    OUTFIT,
+    SHOES,
+    ACCESSORY,
+    SPECIAL_FX
 }
 
-enum class AvatarRarity {
-    COMMON, RARE, EPIC, LEGENDARY;
-
-    fun xpCost(): Int = when(this) {
-        COMMON -> 50
-        RARE -> 150
-        EPIC -> 400
-        LEGENDARY -> 1000
-    }
-
-    fun color(): Long = when(this) {
-        COMMON -> 0xFF95A5A6
-        RARE -> 0xFF3498DB
-        EPIC -> 0xFF9B59B6
-        LEGENDARY -> 0xFFFF6B35
-    }
+// ─── Asset Source ──────────────────────────────────────────────────────────
+sealed class AvatarAssetSource {
+    /** A vector drawable resource ID (SVG via VectorDrawable) */
+    data class VectorRes(val resId: Int) : AvatarAssetSource()
+    /** A remote URL (for premium/downloaded packs) */
+    data class RemoteUrl(val url: String) : AvatarAssetSource()
+    /** A gradient background defined in-app */
+    data class GradientBackground(
+        val topColor: Long,
+        val bottomColor: Long,
+        val label: String
+    ) : AvatarAssetSource()
 }
 
-data class AvatarItem(
-    val itemId: String = "",
-    val category: AvatarCategory = AvatarCategory.BODY,
-    val name: String = "",
-    val description: String = "",
-    val rarity: AvatarRarity = AvatarRarity.COMMON,
-    val iconUrl: String = "",
-    val previewUrl: String = "",
-    val xpCost: Int = 0,
-    val requiredLevel: Int = 0,
-    val requiredAchievementId: String? = null,
-    val isSeasonalLimited: Boolean = false,
-    val seasonalEndDate: Long? = null,
-    val colorable: Boolean = false,
-    val defaultColor: String = "#FF6B35"
+// ─── Single Avatar Layer Item ───────────────────────────────────────────────
+data class AvatarLayerItem(
+    val id: String,
+    val name: String,
+    val layerType: AvatarLayerType,
+    val source: AvatarAssetSource,
+    val tintColor: Long? = null,          // optional recolour (for hair, skin)
+    val compatibleGenders: Set<AvatarGender> = setOf(AvatarGender.BOY, AvatarGender.GIRL),
+    val isPremium: Boolean = false,
+    val packId: String? = null,           // which content pack this belongs to
+    val coinCost: Int = 0,
+    val sortOrder: Int = 0
 )
 
-data class AvatarComponent(
-    val category: AvatarCategory = AvatarCategory.BODY,
-    val selectedItemId: String = "",
-    val selectedColor: String = "#FF6B35"
+// ─── Content Pack (e.g. "Ninja Warriors", "Space Explorer") ─────────────────
+data class AvatarContentPack(
+    val id: String,
+    val name: String,
+    val description: String,
+    val coverImageUrl: String,            // shown in shop grid
+    val accentColor: Long,
+    val items: List<AvatarLayerItem>,
+    val packPrice: Int,                   // total coin price for the whole pack
+    val isTrending: Boolean = false,
+    val isNew: Boolean = false,
+    val isPremiumPack: Boolean = true,    // requires real-money purchase
+    val billingProductId: String? = null  // Google Play product ID
 )
 
-data class AvatarCustomization(
-    val body: AvatarComponent = AvatarComponent(AvatarCategory.BODY),
-    val eyes: AvatarComponent = AvatarComponent(AvatarCategory.EYES),
-    val mouth: AvatarComponent = AvatarComponent(AvatarCategory.MOUTH),
-    val hairstyle: AvatarComponent = AvatarComponent(AvatarCategory.HAIRSTYLE),
-    val accessories: AvatarComponent = AvatarComponent(AvatarCategory.ACCESSORIES),
-    val clothing: AvatarComponent = AvatarComponent(AvatarCategory.CLOTHING),
-    val background: AvatarComponent = AvatarComponent(AvatarCategory.BACKGROUND),
-    val unlockedItemIds: List<String> = emptyList(),
-    val lastUpdated: Long = System.currentTimeMillis()
-)
+// ─── The full Avatar State (what a child has equipped) ──────────────────────
+data class AvatarState(
+    val userId: String,
+    val gender: AvatarGender = AvatarGender.BOY,
+    val skinTone: Long = 0xFFFFDBAD,     // hex ARGB
+    val activeBackground: AvatarLayerItem? = null,
+    val activeHair: AvatarLayerItem? = null,
+    val activeOutfit: AvatarLayerItem? = null,
+    val activeShoes: AvatarLayerItem? = null,
+    val activeAccessory: AvatarLayerItem? = null,
+    val activeSpecialFx: AvatarLayerItem? = null,
+    val unlockedItemIds: Set<String> = emptySet(),
+    val ownedPackIds: Set<String> = emptySet()
+) {
+    fun activeLayers(): List<AvatarLayerItem> = listOfNotNull(
+        activeBackground,
+        activeHair,
+        activeOutfit,
+        activeShoes,
+        activeAccessory,
+        activeSpecialFx
+    ).sortedBy { it.layerType.ordinal }
+}
+
+// ─── UI tab for the customization screen ────────────────────────────────────
+enum class AvatarCustomizationTab(val label: String, val emoji: String) {
+    BACKGROUND("Scenes", "🌄"),
+    HAIR("Hair", "💇"),
+    OUTFIT("Outfit", "👕"),
+    SHOES("Shoes", "👟"),
+    ACCESSORY("Extras", "🎩"),
+    SPECIAL_FX("FX", "✨")
+}

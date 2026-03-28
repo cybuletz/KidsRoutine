@@ -1,131 +1,133 @@
 package com.kidsroutine.feature.avatar.data
 
-import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.database.dao.AvatarDao
 import com.kidsroutine.core.database.entity.AvatarEntity
-import com.kidsroutine.core.model.AvatarCustomization
-import com.kidsroutine.core.model.AvatarItem
+import com.kidsroutine.core.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
 import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
 class AvatarRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val avatarDao: AvatarDao
 ) : AvatarRepository {
 
-    override suspend fun deductUserXp(userId: String, amount: Int) {
-        try {
-            firestore.collection("users").document(userId)
-                .update("xp", com.google.firebase.firestore.FieldValue.increment(-amount.toLong()))
-                .await()
-            Log.d("AvatarRepository", "Deducted $amount XP from user $userId")
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error deducting XP", e)
-            throw e
-        }
+    // ── Interface implementations ─────────────────────────────────────────────
+
+    override suspend fun getAvatar(userId: String): AvatarState? {
+        return avatarDao.getAvatar(userId)?.toAvatarState()
     }
 
+    override fun observeAvatar(userId: String): Flow<AvatarState?> {
+        return avatarDao.observeAvatar(userId).map { it?.toAvatarState() }
+    }
 
-    override suspend fun getAllAvatarItems(): List<AvatarItem> {
+    override suspend fun saveAvatar(state: AvatarState) {
+        avatarDao.saveAvatar(state.toEntity())
+        syncToFirestore(state)
+    }
+
+    override suspend fun deleteAvatar(userId: String) {
+        avatarDao.deleteAvatar(userId)
+    }
+
+    override suspend fun getUnlockedItemIds(userId: String): Set<String> {
+        val entity = avatarDao.getAvatar(userId) ?: return emptySet()
+        return jsonToStringSet(entity.unlockedItemIdsJson)
+    }
+
+    override suspend fun getCoins(userId: String): Int {
         return try {
-            val snapshot = firestore.collection("avatar_items").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                doc.toObject(AvatarItem::class.java)?.copy(itemId = doc.id)
-            }
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error getting avatar items", e)
-            emptyList()
-        }
-    }
-
-    override suspend fun getAvatarItemsByCategory(category: String): List<AvatarItem> {
-        return try {
-            val snapshot = firestore.collection("avatar_items")
-                .whereEqualTo("category", category)
-                .get()
-                .await()
-            snapshot.documents.mapNotNull { doc ->
-                doc.toObject(AvatarItem::class.java)?.copy(itemId = doc.id)
-            }
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error getting items by category", e)
-            emptyList()
-        }
-    }
-
-    override suspend fun getUserAvatarCustomization(userId: String): AvatarCustomization {
-        return try {
-            val local = avatarDao.getCustomization(userId)
-            if (local != null) {
-                Log.d("AvatarRepository", "Got customization from local DB")
-                return local.toCustomization()
-            }
-            val doc = firestore.collection("users").document(userId)
-                .collection("avatar").document("customization").get().await()
-            val customization = doc.toObject(AvatarCustomization::class.java) ?: AvatarCustomization()
-            avatarDao.insertCustomization(AvatarEntity.fromCustomization(userId, customization))
-            customization
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error getting customization", e)
-            AvatarCustomization()
-        }
-    }
-
-    override suspend fun updateAvatarCustomization(userId: String, customization: AvatarCustomization) {
-        try {
-            avatarDao.insertCustomization(AvatarEntity.fromCustomization(userId, customization))
             firestore.collection("users").document(userId)
-                .collection("avatar").document("customization")
-                .set(customization.copy(lastUpdated = System.currentTimeMillis()))
-                .await()
-            Log.d("AvatarRepository", "Avatar customization updated")
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error updating customization", e)
-            throw e
-        }
+                .get().await()
+                .getLong("coins")?.toInt() ?: 0
+        } catch (e: Exception) { 0 }
     }
 
-    override suspend fun unlockAvatarItem(
-        userId: String,
-        itemId: String,
-        currentCustomization: AvatarCustomization
-    ) {
-        try {
-            val updated = currentCustomization.copy(
-                unlockedItemIds = currentCustomization.unlockedItemIds + itemId
-            )
-            updateAvatarCustomization(userId, updated)
-            Log.d("AvatarRepository", "Item unlocked: $itemId")
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error unlocking item", e)
-            throw e
-        }
-    }
-
-    override suspend fun saveAvatarPreset(
-        userId: String,
-        presetName: String,
-        customization: AvatarCustomization
-    ) {
-        try {
+    override suspend fun getPlayerName(userId: String): String {
+        return try {
             firestore.collection("users").document(userId)
-                .collection("avatar_presets").document(presetName)
-                .set(customization)
-                .await()
-            Log.d("AvatarRepository", "Preset saved: $presetName")
-        } catch (e: Exception) {
-            Log.e("AvatarRepository", "Error saving preset", e)
-            throw e
-        }
+                .get().await()
+                .getString("name") ?: ""
+        } catch (e: Exception) { "" }
     }
 
-    override fun observeAvatarCustomization(userId: String): Flow<AvatarCustomization> {
-        return avatarDao.observeCustomization(userId)
-            .map { it?.toCustomization() ?: AvatarCustomization() }
+    // ── Firestore sync ────────────────────────────────────────────────────────
+
+    private suspend fun syncToFirestore(state: AvatarState) {
+        try {
+            firestore.collection("avatars")
+                .document(state.userId)
+                .set(state.toFirestoreMap())
+                .await()
+        } catch (e: Exception) { /* non-fatal */ }
+    }
+
+    // ── Mappers ───────────────────────────────────────────────────────────────
+
+    private fun AvatarEntity.toAvatarState(): AvatarState {
+        val allItems = AvatarSeeder.allFreeItems() + AvatarSeeder.allPremiumItems()
+        fun find(id: String?) = id?.let { allItems.find { item -> item.id == id } }
+        return AvatarState(
+            userId = userId,
+            gender = if (gender == "GIRL") AvatarGender.GIRL else AvatarGender.BOY,
+            skinTone = skinTone,
+            activeBackground = find(activeBackgroundId),
+            activeHair = find(activeHairId),
+            activeOutfit = find(activeOutfitId),
+            activeShoes = find(activeShoesId),
+            activeAccessory = find(activeAccessoryId),
+            activeSpecialFx = find(activeSpecialFxId),
+            unlockedItemIds = jsonToStringSet(unlockedItemIdsJson),
+            ownedPackIds = jsonToStringSet(ownedPackIdsJson)
+        )
+    }
+
+    private fun AvatarState.toEntity() = AvatarEntity(
+        userId = userId,
+        gender = gender.name,
+        skinTone = skinTone,
+        activeBackgroundId = activeBackground?.id,
+        activeHairId = activeHair?.id,
+        activeOutfitId = activeOutfit?.id,
+        activeShoesId = activeShoes?.id,
+        activeAccessoryId = activeAccessory?.id,
+        activeSpecialFxId = activeSpecialFx?.id,
+        unlockedItemIdsJson = stringSetToJson(unlockedItemIds),
+        ownedPackIdsJson = stringSetToJson(ownedPackIds),
+        lastUpdated = System.currentTimeMillis()
+    )
+
+    private fun AvatarState.toFirestoreMap(): Map<String, Any?> = mapOf(
+        "userId" to userId,
+        "gender" to gender.name,
+        "skinTone" to skinTone,
+        "activeBackgroundId" to activeBackground?.id,
+        "activeHairId" to activeHair?.id,
+        "activeOutfitId" to activeOutfit?.id,
+        "activeShoesId" to activeShoes?.id,
+        "activeAccessoryId" to activeAccessory?.id,
+        "activeSpecialFxId" to activeSpecialFx?.id,
+        "unlockedItemIds" to unlockedItemIds.toList(),
+        "ownedPackIds" to ownedPackIds.toList(),
+    )
+
+    // ── JSON helpers (no extra dependency needed) ─────────────────────────────
+
+    private fun jsonToStringSet(json: String): Set<String> {
+        if (json.isBlank() || json == "[]") return emptySet()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).map { arr.getString(it) }.toSet()
+        } catch (e: Exception) { emptySet() }
+    }
+
+    private fun stringSetToJson(set: Set<String>): String {
+        val arr = JSONArray()
+        set.forEach { arr.put(it) }
+        return arr.toString()
     }
 }

@@ -1,16 +1,21 @@
 package com.kidsroutine.feature.avatar.data
 
-import com.kidsroutine.core.model.AvatarCustomization
-import com.kidsroutine.core.model.AvatarItem
+import com.kidsroutine.core.model.AvatarState
 import kotlinx.coroutines.flow.Flow
 
 interface AvatarRepository {
-    suspend fun getAllAvatarItems(): List<AvatarItem>
-    suspend fun getAvatarItemsByCategory(category: String): List<AvatarItem>
-    suspend fun getUserAvatarCustomization(userId: String): AvatarCustomization
-    suspend fun updateAvatarCustomization(userId: String, customization: AvatarCustomization)
-    suspend fun unlockAvatarItem(userId: String, itemId: String, currentCustomization: AvatarCustomization)
-    suspend fun saveAvatarPreset(userId: String, presetName: String, customization: AvatarCustomization)
-    fun observeAvatarCustomization(userId: String): Flow<AvatarCustomization>
-    suspend fun deductUserXp(userId: String, amount: Int)
+
+    suspend fun getAvatar(userId: String): AvatarState?
+
+    fun observeAvatar(userId: String): Flow<AvatarState?>
+
+    suspend fun saveAvatar(state: AvatarState)
+
+    suspend fun deleteAvatar(userId: String)
+
+    suspend fun getUnlockedItemIds(userId: String): Set<String>
+
+    suspend fun getCoins(userId: String): Int
+
+    suspend fun getPlayerName(userId: String): String
 }

@@ -1,5 +1,6 @@
 package com.kidsroutine.navigation
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -69,9 +70,10 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.AVATAR_CUSTOMIZATION) {
             AvatarCustomizationScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
-            )
+            viewModel = hiltViewModel(),
+            onNavigateToShop = { navController.navigate("avatar_shop") },
+            onBack = { navController.popBackStack() }
+        )
         }
 
         composable(Routes.ACHIEVEMENTS) {
@@ -143,8 +145,9 @@ fun NavGraphBuilder.childNavGraph(
 
         composable(Routes.AVATAR_SHOP) {
             AvatarShopScreen(
-                currentUser = currentUser,
-                onBackClick = { navController.popBackStack() }
+                viewModel = hiltViewModel(),
+                onBack = { navController.popBackStack() },
+                onPackPurchased = { navController.popBackStack() }
             )
         }
 

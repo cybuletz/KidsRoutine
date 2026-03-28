@@ -1,127 +1,180 @@
 package com.kidsroutine.feature.avatar.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kidsroutine.core.model.AvatarCategory
-import com.kidsroutine.core.model.AvatarCustomization
-import com.kidsroutine.core.model.AvatarItem
+import com.kidsroutine.core.model.*
 import com.kidsroutine.feature.avatar.data.AvatarRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.kidsroutine.feature.avatar.data.AvatarSeeder
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-data class AvatarCustomizationUiState(
-    val customization: AvatarCustomization = AvatarCustomization(),
-    val allItems: List<AvatarItem> = emptyList(),
-    val selectedCategory: AvatarCategory = AvatarCategory.BODY,
+// ─── UI State ─────────────────────────────────────────────────────────────────
+data class AvatarUiState(
+    val currentAvatar: AvatarState = AvatarState(userId = ""),
+    val savedAvatar: AvatarState = AvatarState(userId = ""),
+    val coins: Int = 0,
+    val playerName: String = "",
+    val unlockedItemIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
-    val error: String? = null,
-    val success: String? = null,
-    val userXp: Int = 0
-)
+    val saveSuccess: Boolean = false,
+    val errorMessage: String? = null
+) {
+    val hasUnsavedChanges: Boolean
+        get() = currentAvatar != savedAvatar
+}
 
-@HiltViewModel
-class AvatarCustomizationViewModel @Inject constructor(
-    private val avatarRepository: AvatarRepository
+class AvatarCustomizationViewModel(
+    private val repository: AvatarRepository,
+    private val userId: String
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AvatarCustomizationUiState())
-    val uiState: StateFlow<AvatarCustomizationUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(AvatarUiState())
+    val uiState: StateFlow<AvatarUiState> = _uiState.asStateFlow()
 
-    fun init(userId: String, userXp: Int) {
-        _uiState.update { it.copy(isLoading = true, userXp = userXp) }
+    init {
+        loadAvatar()
+    }
+
+    // ── Load ──────────────────────────────────────────────────────────────────
+    private fun loadAvatar() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val customization = avatarRepository.getUserAvatarCustomization(userId)
-                val allItems = avatarRepository.getAllAvatarItems()
-                _uiState.update {
-                    it.copy(customization = customization, allItems = allItems, isLoading = false)
-                }
-                Log.d("AvatarCustomizationVM", "Loaded ${allItems.size} avatar items")
-            } catch (e: Exception) {
-                Log.e("AvatarCustomizationVM", "Error loading items", e)
-                _uiState.update { it.copy(error = "Failed to load avatar items", isLoading = false) }
-            }
-        }
-    }
-
-    fun selectCategory(category: AvatarCategory) {
-        _uiState.update { it.copy(selectedCategory = category) }
-    }
-
-    fun selectItem(itemId: String) {
-        val state = _uiState.value
-        val updated = when (state.selectedCategory) {
-            AvatarCategory.BODY        -> state.customization.copy(body        = state.customization.body.copy(selectedItemId = itemId))
-            AvatarCategory.EYES        -> state.customization.copy(eyes        = state.customization.eyes.copy(selectedItemId = itemId))
-            AvatarCategory.MOUTH       -> state.customization.copy(mouth       = state.customization.mouth.copy(selectedItemId = itemId))
-            AvatarCategory.HAIRSTYLE   -> state.customization.copy(hairstyle   = state.customization.hairstyle.copy(selectedItemId = itemId))
-            AvatarCategory.ACCESSORIES -> state.customization.copy(accessories = state.customization.accessories.copy(selectedItemId = itemId))
-            AvatarCategory.CLOTHING    -> state.customization.copy(clothing    = state.customization.clothing.copy(selectedItemId = itemId))
-            AvatarCategory.BACKGROUND  -> state.customization.copy(background  = state.customization.background.copy(selectedItemId = itemId))
-        }
-        _uiState.update { it.copy(customization = updated) }
-    }
-
-    fun changeItemColor(newColor: String) {
-        val state = _uiState.value
-        val updated = when (state.selectedCategory) {
-            AvatarCategory.BODY        -> state.customization.copy(body        = state.customization.body.copy(selectedColor = newColor))
-            AvatarCategory.EYES        -> state.customization.copy(eyes        = state.customization.eyes.copy(selectedColor = newColor))
-            AvatarCategory.MOUTH       -> state.customization.copy(mouth       = state.customization.mouth.copy(selectedColor = newColor))
-            AvatarCategory.HAIRSTYLE   -> state.customization.copy(hairstyle   = state.customization.hairstyle.copy(selectedColor = newColor))
-            AvatarCategory.ACCESSORIES -> state.customization.copy(accessories = state.customization.accessories.copy(selectedColor = newColor))
-            AvatarCategory.CLOTHING    -> state.customization.copy(clothing    = state.customization.clothing.copy(selectedColor = newColor))
-            AvatarCategory.BACKGROUND  -> state.customization.copy(background  = state.customization.background.copy(selectedColor = newColor))
-        }
-        _uiState.update { it.copy(customization = updated) }
-    }
-
-    fun unlockAndSelectItem(userId: String, item: AvatarItem) {
-        val state = _uiState.value
-        if (state.userXp < item.xpCost) {
-            _uiState.update { it.copy(error = "Not enough XP! Need ${item.xpCost - state.userXp} more") }
-            return
-        }
-        _uiState.update { it.copy(isSaving = true) }
-        viewModelScope.launch {
-            try {
-                // ← pass current in-memory customization — no stale DB re-read
-                avatarRepository.unlockAvatarItem(userId, item.itemId, state.customization)
-                selectItem(item.itemId)
+                val avatar = repository.getAvatar(userId)
+                    ?: AvatarState(userId = userId)
+                val coins = repository.getCoins(userId)
+                val playerName = repository.getPlayerName(userId)
+                val unlockedIds = repository.getUnlockedItemIds(userId)
                 _uiState.update {
                     it.copy(
-                        isSaving = false,
-                        success  = "✅ ${item.name} unlocked!",
-                        userXp   = it.userXp - item.xpCost,
-                        customization = it.customization.copy(
-                            unlockedItemIds = it.customization.unlockedItemIds + item.itemId
-                        )
+                        currentAvatar = avatar,
+                        savedAvatar = avatar,
+                        coins = coins,
+                        playerName = playerName,
+                        unlockedItemIds = unlockedIds,
+                        isLoading = false
                     )
                 }
             } catch (e: Exception) {
-                Log.e("AvatarCustomizationVM", "Error unlocking item", e)
-                _uiState.update { it.copy(error = "Failed to unlock item", isSaving = false) }
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Failed to load avatar")
+                }
             }
         }
     }
 
-    fun saveCustomization(userId: String) {
-        _uiState.update { it.copy(isSaving = true) }
+    // ── Gender ────────────────────────────────────────────────────────────────
+    fun setGender(gender: AvatarGender) {
+        _uiState.update { state ->
+            state.copy(
+                currentAvatar = state.currentAvatar.copy(
+                    gender = gender,
+                    // Clear gender-incompatible hair when switching
+                    activeHair = state.currentAvatar.activeHair?.takeIf {
+                        gender in it.compatibleGenders
+                    }
+                )
+            )
+        }
+    }
+
+    // ── Skin Tone ─────────────────────────────────────────────────────────────
+    fun setSkinTone(tone: Long) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(skinTone = tone))
+        }
+    }
+
+    // ── Equip Item ────────────────────────────────────────────────────────────
+    fun equipItem(item: AvatarLayerItem) {
+        _uiState.update { state ->
+            val avatar = state.currentAvatar
+            val updated = when (item.layerType) {
+                AvatarLayerType.BACKGROUND ->
+                    avatar.copy(activeBackground = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.HAIR ->
+                    avatar.copy(activeHair = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.OUTFIT ->
+                    avatar.copy(activeOutfit = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.SHOES ->
+                    avatar.copy(activeShoes = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.ACCESSORY ->
+                    avatar.copy(activeAccessory = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.SPECIAL_FX ->
+                    avatar.copy(activeSpecialFx = item.takeUnless { it.id.startsWith("none_") })
+                else -> avatar
+            }
+            state.copy(currentAvatar = updated)
+        }
+    }
+
+    // ── Reset ─────────────────────────────────────────────────────────────────
+    fun resetToDefault() {
+        _uiState.update { state ->
+            state.copy(
+                currentAvatar = AvatarState(
+                    userId = userId,
+                    gender = state.currentAvatar.gender,
+                    skinTone = 0xFFFFDBAD,
+                    activeBackground = AvatarSeeder.freeBackgrounds.first(),
+                    activeHair = AvatarSeeder.freeHair.firstOrNull {
+                        state.currentAvatar.gender in it.compatibleGenders
+                    },
+                    activeOutfit = AvatarSeeder.freeOutfits.first()
+                )
+            )
+        }
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────────
+    fun saveAvatar() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true) }
             try {
-                avatarRepository.updateAvatarCustomization(userId, _uiState.value.customization)
-                _uiState.update { it.copy(isSaving = false, success = "Avatar saved!") }
+                repository.saveAvatar(uiState.value.currentAvatar)
+                _uiState.update { state ->
+                    state.copy(
+                        savedAvatar = state.currentAvatar,
+                        isSaving = false,
+                        saveSuccess = true
+                    )
+                }
             } catch (e: Exception) {
-                Log.e("AvatarCustomizationVM", "Error saving customization", e)
-                _uiState.update { it.copy(error = "Failed to save avatar", isSaving = false) }
+                _uiState.update {
+                    it.copy(isSaving = false, errorMessage = "Failed to save avatar")
+                }
             }
         }
+    }
+
+    // ── Item Lists per Tab ────────────────────────────────────────────────────
+    fun getFreeItemsForTab(tab: AvatarCustomizationTab): List<AvatarLayerItem> {
+        val gender = uiState.value.currentAvatar.gender
+        return when (tab) {
+            AvatarCustomizationTab.BACKGROUND -> AvatarSeeder.freeBackgrounds
+            AvatarCustomizationTab.HAIR -> AvatarSeeder.freeHair.filter {
+                gender in it.compatibleGenders
+            }
+            AvatarCustomizationTab.OUTFIT -> AvatarSeeder.freeOutfits
+            AvatarCustomizationTab.SHOES -> emptyList()
+            AvatarCustomizationTab.ACCESSORY -> emptyList()
+            AvatarCustomizationTab.SPECIAL_FX -> emptyList()
+        }
+    }
+
+    fun getPremiumItemsForTab(tab: AvatarCustomizationTab): List<AvatarLayerItem> {
+        val gender = uiState.value.currentAvatar.gender
+        val targetLayer = when (tab) {
+            AvatarCustomizationTab.BACKGROUND -> AvatarLayerType.BACKGROUND
+            AvatarCustomizationTab.HAIR -> AvatarLayerType.HAIR
+            AvatarCustomizationTab.OUTFIT -> AvatarLayerType.OUTFIT
+            AvatarCustomizationTab.SHOES -> AvatarLayerType.SHOES
+            AvatarCustomizationTab.ACCESSORY -> AvatarLayerType.ACCESSORY
+            AvatarCustomizationTab.SPECIAL_FX -> AvatarLayerType.SPECIAL_FX
+        }
+        return AvatarSeeder.allPremiumItems()
+            .filter { it.layerType == targetLayer }
+            .filter { gender in it.compatibleGenders }
     }
 }

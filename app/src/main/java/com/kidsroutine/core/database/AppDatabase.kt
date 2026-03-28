@@ -14,6 +14,8 @@ import com.kidsroutine.core.database.entity.AvatarEntity
 import com.kidsroutine.core.database.entity.TaskInstanceEntity
 import com.kidsroutine.core.database.entity.TaskProgressEntity
 import com.kidsroutine.core.database.entity.UserEntity
+// REMOVED: import com.kidsroutine.core.database.converter.AvatarTypeConverters
+// REMOVED: import androidx.room.TypeConverters
 
 val MIGRATION_1_TO_2 = object : Migration(1, 2) {
     override fun migrate(database: SupportSQLiteDatabase) {
@@ -48,6 +50,28 @@ val MIGRATION_4_TO_5 = object : Migration(4, 5) {
     }
 }
 
+val MIGRATION_5_TO_6 = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("DROP TABLE IF EXISTS `avatar_customizations`")
+        database.execSQL("""
+            CREATE TABLE IF NOT EXISTS `avatar` (
+                `userId` TEXT NOT NULL PRIMARY KEY,
+                `gender` TEXT NOT NULL DEFAULT 'BOY',
+                `skinTone` INTEGER NOT NULL DEFAULT -3220563,
+                `activeBackgroundId` TEXT,
+                `activeHairId` TEXT,
+                `activeOutfitId` TEXT,
+                `activeShoesId` TEXT,
+                `activeAccessoryId` TEXT,
+                `activeSpecialFxId` TEXT,
+                `unlockedItemIdsJson` TEXT NOT NULL DEFAULT '[]',
+                `ownedPackIdsJson` TEXT NOT NULL DEFAULT '[]',
+                `lastUpdated` INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
@@ -55,10 +79,12 @@ val MIGRATION_4_TO_5 = object : Migration(4, 5) {
         UserEntity::class,
         AvatarEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
+// REMOVED: @TypeConverters(AvatarTypeConverters::class) — not needed, AvatarEntity has only primitives/Strings
 abstract class AppDatabase : RoomDatabase() {
+
     abstract fun taskInstanceDao(): TaskInstanceDao
     abstract fun taskProgressDao(): TaskProgressDao
     abstract fun userDao(): UserDao
@@ -74,7 +100,11 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "kidsroutine.db"
                 )
-                    .addMigrations(MIGRATION_1_TO_2, MIGRATION_4_TO_5)
+                    .addMigrations(
+                        MIGRATION_1_TO_2,
+                        MIGRATION_4_TO_5,
+                        MIGRATION_5_TO_6
+                    )
                     .build()
                     .also { instance = it }
             }

@@ -108,8 +108,9 @@ fun NavGraphBuilder.parentNavGraph(
             val childToDisplay = familyMembers.firstOrNull()
             if (childToDisplay != null) {
                 AvatarCustomizationScreen(
-                    currentUser = childToDisplay,
-                    onBackClick = { navController.popBackStack() }
+                    viewModel = hiltViewModel(),
+                    onNavigateToShop = { navController.navigate("avatar_shop") },
+                    onBack = { navController.popBackStack() }
                 )
             }
         }
@@ -241,7 +242,11 @@ fun NavGraphBuilder.parentNavGraph(
         }
 
         composable(Routes.AVATAR_SHOP) {
-            AvatarShopScreen(currentUser = currentUser, onBackClick = { navController.popBackStack() })
+            AvatarShopScreen(
+                viewModel = hiltViewModel(),
+                onBack = { navController.popBackStack() },
+                onPackPurchased = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.CONTENT_PACKS) {

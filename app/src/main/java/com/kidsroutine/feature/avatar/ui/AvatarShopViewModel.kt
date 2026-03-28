@@ -1,12 +1,11 @@
 package com.kidsroutine.feature.avatar.ui
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kidsroutine.core.model.AvatarCustomization
-import com.kidsroutine.core.model.AvatarItem
-import com.kidsroutine.core.model.AvatarRarity
+import com.kidsroutine.core.model.AvatarContentPack
+import com.kidsroutine.core.model.AvatarState
 import com.kidsroutine.feature.avatar.data.AvatarRepository
+import com.kidsroutine.feature.avatar.data.AvatarSeeder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,86 +15,83 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AvatarShopUiState(
+    val coins: Int = 0,
+    val ownedPackIds: Set<String> = emptySet(),
+    val pendingPurchasePack: AvatarContentPack? = null,
     val isLoading: Boolean = false,
-    val items: List<AvatarItem> = emptyList(),
-    val unlockedItemIds: List<String> = emptyList(),
-    val userXp: Int = 0,
-    val selectedRarityFilter: AvatarRarity? = null,
-    val purchaseSuccess: String? = null,
-    val error: String? = null
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
 class AvatarShopViewModel @Inject constructor(
-    private val avatarRepository: AvatarRepository
+    private val repository: AvatarRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AvatarShopUiState())
     val uiState: StateFlow<AvatarShopUiState> = _uiState.asStateFlow()
 
-    private var currentCustomization = AvatarCustomization()
+    // Set by the caller before the shop opens
+    private var currentUserId: String = ""
 
-    fun init(userId: String, userXp: Int) {
-        _uiState.update { it.copy(isLoading = true, userXp = userXp) }
+    fun init(userId: String) {
+        currentUserId = userId
+        loadShopData()
+    }
+
+    private fun loadShopData() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val allItems      = avatarRepository.getAllAvatarItems()
-                val customization = avatarRepository.getUserAvatarCustomization(userId)
-                currentCustomization = customization
+                val coins = repository.getCoins(currentUserId)
+                val avatar = repository.getAvatar(currentUserId)
                 _uiState.update {
                     it.copy(
-                        isLoading       = false,
-                        items           = allItems,
-                        unlockedItemIds = customization.unlockedItemIds
+                        coins = coins,
+                        ownedPackIds = avatar?.ownedPackIds ?: emptySet(),
+                        isLoading = false
                     )
                 }
             } catch (e: Exception) {
-                Log.e("AvatarShopVM", "Error loading shop", e)
-                _uiState.update { it.copy(isLoading = false, error = "Failed to load shop") }
+                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    fun setRarityFilter(rarity: AvatarRarity?) {
-        _uiState.update { it.copy(selectedRarityFilter = rarity) }
+    fun purchasePack(pack: AvatarContentPack) {
+        _uiState.update { it.copy(pendingPurchasePack = pack) }
     }
 
-    fun purchaseItem(userId: String, item: AvatarItem) {
-        val state = _uiState.value
-        if (item.itemId in state.unlockedItemIds) {
-            _uiState.update { it.copy(error = "You already own this item!") }
-            return
-        }
-        if (state.userXp < item.xpCost) {
-            _uiState.update { it.copy(error = "Not enough XP! Need ${item.xpCost} XP.") }
-            return
-        }
+    fun confirmPurchase(pack: AvatarContentPack) {
         viewModelScope.launch {
             try {
-                avatarRepository.unlockAvatarItem(userId, item.itemId, currentCustomization)
-                avatarRepository.deductUserXp(userId, item.xpCost)
-
-                currentCustomization = currentCustomization.copy(
-                    unlockedItemIds = currentCustomization.unlockedItemIds + item.itemId
+                val current = repository.getAvatar(currentUserId) ?: return@launch
+                val updated = current.copy(
+                    ownedPackIds = current.ownedPackIds + pack.id,
+                    unlockedItemIds = current.unlockedItemIds + pack.items.map { it.id }.toSet()
                 )
-
-                _uiState.update {
-                    it.copy(
-                        unlockedItemIds = it.unlockedItemIds + item.itemId,
-                        userXp          = it.userXp - item.xpCost,
-                        purchaseSuccess = "✅ ${item.name} unlocked!",
-                        error           = null
+                repository.saveAvatar(updated)
+                _uiState.update { state ->
+                    state.copy(
+                        ownedPackIds = updated.ownedPackIds,
+                        coins = (state.coins - pack.packPrice).coerceAtLeast(0),
+                        pendingPurchasePack = null
                     )
                 }
             } catch (e: Exception) {
-                Log.e("AvatarShopVM", "Purchase failed", e)
-                _uiState.update { it.copy(error = "Purchase failed: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = e.message, pendingPurchasePack = null) }
             }
         }
     }
 
+    fun dismissPurchase() {
+        _uiState.update { it.copy(pendingPurchasePack = null) }
+    }
 
-    fun clearMessages() {
-        _uiState.update { it.copy(purchaseSuccess = null, error = null) }
+    fun previewPack(pack: AvatarContentPack) {
+        // No-op for now — can open a preview bottom sheet in future
+    }
+
+    fun openCoinStore() {
+        // Hook into your billing flow here
     }
 }

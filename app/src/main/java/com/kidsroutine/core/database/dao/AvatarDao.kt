@@ -1,24 +1,27 @@
-package com.kidsroutine.core.database.dao
+package com.kidsroutine.core.database.dao   // ← was wrong package, this is the fix
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
+import androidx.room.*
 import com.kidsroutine.core.database.entity.AvatarEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AvatarDao {
 
+    @Query("SELECT * FROM avatar WHERE userId = :userId LIMIT 1")
+    suspend fun getAvatar(userId: String): AvatarEntity?
+
+    @Query("SELECT * FROM avatar WHERE userId = :userId")
+    fun observeAvatar(userId: String): Flow<AvatarEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCustomization(entity: AvatarEntity)
+    suspend fun saveAvatar(avatar: AvatarEntity)
 
-    @Query("SELECT * FROM avatar_customizations WHERE userId = :userId")
-    suspend fun getCustomization(userId: String): AvatarEntity?
+    @Query("DELETE FROM avatar WHERE userId = :userId")
+    suspend fun deleteAvatar(userId: String)
 
-    @Query("SELECT * FROM avatar_customizations WHERE userId = :userId")
-    fun observeCustomization(userId: String): Flow<AvatarEntity?>
+    @Query("UPDATE avatar SET unlockedItemIdsJson = :json WHERE userId = :userId")
+    suspend fun updateUnlockedItems(userId: String, json: String)
 
-    @Query("DELETE FROM avatar_customizations WHERE userId = :userId")
-    suspend fun deleteCustomization(userId: String)
+    @Query("UPDATE avatar SET ownedPackIdsJson = :json WHERE userId = :userId")
+    suspend fun updateOwnedPacks(userId: String, json: String)
 }

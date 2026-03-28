@@ -1,633 +1,668 @@
 package com.kidsroutine.feature.avatar.ui
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.kidsroutine.core.model.AvatarCategory
-import com.kidsroutine.core.model.AvatarItem
-import com.kidsroutine.core.model.AvatarRarity
-import com.kidsroutine.core.model.UserModel
-import androidx.compose.foundation.border
+import androidx.compose.ui.unit.*
+import com.kidsroutine.core.model.*
+import com.kidsroutine.feature.avatar.data.AvatarSeeder
 
-
-private val GradientStart = ComposeColor(0xFF667EEA)
-private val GradientEnd   = ComposeColor(0xFF764BA2)
-private val BgLight       = ComposeColor(0xFFFFFBF0)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AvatarCustomizationScreen(
-    currentUser: UserModel,
-    onBackClick: () -> Unit,
-    viewModel: AvatarCustomizationViewModel = hiltViewModel()
+    viewModel: AvatarCustomizationViewModel,
+    onNavigateToShop: () -> Unit,
+    onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var activeTab by remember { mutableStateOf(0) }  // 0 = Customize, 1 = Shop
+    var selectedTab by remember { mutableStateOf(AvatarCustomizationTab.BACKGROUND) }
+    var previewExpanded by remember { mutableStateOf(false) }
 
-    // Shop ViewModel — initialised here so it shares the same lifecycle
-    val shopViewModel: AvatarShopViewModel = hiltViewModel()
-    val shopUiState by shopViewModel.uiState.collectAsState()
-
-    LaunchedEffect(currentUser.userId) {
-        viewModel.init(currentUser.userId, currentUser.xp)
-    }
-
-    // Init shop whenever we switch to the Shop tab (or on first load)
-    LaunchedEffect(currentUser.userId, activeTab) {
-        if (activeTab == 1) {
-            shopViewModel.init(currentUser.userId, currentUser.xp)
-        }
-    }
-
-    // Auto-clear shop messages
-    LaunchedEffect(shopUiState.purchaseSuccess, shopUiState.error) {
-        if (shopUiState.purchaseSuccess != null || shopUiState.error != null) {
-            kotlinx.coroutines.delay(3_000)
-            shopViewModel.clearMessages()
-        }
-    }
-
-    if (uiState.isLoading) {
-        Box(
-            modifier         = Modifier.fillMaxSize().background(BgLight),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    Box(modifier = Modifier.fillMaxSize().background(BgLight)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E)))
+            )
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // ── Header ────────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(GradientStart, GradientEnd)))
-                    .statusBarsPadding()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint               = ComposeColor.White,
-                        modifier           = Modifier.size(24.dp)
-                    )
-                }
-                Text(
-                    text       = "🎨 Customize Avatar",
-                    style      = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color      = ComposeColor.White
-                )
-                Text(
-                    text     = "${uiState.userXp} XP",
-                    style    = MaterialTheme.typography.labelLarge,
-                    color    = ComposeColor.White,
-                    modifier = Modifier
-                        .background(ComposeColor.Black.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                        .padding(8.dp)
-                )
-            }
+            // ── Top Bar ──────────────────────────────────────────────────────
+            AvatarTopBar(
+                coins = uiState.coins,
+                onBack = onBack,
+                onShop = onNavigateToShop,
+                onReset = { viewModel.resetToDefault() }
+            )
 
-            // ── Tab row: Customize | Shop ──────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .background(ComposeColor(0xFFEEEEEE), RoundedCornerShape(12.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                listOf("🎨 Customize", "🛒 Shop").forEachIndexed { index, label ->
-                    Surface(
-                        modifier        = Modifier.weight(1f).clickable { activeTab = index },
-                        shape           = RoundedCornerShape(10.dp),
-                        color           = if (activeTab == index) ComposeColor.White else ComposeColor.Transparent,
-                        shadowElevation = if (activeTab == index) 2.dp else 0.dp
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier         = Modifier.padding(vertical = 10.dp)
-                        ) {
-                            Text(
-                                text       = label,
-                                fontSize   = 14.sp,
-                                fontWeight = if (activeTab == index) FontWeight.Bold else FontWeight.Medium,
-                                color      = if (activeTab == index) GradientStart else ComposeColor.Gray
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Tab content ───────────────────────────────────────────────────
-            when (activeTab) {
-
-                // ── CUSTOMIZE TAB ─────────────────────────────────────────────
-                0 -> {
-                    LazyColumn(
-                        modifier            = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        item {
-                            AvatarPreview(
-                                customization = uiState.customization,
-                                modifier      = Modifier.fillMaxWidth().height(250.dp)
-                            )
-                        }
-
-                        item {
-                            CategorySelector(
-                                categories         = AvatarCategory.entries,
-                                selectedCategory   = uiState.selectedCategory,
-                                onCategorySelected = { viewModel.selectCategory(it) }
-                            )
-                        }
-
-                        item {
-                            ItemsGrid(
-                                items = uiState.allItems.filter {
-                                    it.category == uiState.selectedCategory &&
-                                            it.itemId in uiState.customization.unlockedItemIds
-                                },                                unlockedItemIds = uiState.customization.unlockedItemIds,
-                                selectedItemId  = when (uiState.selectedCategory) {
-                                    AvatarCategory.BODY        -> uiState.customization.body.selectedItemId
-                                    AvatarCategory.EYES        -> uiState.customization.eyes.selectedItemId
-                                    AvatarCategory.MOUTH       -> uiState.customization.mouth.selectedItemId
-                                    AvatarCategory.HAIRSTYLE   -> uiState.customization.hairstyle.selectedItemId
-                                    AvatarCategory.ACCESSORIES -> uiState.customization.accessories.selectedItemId
-                                    AvatarCategory.CLOTHING    -> uiState.customization.clothing.selectedItemId
-                                    AvatarCategory.BACKGROUND  -> uiState.customization.background.selectedItemId
-                                },
-                                userXp         = uiState.userXp,
-                                onItemSelect   = { viewModel.selectItem(it.itemId) },
-                                onItemUnlock   = { viewModel.unlockAndSelectItem(currentUser.userId, it) }
-                            )
-                        }
-
-                        item {
-                            ColorPickerSection(onColorSelected = { viewModel.changeItemColor(it) })
-                        }
-                    }
-
-                    // Save button only on Customize tab
-                    Button(
-                        onClick  = { viewModel.saveCustomization(currentUser.userId) },
+            // ── Preview + Gender + Skin Row ──────────────────────────────────
+            AnimatedContent(
+                targetState = previewExpanded,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "preview"
+            ) { expanded ->
+                if (expanded) {
+                    // Full-screen preview modal overlay
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
-                            .height(56.dp),
-                        shape   = RoundedCornerShape(12.dp),
-                        colors  = ButtonDefaults.buttonColors(containerColor = ComposeColor(0xFFFF6B35)),
-                        enabled = !uiState.isSaving
+                            .height(420.dp)
+                            .clickable { previewExpanded = false },
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (uiState.isSaving) {
-                            CircularProgressIndicator(
-                                modifier    = Modifier.size(20.dp),
-                                color       = ComposeColor.White,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
+                        AvatarPreviewCard(
+                            avatarState = uiState.currentAvatar,
+                            modifier = Modifier
+                                .width(260.dp)
+                                .height(380.dp),
+                            showNameBadge = true,
+                            playerName = uiState.playerName
+                        )
+                        // Tap to close hint
                         Text(
-                            text       = if (uiState.isSaving) "Saving..." else "Save Avatar",
-                            fontWeight = FontWeight.Bold,
-                            fontSize   = 16.sp
+                            "Tap to close",
+                            color = Color.White.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 8.dp)
+                        )
+                    }
+                } else {
+                    AvatarPreviewSection(
+                        uiState = uiState,
+                        onExpandPreview = { previewExpanded = true },
+                        onGenderChange = { viewModel.setGender(it) },
+                        onSkinToneChange = { viewModel.setSkinTone(it) }
+                    )
+                }
+            }
+
+            // ── Tab Bar ───────────────────────────────────────────────────────
+            AvatarTabBar(
+                selected = selectedTab,
+                onTabSelected = { selectedTab = it }
+            )
+
+            // ── Item Grid ─────────────────────────────────────────────────────
+            AvatarItemGrid(
+                tab = selectedTab,
+                avatarState = uiState.currentAvatar,
+                unlockedItems = uiState.unlockedItemIds,
+                freeItems = viewModel.getFreeItemsForTab(selectedTab),
+                premiumItems = viewModel.getPremiumItemsForTab(selectedTab),
+                onItemSelected = { viewModel.equipItem(it) },
+                onLockedItemTapped = { onNavigateToShop() },
+                modifier = Modifier.weight(1f)
+            )
+
+            // ── Save Button ───────────────────────────────────────────────────
+            AvatarSaveButton(
+                onSave = { viewModel.saveAvatar() },
+                hasUnsavedChanges = uiState.hasUnsavedChanges
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Top Bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarTopBar(
+    coins: Int,
+    onBack: () -> Unit,
+    onShop: () -> Unit,
+    onReset: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+        }
+
+        Text(
+            "My Avatar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Coin badge
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color(0xFFFFD700).copy(alpha = 0.18f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("🪙", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "$coins",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
+                }
+            }
+
+            IconButton(onClick = onShop) {
+                Icon(Icons.Default.ShoppingCart, "Shop", tint = Color(0xFFFFD700))
+            }
+
+            IconButton(onClick = onReset) {
+                Icon(Icons.Default.Refresh, "Reset", tint = Color.White.copy(alpha = 0.6f))
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Preview Section (avatar card + gender + skin tone)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarPreviewSection(
+    uiState: AvatarUiState,
+    onExpandPreview: () -> Unit,
+    onGenderChange: (AvatarGender) -> Unit,
+    onSkinToneChange: (Long) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar Preview Card (tappable to expand)
+            Box(
+                modifier = Modifier
+                    .width(160.dp)
+                    .height(220.dp)
+                    .clickable { onExpandPreview() }
+            ) {
+                AvatarPreviewCard(
+                    avatarState = uiState.currentAvatar,
+                    modifier = Modifier.fillMaxSize(),
+                    showNameBadge = false
+                )
+                // Expand icon
+                Icon(
+                    Icons.Default.Fullscreen, "Expand",
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(20.dp))
+
+            // Right side controls
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    "Gender",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+                GenderSelector(
+                    selected = uiState.currentAvatar.gender,
+                    onSelect = onGenderChange
+                )
+
+                Text(
+                    "Skin Tone",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.6f)
+                )
+                SkinTonePicker(
+                    selectedTone = uiState.currentAvatar.skinTone,
+                    onToneSelected = onSkinToneChange
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Tab Bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarTabBar(
+    selected: AvatarCustomizationTab,
+    onTabSelected: (AvatarCustomizationTab) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp)
+    ) {
+        items(AvatarCustomizationTab.entries) { tab ->
+            val isSelected = selected == tab
+            Surface(
+                onClick = { onTabSelected(tab) },
+                shape = RoundedCornerShape(50),
+                color = if (isSelected) Color(0xFF5272F2) else Color.White.copy(alpha = 0.08f),
+                border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
+                else null
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(tab.emoji, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        tab.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item Grid
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarItemGrid(
+    tab: AvatarCustomizationTab,
+    avatarState: AvatarState,
+    unlockedItems: Set<String>,
+    freeItems: List<AvatarLayerItem>,
+    premiumItems: List<AvatarLayerItem>,
+    onItemSelected: (AvatarLayerItem) -> Unit,
+    onLockedItemTapped: (AvatarLayerItem) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeItemId = when (tab) {
+        AvatarCustomizationTab.BACKGROUND -> avatarState.activeBackground?.id
+        AvatarCustomizationTab.HAIR -> avatarState.activeHair?.id
+        AvatarCustomizationTab.OUTFIT -> avatarState.activeOutfit?.id
+        AvatarCustomizationTab.SHOES -> avatarState.activeShoes?.id
+        AvatarCustomizationTab.ACCESSORY -> avatarState.activeAccessory?.id
+        AvatarCustomizationTab.SPECIAL_FX -> avatarState.activeSpecialFx?.id
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        modifier = modifier.padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 12.dp)
+    ) {
+        // "None" option
+        item {
+            NoneItemCard(
+                isSelected = activeItemId == null,
+                onClick = { onItemSelected(
+                    AvatarLayerItem("none_${tab.name}", "None",
+                        AvatarLayerType.BACKGROUND, AvatarAssetSource.GradientBackground(
+                            0xFF0D0D1A, 0xFF1A1A2E, "None"))
+                ) }
+            )
+        }
+
+        // Free items
+        items(freeItems) { item ->
+            AvatarItemCard(
+                item = item,
+                isSelected = item.id == activeItemId,
+                isLocked = false,
+                onClick = { onItemSelected(item) },
+                onLockedClick = {}
+            )
+        }
+
+        // Premium items (locked if not owned)
+        if (premiumItems.isNotEmpty()) {
+            item(span = { GridItemSpan(3) }) {
+                Row(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("⭐", style = MaterialTheme.typography.titleSmall)
+                    Text("Premium",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
+                    Divider(
+                        modifier = Modifier.weight(1f),
+                        color = Color(0xFFFFD700).copy(alpha = 0.3f)
+                    )
+                }
+            }
+
+            items(premiumItems) { item ->
+                val isUnlocked = item.id in unlockedItems
+                AvatarItemCard(
+                    item = item,
+                    isSelected = item.id == activeItemId,
+                    isLocked = !isUnlocked,
+                    onClick = { if (isUnlocked) onItemSelected(item) else onLockedItemTapped(item) },
+                    onLockedClick = { onLockedItemTapped(item) }
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item Card
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarItemCard(
+    item: AvatarLayerItem,
+    isSelected: Boolean,
+    isLocked: Boolean,
+    onClick: () -> Unit,
+    onLockedClick: () -> Unit
+) {
+    val borderColor = when {
+        isSelected -> Color(0xFF5272F2)
+        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.5f)
+        else -> Color.White.copy(alpha = 0.1f)
+    }
+
+    val bgColor = when {
+        isSelected -> Color(0xFF5272F2).copy(alpha = 0.2f)
+        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.06f)
+        else -> Color.White.copy(alpha = 0.05f)
+    }
+
+    val tintColor = item.tintColor?.let { Color(it) }
+        ?: when (val src = item.source) {
+            is AvatarAssetSource.GradientBackground -> Color(src.topColor)
+            else -> Color(0xFF5272F2)
+        }
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(14.dp))
+            .background(bgColor)
+            .border(
+                width = if (isSelected) 2.5.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { if (isLocked) onLockedClick() else onClick() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Mini preview
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tintColor.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                when (val src = item.source) {
+                    is AvatarAssetSource.GradientBackground -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color(src.topColor), Color(src.bottomColor))
+                                    )
+                                )
+                        )
+                    }
+                    else -> {
+                        // Colour swatch fallback
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(tintColor.copy(alpha = 0.7f))
                         )
                     }
                 }
 
-                // ── SHOP TAB ──────────────────────────────────────────────────
-                1 -> {
-                    val filteredItems = remember(shopUiState.items, shopUiState.selectedRarityFilter) {
-                        if (shopUiState.selectedRarityFilter == null) shopUiState.items
-                        else shopUiState.items.filter { it.rarity == shopUiState.selectedRarityFilter }
-                    }
-
-                    AvatarShopContent(
-                        uiState       = shopUiState,
-                        filteredItems = filteredItems,
-                        currentUserId = currentUser.userId,
-                        viewModel     = shopViewModel
-                    )
+                // Layer type icon
+                val emoji = when (item.layerType) {
+                    AvatarLayerType.HAIR -> "💇"
+                    AvatarLayerType.OUTFIT -> "👕"
+                    AvatarLayerType.SHOES -> "👟"
+                    AvatarLayerType.ACCESSORY -> "🎩"
+                    AvatarLayerType.SPECIAL_FX -> "✨"
+                    else -> ""
                 }
+                if (emoji.isNotEmpty()) {
+                    Text(emoji, style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.align(Alignment.Center))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                item.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isLocked) Color.White.copy(alpha = 0.35f) else Color.White,
+                maxLines = 1,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+
+        // Lock overlay
+        if (isLocked) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Lock, "Locked", tint = Color(0xFFFFD700), modifier = Modifier.size(20.dp))
+                    if (item.coinCost > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("🪙 ${item.coinCost}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFFD700))
+                    }
+                }
+            }
+        }
+
+        // Selected checkmark
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF5272F2)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Check, "Selected",
+                    tint = Color.White, modifier = Modifier.size(12.dp))
+            }
+        }
+
+        // Trending badge
+        if (item.isPremium && AvatarSeeder.premiumPacks.any { p -> p.id == item.packId && p.isTrending }) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(4.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = Color(0xFFFF4500)
+            ) {
+                Text("🔥", style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
             }
         }
     }
 }
 
-// ── Avatar Preview ────────────────────────────────────────────────────────────
+// "None" card (continued)
 @Composable
-private fun AvatarPreview(
-    customization: com.kidsroutine.core.model.AvatarCustomization,
-    modifier: Modifier = Modifier
+fun NoneItemCard(isSelected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f)
+                else Color.White.copy(alpha = 0.05f)
+            )
+            .border(
+                width = if (isSelected) 2.5.dp else 1.dp,
+                color = if (isSelected) Color(0xFF5272F2) else Color.White.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.White.copy(alpha = 0.07f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = "None",
+                    tint = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Text(
+                "None",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = if (isSelected) 1f else 0.4f),
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF5272F2)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Check, "Selected",
+                    tint = Color.White, modifier = Modifier.size(12.dp))
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Save Button
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun AvatarSaveButton(
+    onSave: () -> Unit,
+    hasUnsavedChanges: Boolean
 ) {
-    val bgId       = customization.background.selectedItemId
-    val hairId     = customization.hairstyle.selectedItemId
-    val eyesId     = customization.eyes.selectedItemId
-    val mouthId    = customization.mouth.selectedItemId
-    val clothingId = customization.clothing.selectedItemId
-    val accessId   = customization.accessories.selectedItemId
-    val bodyColor  = customization.body.selectedColor
+    val scale by animateFloatAsState(
+        targetValue = if (hasUnsavedChanges) 1f else 0.95f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "saveScale"
+    )
 
-    // Background gradient based on selected bg item
-    val bgColors = when {
-        bgId.contains("galaxy",  true) -> listOf(ComposeColor(0xFF0D0D2B), ComposeColor(0xFF1A0533))
-        bgId.contains("forest",  true) -> listOf(ComposeColor(0xFF1B4332), ComposeColor(0xFF52B788))
-        bgId.contains("beach",   true) -> listOf(ComposeColor(0xFF0077B6), ComposeColor(0xFFADE8F4))
-        bgId.contains("city",    true) -> listOf(ComposeColor(0xFF2D3436), ComposeColor(0xFF636E72))
-        bgId.contains("sunset",  true) -> listOf(ComposeColor(0xFFFF6B35), ComposeColor(0xFFFFD93D))
-        else                           -> listOf(ComposeColor(0xFF1A1A2E), ComposeColor(0xFF0F3460))
-    }
-
-    // Background emoji overlay
-    val bgEmoji = when {
-        bgId.contains("galaxy",  true) -> "🌌"
-        bgId.contains("forest",  true) -> "🌲🌲"
-        bgId.contains("beach",   true) -> "🌊☀️"
-        bgId.contains("city",    true) -> "🏙️"
-        bgId.contains("sunset",  true) -> "🌅"
-        else -> ""
-    }
-
-    fun accessoryEmoji(id: String) = when {
-        id.contains("crown",   true) -> "👑"
-        id.contains("glasses", true) -> "🕶️"
-        id.contains("hat",     true) -> "🎩"
-        id.contains("cape",    true) -> "🦸"
-        id.contains("wings",   true) -> "🪽"
-        id.contains("sword",   true) -> "⚔️"
-        id.contains("shield",  true) -> "🛡️"
-        else -> ""
-    }
-
-    fun hairEmoji(id: String) = when {
-        id.contains("long",   true) -> "💇"
-        id.contains("curly",  true) -> "🦱"
-        id.contains("spiky",  true) -> "🦔"
-        id.contains("bun",    true) -> "👩"
-        id.contains("short",  true) -> "💆"
-        id.contains("afro",   true) -> "🧑"
-        else -> if (id.isNotEmpty()) "🎭" else ""
-    }
-
-    fun eyesEmoji(id: String) = when {
-        id.contains("happy",   true) -> "😊"
-        id.contains("cool",    true) -> "😎"
-        id.contains("sleepy",  true) -> "😴"
-        id.contains("angry",   true) -> "😠"
-        id.contains("wink",    true) -> "😉"
-        id.contains("star",    true) -> "🤩"
-        else -> if (id.isNotEmpty()) "👀" else ""
-    }
-
-    fun mouthEmoji(id: String) = when {
-        id.contains("smile",  true) -> "😄"
-        id.contains("laugh",  true) -> "😂"
-        id.contains("sad",    true) -> "😢"
-        id.contains("cool",   true) -> "😏"
-        id.contains("tongue", true) -> "😛"
-        else -> if (id.isNotEmpty()) "😶" else ""
-    }
-
-    fun clothingEmoji(id: String) = when {
-        id.contains("hoodie", true) -> "🧥"
-        id.contains("suit",   true) -> "👔"
-        id.contains("tshirt", true) -> "👕"
-        id.contains("dress",  true) -> "👗"
-        id.contains("armor",  true) -> "🛡️"
-        id.contains("robe",   true) -> "🥋"
-        else -> if (id.isNotEmpty()) "👕" else ""
-    }
-
-    val faceColor: ComposeColor = try {
-        val parsed = android.graphics.Color.parseColor(
-            if (bodyColor.startsWith("#")) bodyColor else "#FF6B35"
-        )
-        ComposeColor(parsed.toLong() or 0xFF000000L)
-    } catch (_: Throwable) { ComposeColor(0xFFFF6B35) }
-
-    // Top-hat accessories (worn ON HEAD, above hair)
-    val isHeadwear = accessId.contains("crown", true) ||
-            accessId.contains("hat", true)
-    // Eye-level accessories (worn on face)
-    val isFaceWear = accessId.contains("glasses", true)
-    // Body accessories
-    val isBodyWear = !isHeadwear && !isFaceWear && accessId.isNotEmpty()
-
-    Card(
-        modifier  = modifier,
-        shape     = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(12.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(bgColors))
-        ) {
-            // ── Background scene text ──────────────────────────────────────
-            if (bgEmoji.isNotEmpty()) {
-                Text(
-                    text     = bgEmoji,
-                    fontSize = 28.sp,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
+                .fillMaxWidth()
+                .height(54.dp)
+                .scale(scale)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (hasUnsavedChanges)
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF5272F2), Color(0xFF9B59F5))
+                        )
+                    else
+                        Brush.horizontalGradient(
+                            listOf(Color.White.copy(alpha = 0.08f), Color.White.copy(alpha = 0.08f))
+                        )
                 )
-            }
-
-            // ── Main avatar column ─────────────────────────────────────────
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier            = Modifier.fillMaxSize()
+                .clickable(enabled = hasUnsavedChanges) { onSave() },
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-                // HEAD LAYER 1: Crown / hat (above hair)
-                if (isHeadwear) {
-                    Text(accessoryEmoji(accessId), fontSize = 32.sp)
-                }
-
-                // HEAD LAYER 2: Hair
-                val hair = hairEmoji(hairId)
-                if (hair.isNotEmpty()) {
-                    Text(hair, fontSize = 26.sp)
-                }
-
-                // HEAD LAYER 3: Face circle with eyes overlay
-                Box(
-                    modifier         = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(faceColor.copy(alpha = 0.25f))
-                        .border(3.dp, faceColor, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        // Eyes (with glasses layered on top)
-                        Box(contentAlignment = Alignment.Center) {
-                            val eyes = eyesEmoji(eyesId)
-                            if (eyes.isNotEmpty()) Text(eyes, fontSize = 20.sp)
-                            if (isFaceWear) Text(accessoryEmoji(accessId), fontSize = 20.sp)
-                        }
-                        // Mouth
-                        val mouth = mouthEmoji(mouthId)
-                        if (mouth.isNotEmpty()) {
-                            Text(mouth, fontSize = 16.sp)
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // BODY LAYER: Clothing
-                val cloth = clothingEmoji(clothingId)
-                if (cloth.isNotEmpty()) {
-                    Text(cloth, fontSize = 32.sp)
-                }
-
-                // BODY ACCESSORY: Cape / wings / sword
-                if (isBodyWear) {
-                    Text(accessoryEmoji(accessId), fontSize = 26.sp)
-                }
-            }
-
-            // ── Live Preview badge ────────────────────────────────────────
-            Surface(
-                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                shape    = RoundedCornerShape(8.dp),
-                color    = ComposeColor.Black.copy(alpha = 0.5f)
-            ) {
-                Text(
-                    "✨ Live Preview",
-                    fontSize   = 10.sp,
-                    color      = ComposeColor.White,
-                    fontWeight = FontWeight.Bold,
-                    modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-    }
-}
-
-
-
-// ── Category Selector ─────────────────────────────────────────────────────────
-@Composable
-private fun CategorySelector(
-    categories: List<AvatarCategory>,
-    selectedCategory: AvatarCategory,
-    onCategorySelected: (AvatarCategory) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text       = "Categories",
-            style      = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier   = Modifier.padding(bottom = 12.dp)
-        )
-        LazyRow(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(categories) { category ->
-                CategoryButton(
-                    category   = category,
-                    isSelected = category == selectedCategory,
-                    onClick    = { onCategorySelected(category) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CategoryButton(
-    category: AvatarCategory,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick  = onClick,
-        modifier = Modifier.height(40.dp),
-        colors   = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) GradientStart else ComposeColor.White,
-            contentColor   = if (isSelected) ComposeColor.White else ComposeColor.Gray
-        ),
-        shape  = RoundedCornerShape(20.dp),
-        border = if (!isSelected) ButtonDefaults.outlinedButtonBorder() else null
-    ) {
-        Text(text = category.name, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-// ── Items Grid ────────────────────────────────────────────────────────────────
-@Composable
-private fun ItemsGrid(
-    items: List<AvatarItem>,
-    unlockedItemIds: List<String>,
-    selectedItemId: String,
-    userXp: Int,
-    onItemSelect: (AvatarItem) -> Unit,
-    onItemUnlock: (AvatarItem) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text       = "Available Items",
-            style      = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier   = Modifier.padding(bottom = 12.dp)
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items.forEach { item ->
-                ItemCard(
-                    item       = item,
-                    isUnlocked = item.itemId in unlockedItemIds,
-                    isSelected = item.itemId == selectedItemId,
-                    userXp     = userXp,
-                    onSelect   = { onItemSelect(item) },
-                    onUnlock   = { onItemUnlock(item) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ItemCard(
-    item: AvatarItem,
-    isUnlocked: Boolean,
-    isSelected: Boolean,
-    userXp: Int,
-    onSelect: () -> Unit,
-    onUnlock: () -> Unit
-) {
-    Card(
-        modifier  = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { if (isUnlocked) onSelect() },
-        shape     = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 2.dp),
-        colors    = CardDefaults.cardColors(
-            containerColor = if (isSelected) GradientStart.copy(alpha = 0.1f) else ComposeColor.White
-        ),
-        border = if (isSelected) BorderStroke(2.dp, GradientStart) else null
-    ) {
-        Row(
-            modifier              = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment     = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(text = item.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Surface(
-                        shape    = CircleShape,
-                        color = run {
-                            val hex = item.defaultColor.takeIf { it.startsWith("#") } ?: "#FF6B35"
-                            try { ComposeColor(android.graphics.Color.parseColor(hex)) }
-                            catch (_: Exception) { ComposeColor(0xFFFF6B35) }
-                        },
-                        modifier = Modifier.size(20.dp)
-                    ) {}
-                    Text(
-                        text       = item.rarity.name,
-                        style      = MaterialTheme.typography.labelSmall,
-                        color      = ComposeColor(item.rarity.color()),
-                        fontWeight = FontWeight.Bold,
-                        fontSize   = 10.sp
-                    )
-                }
-                Text(
-                    text     = item.description,
-                    style    = MaterialTheme.typography.bodySmall,
-                    color    = ComposeColor.Gray,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-
-            if (!isUnlocked) {
-                Button(
-                    onClick  = onUnlock,
-                    modifier = Modifier.height(40.dp),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor = if (userXp >= item.xpCost) GradientStart else ComposeColor.LightGray
-                    ),
-                    enabled = userXp >= item.xpCost
-                ) {
-                    Text(text = "${item.xpCost} XP", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            } else if (isSelected) {
                 Icon(
-                    Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint               = GradientStart,
-                    modifier           = Modifier.size(24.dp)
+                    if (hasUnsavedChanges) Icons.Default.Check else Icons.Default.Done,
+                    contentDescription = "Save",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
-            }
-        }
-    }
-}
-
-// ── Color Picker ──────────────────────────────────────────────────────────────
-@Composable
-private fun ColorPickerSection(onColorSelected: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text       = "Color Customization",
-            style      = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier   = Modifier.padding(bottom = 12.dp)
-        )
-
-        val colors = listOf(
-            "#FF6B35", "#667EEA", "#764BA2", "#FFD93D",
-            "#FF1744", "#00BCD4", "#4CAF50", "#FFC107"
-        )
-
-        LazyRow(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(colors) { colorHex ->
-                Surface(
-                    shape    = CircleShape,
-                    color    = ComposeColor(android.graphics.Color.parseColor(colorHex)),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .clickable { onColorSelected(colorHex) }
-                ) {}
+                Text(
+                    if (hasUnsavedChanges) "Save Avatar" else "Saved ✓",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }

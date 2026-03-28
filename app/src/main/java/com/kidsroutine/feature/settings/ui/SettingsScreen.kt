@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,7 +19,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,12 +26,10 @@ import com.kidsroutine.core.model.UserModel
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.ui.platform.LocalClipboard
-import com.kidsroutine.feature.avatar.data.AvatarShopSeeder
 import kotlinx.coroutines.launch
 import android.content.ClipData
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.ClipEntry
+import com.kidsroutine.feature.avatar.data.AvatarSeeder
 import kotlinx.coroutines.tasks.await
 
 
@@ -247,8 +243,9 @@ fun SettingsScreen(
 
         val scope = rememberCoroutineScope()
         if (currentUser.isAdmin) {
-            Button(onClick = { scope.launch { AvatarShopSeeder.seed() } }) {
-                Text("Seed Avatar Shop (run once)")
+            val itemCount = AvatarSeeder.allFreeItems().size + AvatarSeeder.allPremiumItems().size
+            Button(onClick = { /* AvatarSeeder is static data, no seeding needed */ }) {
+                Text("Avatar items loaded: $itemCount")
             }
         }
 
