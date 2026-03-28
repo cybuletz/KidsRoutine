@@ -716,3 +716,76 @@ export const applyContentPack = functions.https.onCall(async (data, context) => 
     console.log(`✓ Seeded ${taskTemplates.length} tasks from pack '${packId}' into family '${familyId}'`);
     return { seeded: taskTemplates.length };
 });
+
+// ===== TASK DELETION NOTIFICATIONS =====
+
+export const notifyTaskDeletion = functions.firestore
+  .document("taskAssignments/{docId}")
+  .onDelete(async (snap: any, context: any) => {
+    const assignment = snap.data();
+    const childId = assignment.childId;
+    const taskId = assignment.taskId;
+    const familyId = assignment.familyId;
+
+    console.log(`[Task Deletion] Task assignment deleted for child: ${childId}, taskId: ${taskId}`);
+
+    try {
+      // Get task details (may already be deleted, so this is optional)
+      let taskTitle = "Task";
+      try {
+        const taskDoc = await db.collection("tasks").doc(taskId).get();
+        if (taskDoc.exists) {
+          taskTitle = taskDoc.data()?.title || "Task";
+        }
+      } catch (e) {
+        console.log(`[Task Deletion] Could not fetch task details for ${taskId}`);
+      }
+
+      // Get child's FCM token
+      const childDoc = await db.collection("users").doc(childId).get();
+      if (!childDoc.exists) {
+        console.log(`[Task Deletion] Child not found: ${childId}`);
+        return;
+      }
+
+      const fcmToken = childDoc.data()?.fcmToken;
+      if (!fcmToken) {
+        console.log(`[Task Deletion] No FCM token for child: ${childId}`);
+        return;
+      }
+
+      // Send notification to child
+      try {
+        await messaging.send({
+          token: fcmToken,
+          notification: {
+            title: `📋 Task Removed`,
+            body: `"${taskTitle}" has been removed from your task list`,
+          },
+          data: {
+            type: "TASK_DELETED",
+            userId: childId,
+            taskId: taskId,
+            icon: "🗑️",
+            refreshTrigger: "true"
+          },
+          android: {
+            priority: "high",
+          },
+        });
+
+        console.log(`[Task Deletion] ✅ Notification sent to child: ${childId}`);
+
+      } catch (error: any) {
+        if (error?.code === "messaging/registration-token-not-registered") {
+          console.log(`[Task Deletion] Invalid token for child: ${childId}, clearing...`);
+          await db.collection("users").doc(childId).update({ fcmToken: "" });
+        } else {
+          console.error(`[Task Deletion] Error sending notification:`, error);
+        }
+      }
+
+    } catch (error) {
+      console.error("[Task Deletion] Error:", error);
+    }
+  });

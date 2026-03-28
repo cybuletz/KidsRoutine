@@ -1,6 +1,7 @@
 package com.kidsroutine.feature.avatar.di
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.kidsroutine.core.database.dao.AvatarDao
 import com.kidsroutine.core.database.AppDatabase
 import com.kidsroutine.feature.avatar.data.AvatarRepository
@@ -27,7 +28,8 @@ object AvatarModule {
     fun provideAvatarRepository(
         firestore: FirebaseFirestore,
         avatarDao: AvatarDao,
-        userRepository: UserRepository
+        userRepository: UserRepository,
+        functions: FirebaseFunctions
     ): AvatarRepository =
-        AvatarRepositoryImpl(firestore, avatarDao, userRepository)
+        AvatarRepositoryImpl(firestore, avatarDao, userRepository, functions)
 }

@@ -28,7 +28,7 @@ private const val TAG = "FCM"
 class PushNotificationService : FirebaseMessagingService() {
 
     @Inject
-    lateinit var notificationRepository: NotificationRepository
+    lateinit var notificationRepository: NotificationRepositoryImpl
 
     override fun onNewToken(token: String) {
         Log.d(TAG, "Refreshed token: $token")
@@ -63,6 +63,25 @@ class PushNotificationService : FirebaseMessagingService() {
             val userId = remoteMessage.data["userId"] ?: ""
             val icon = remoteMessage.data["icon"] ?: "🔔"
             val refreshTrigger = remoteMessage.data["refreshTrigger"] ?: "false"
+            val taskId = remoteMessage.data["taskId"] ?: ""
+
+            // ════════════════════════════════════════════════════════════════════════
+            // ✨ NEW: Handle TASK_DELETED notification type
+            // ════════════════════════════════════════════════════════════════════════
+            if (type == "TASK_DELETED") {
+                Log.d(TAG, "📋 Task deletion notification received for taskId: $taskId")
+
+                // Remove task from local cache if using a local database
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // Optional: Remove from local database if you have task caching
+                        // taskProgressDao.deleteByTaskId(taskId)
+                        Log.d(TAG, "Processed task deletion for $taskId")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing task deletion", e)
+                    }
+                }
+            }
 
             val notification = AppNotification(
                 id = java.util.UUID.randomUUID().toString(),
@@ -70,7 +89,7 @@ class PushNotificationService : FirebaseMessagingService() {
                 type = try {
                     NotificationType.valueOf(type)
                 } catch (e: Exception) {
-                    NotificationType.TASK_REMINDER
+                    if (type == "TASK_DELETED") NotificationType.TASK_REMINDER else NotificationType.TASK_REMINDER
                 },
                 title = title,
                 body = body,
@@ -89,9 +108,16 @@ class PushNotificationService : FirebaseMessagingService() {
                 }
             }
 
-            // ← NEW: Trigger refresh if this is a task/challenge assignment
-            if (refreshTrigger == "true" && (type.contains("ASSIGNED") || type.contains("TASK") || type.contains("CHALLENGE"))) {
-                Log.d(TAG, "Triggering UI refresh for notification type: $type")
+            // ════════════════════════════════════════════════════════════════════════
+            // ✨ Trigger refresh for TASK_DELETED, TASK_ASSIGNED, CHALLENGE_ASSIGNED
+            // ════════════════════════════════════════════════════════════════════════
+            if (refreshTrigger == "true" && (
+                        type.contains("DELETED") ||
+                                type.contains("ASSIGNED") ||
+                                type.contains("TASK") ||
+                                type.contains("CHALLENGE")
+                        )) {
+                Log.d(TAG, "🔄 Triggering UI refresh for notification type: $type")
                 CoroutineScope(Dispatchers.Default).launch {
                     RefreshEventManager.triggerRefresh()
                 }

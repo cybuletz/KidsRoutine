@@ -1,12 +1,12 @@
 package com.kidsroutine.feature.avatar.data
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.kidsroutine.core.database.dao.AvatarDao
 import com.kidsroutine.core.database.entity.AvatarEntity
 import com.kidsroutine.core.model.*
 import com.kidsroutine.feature.daily.data.UserRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
 import javax.inject.Inject
@@ -14,7 +14,8 @@ import javax.inject.Inject
 class AvatarRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val avatarDao: AvatarDao,
-    private val userRepository: UserRepository  // ← ADD: inject the user repo
+    private val userRepository: UserRepository,
+    private val functions: FirebaseFunctions  // ✨ ADD: Firebase Functions for Cloud Function calls
 ) : AvatarRepository {
 
     // ── Avatar methods ────────────────────────────────────────────────────────
@@ -49,36 +50,48 @@ class AvatarRepositoryImpl @Inject constructor(
         } catch (e: Exception) { "" }
     }
 
-    // ── XP methods (NOW using UserRepository) ─────────────────────────────────
+    // ── XP methods (NOW using Cloud Function) ────────────────────────────────
 
     override suspend fun getUserXp(userId: String): Int {
         return try {
-            // Get the user's XP via the main user repository (synced with app's XP system)
-            // This fetches from both Room DB and Firestore depending on what's available
             val userDoc = firestore.collection("users").document(userId)
                 .get().await()
             (userDoc.getLong("xp") ?: 0).toInt()
         } catch (e: Exception) {
-            // Fallback: try to get from Room database if Firestore fails
-            try {
-                // Access the user from the DAO directly if you have it injected
-                0  // Default fallback
-            } catch (e: Exception) {
-                0
-            }
+            Log.e("AvatarRepository", "Error fetching user XP", e)
+            0
         }
     }
 
+    /**
+     * ✨ NEW: Deduct XP using Cloud Function for atomic, race-condition-safe transaction
+     * The Cloud Function validates XP balance server-side before deduction
+     */
     override suspend fun deductUserXp(userId: String, amount: Int) {
         try {
-            val userDoc = firestore.collection("users").document(userId).get().await()
-            val currentXp = userDoc.getLong("xp")?.toInt() ?: 0
-            val newXp = maxOf(0, currentXp - amount)
+            Log.d("AvatarRepository", "Attempting to deduct $amount XP via Cloud Function")
 
-            firestore.collection("users").document(userId)
-                .update("xp", newXp.toLong())
+            val data = hashMapOf(
+                "itemId" to "avatar_item_${System.currentTimeMillis()}",
+                "xpCost" to amount,
+                "packId" to null
+            )
+
+            val result = functions
+                .getHttpsCallable("onAvatarItemPurchase")
+                .call(data)
                 .await()
+
+            val resultData = result.data as? Map<*, *>
+            if (resultData?.get("success") == true) {
+                val newBalance = resultData["newXpBalance"] as? Long ?: 0L
+                Log.d("AvatarRepository", "✅ XP deducted successfully. New balance: $newBalance")
+            } else {
+                throw Exception("Purchase failed on server")
+            }
+
         } catch (e: Exception) {
+            Log.e("AvatarRepository", "❌ Error deducting XP: ${e.message}", e)
             throw Exception("Failed to deduct XP: ${e.message}")
         }
     }
@@ -92,7 +105,10 @@ class AvatarRepositoryImpl @Inject constructor(
             firestore.collection("users").document(userId)
                 .update("xp", newXp.toLong())
                 .await()
+
+            Log.d("AvatarRepository", "✅ Added $amount XP. New balance: $newXp")
         } catch (e: Exception) {
+            Log.e("AvatarRepository", "❌ Error adding XP: ${e.message}", e)
             throw Exception("Failed to add XP: ${e.message}")
         }
     }
