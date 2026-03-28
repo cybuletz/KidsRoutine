@@ -17,5 +17,7 @@ data class TaskModel(
     val requiresCoop: Boolean = false,
     val createdBy: TaskCreator = TaskCreator.SYSTEM,
     val familyId: String = "",       // empty = global/system task
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val expiresAt: Long? = null,
+    val durationDays: Int? = null
 )

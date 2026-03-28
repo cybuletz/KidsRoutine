@@ -12,6 +12,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Title
+import androidx.compose.material.icons.filled.DateRange
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +57,9 @@ fun CreateTaskScreen(
     var selectedCategory by remember { mutableStateOf(TaskCategory.MORNING_ROUTINE) }
     var selectedDifficulty by remember { mutableStateOf(DifficultyLevel.EASY) }
     var selectedGame by remember { mutableStateOf(GameType.NONE) }
+    var expirationMode by remember { mutableStateOf("none") } // "none", "days", "date"
+    var expirationDays by remember { mutableStateOf("") }
+    var expirationDate by remember { mutableStateOf("") }
 
     // Success message handling
     LaunchedEffect(uiState.successMessage) {
@@ -66,7 +73,9 @@ fun CreateTaskScreen(
                 category = selectedCategory,
                 difficulty = selectedDifficulty,
                 gameType = selectedGame,
-                familyId = currentUser.familyId
+                familyId = currentUser.familyId,
+                expiresAt = resolveExpiresAt(expirationMode, expirationDays, expirationDate),
+                durationDays = if (expirationMode == "days") expirationDays.toIntOrNull() else null
             )
             onTaskCreated(newTask)
             viewModel.clearMessages()
@@ -278,6 +287,71 @@ fun CreateTaskScreen(
 
                 Spacer(Modifier.height(20.dp))
 
+                // Expiration section
+                Text(
+                    text = "Task Expiration (Optional)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2D3436),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = expirationMode == "none",
+                        onClick = { expirationMode = "none"; expirationDays = ""; expirationDate = "" },
+                        label = { Text("No Expiry") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = expirationMode == "days",
+                        onClick = { expirationMode = "days"; expirationDate = "" },
+                        label = { Text("# Days") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = expirationMode == "date",
+                        onClick = { expirationMode = "date"; expirationDays = "" },
+                        label = { Text("End Date") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (expirationMode == "days") {
+                    OutlinedTextField(
+                        value = expirationDays,
+                        onValueChange = { expirationDays = it.filter { c -> c.isDigit() } },
+                        placeholder = { Text("e.g. 7") },
+                        leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        label = { Text("Number of days active") }
+                    )
+                }
+
+                if (expirationMode == "date") {
+                    OutlinedTextField(
+                        value = expirationDate,
+                        onValueChange = { expirationDate = it },
+                        placeholder = { Text("DD/MM/YYYY") },
+                        leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        label = { Text("Expiry date") }
+                    )
+                }
+
                 // XP reward field
                 Text(
                     text = "XP Reward",
@@ -407,7 +481,9 @@ fun CreateTaskScreen(
                                 category = selectedCategory,
                                 difficulty = selectedDifficulty,
                                 gameType = selectedGame,
-                                familyId = currentUser.familyId
+                                familyId = currentUser.familyId,
+                                expiresAt = resolveExpiresAt(expirationMode, expirationDays, expirationDate),
+                                durationDays = if (expirationMode == "days") expirationDays.toIntOrNull() else null
                             )
                             viewModel.createTask(currentUser.familyId, newTask)
                         }
@@ -487,5 +563,24 @@ private fun GameSelectionCard(
                 )
             }
         }
+    }
+}
+
+
+private fun resolveExpiresAt(mode: String, days: String, dateStr: String): Long? {
+    return when (mode) {
+        "days" -> {
+            val d = days.toIntOrNull() ?: return null
+            System.currentTimeMillis() + d.toLong() * 24 * 60 * 60 * 1000
+        }
+        "date" -> {
+            return try {
+                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                sdf.parse(dateStr)?.time
+            } catch (e: Exception) {
+                null
+            }
+        }
+        else -> null
     }
 }
