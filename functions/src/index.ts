@@ -806,10 +806,9 @@ export const notifyTaskDeletion = functions.firestore
   });
 
 // ===== TASK UPDATE NOTIFICATIONS =====
-// ===== TASK UPDATE NOTIFICATIONS =====
 exports.notifyTaskUpdate = functions.firestore
     .document('tasks/{taskId}')
-    .onUpdate(async (change, context) => {  // ← CHANGE: onWrite → onUpdate
+    .onUpdate(async (change, context) => {
         const taskId = context.params.taskId;
         const beforeData = change.before.data();
         const afterData = change.after.data();
@@ -842,6 +841,48 @@ exports.notifyTaskUpdate = functions.firestore
             }
             await batch.commit();
             console.log("✅ All taskAssignments marked as modified");
+
+            // ✅ NOW SEND FCM NOTIFICATIONS TO CHILDREN
+            for (const assignmentDoc of assignmentsSnapshot.docs) {
+                const assignment = assignmentDoc.data();
+                const childId = assignment.childId;
+
+                try {
+                    const childDoc = await db.collection("users").doc(childId).get();
+                    const fcmToken = childDoc.data()?.fcmToken;
+
+                    if (!fcmToken) {
+                        console.log(`⚠️ No FCM token for child: ${childId}`);
+                        continue;
+                    }
+
+                    await messaging.send({
+                        token: fcmToken,
+                        notification: {
+                            title: `📋 Task Updated: ${afterData.title}`,
+                            body: 'A task has been updated'
+                        },
+                        data: {
+                            type: "TASK_UPDATED",
+                            taskId: taskId,
+                            userId: childId,
+                            refreshTrigger: "true"
+                        },
+                        android: {
+                            priority: "high"
+                        }
+                    });
+
+                    console.log(`✅ FCM sent to child: ${childId}`);
+                } catch (error: any) {
+                    if (error?.code === "messaging/registration-token-not-registered") {
+                        console.log(`Invalid token for child: ${childId}`);
+                        await db.collection("users").doc(childId).update({ fcmToken: "" });
+                    } else {
+                        console.error(`Error sending to child ${childId}:`, error);
+                    }
+                }
+            }
 
         } catch (error) {
             console.error("❌ Error:", error);
