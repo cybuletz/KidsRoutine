@@ -14,4 +14,5 @@ interface DailyRepository {
     suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel>
     suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>)
     suspend fun deleteTaskInstance(userId: String, instanceId: String)
+    suspend fun refreshTasksForDate(userId: String, date: String)
 }

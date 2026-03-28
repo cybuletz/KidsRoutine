@@ -1,5 +1,6 @@
 package com.kidsroutine.navigation
 
+import android.util.Log
 import androidx.compose.runtime.*
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -41,6 +42,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.kidsroutine.feature.avatar.ui.AvatarShopViewModel
+import com.kidsroutine.feature.tasks.ui.TaskDetailsScreen
+import com.kidsroutine.feature.tasks.ui.TaskManagementViewModel
 
 fun NavGraphBuilder.parentNavGraph(
     currentUser: UserModel,
@@ -145,12 +148,37 @@ fun NavGraphBuilder.parentNavGraph(
                 }
                 else -> {
                     TaskListScreen(
-                        currentUser       = currentUser,
+                        currentUser = currentUser,
                         onCreateTaskClick = { showCreateTaskScreen = true },
-                        onBackClick       = { navController.popBackStack() }
+                        onTaskDetailsClick = { task ->
+                            navController.navigate("task_details/${task.id}")
+                        }
                     )
                 }
             }
+        }
+
+        composable(
+            "task_details/{taskId}",
+            arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: return@composable
+            val taskManagementViewModel: TaskManagementViewModel = hiltViewModel()
+            val taskUiState by taskManagementViewModel.uiState.collectAsState()
+
+            LaunchedEffect(currentUser.familyId) {
+                if (taskUiState.tasks.isEmpty()) {
+                    taskManagementViewModel.loadFamilyTasks(currentUser.familyId)
+                }
+            }
+
+            val task = taskUiState.tasks.find { it.id == taskId } ?: return@composable
+
+            TaskDetailsScreen(
+                task = task,
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.PENDING_TASKS) {

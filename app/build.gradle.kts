@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.firebase.config.ktx)
     implementation(libs.billing.ktx)
     implementation(libs.androidx.foundation)
+    implementation(libs.ads.mobile.sdk)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

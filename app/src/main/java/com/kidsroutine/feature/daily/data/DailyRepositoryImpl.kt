@@ -65,6 +65,62 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun refreshTasksForDate(userId: String, date: String) {
+        try {
+            Log.d("DailyRepository", "Refreshing tasks for date: $date")
+
+            // Re-fetch assigned tasks
+            val assignmentsSnapshot = firestore
+                .collection("taskAssignments")
+                .whereEqualTo("childId", userId)
+                .whereEqualTo("status", "ASSIGNED")
+                .get()
+                .await()
+
+            val taskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
+            val refreshedTasks = mutableListOf<TaskInstance>()
+
+            for (taskId in taskIds) {
+                try {
+                    val taskDoc = firestore.collection("tasks").document(taskId).get().await()
+                    val taskModel = taskDoc.toObject(TaskModel::class.java)
+                    if (taskModel != null && taskModel.title.isNotBlank()) {
+                        refreshedTasks.add(
+                            TaskInstance(
+                                instanceId = "${taskId}_assigned",
+                                templateId = taskId,
+                                task = taskModel,
+                                assignedDate = date,
+                                userId = userId,
+                                injectedByChallengeId = null
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("DailyRepository", "Error fetching task $taskId: ${e.message}")
+                }
+            }
+
+            // Update Room database with refreshed tasks
+            taskInstanceDao.deleteTasksForDate(userId, date)
+            val entities = refreshedTasks.map { instance ->
+                TaskInstanceEntity(
+                    instanceId = instance.instanceId,
+                    templateId = instance.templateId,
+                    taskJson = json.toJson(instance.task),
+                    assignedDate = instance.assignedDate,
+                    userId = instance.userId,
+                    injectedByChallengeId = instance.injectedByChallengeId
+                )
+            }
+            taskInstanceDao.insertAll(entities)
+
+            Log.d("DailyRepository", "✅ Tasks refreshed successfully")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "Error refreshing tasks: ${e.message}", e)
+        }
+    }
+
     // Guard mergeAssignedTasks — only insert truly NEW task IDs:
     override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
         val existingIds = taskInstanceDao.countTasksForDate(userId, date).let {

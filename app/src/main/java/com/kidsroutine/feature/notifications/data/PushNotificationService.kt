@@ -52,10 +52,10 @@ class PushNotificationService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Log.d(TAG, "Message received from: ${remoteMessage.from}")
+        Log.d(TAG, "📬 Message received from: ${remoteMessage.from}")
 
         remoteMessage.notification?.let {
-            Log.d(TAG, "Message Notification Body: ${it.body}")
+            Log.d(TAG, "📨 Message Notification Body: ${it.body}")
 
             val title = it.title ?: "KidsRoutine"
             val body = it.body ?: ""
@@ -65,17 +65,18 @@ class PushNotificationService : FirebaseMessagingService() {
             val refreshTrigger = remoteMessage.data["refreshTrigger"] ?: "false"
             val taskId = remoteMessage.data["taskId"] ?: ""
 
+            Log.d(TAG, "🎯 Message Type: $type")
+            Log.d(TAG, "👤 User ID: $userId")
+            Log.d(TAG, "🔄 Refresh Trigger: $refreshTrigger")
+
             // ════════════════════════════════════════════════════════════════════════
-            // ✨ NEW: Handle TASK_DELETED notification type
+            // Handle TASK_DELETED notification type
             // ════════════════════════════════════════════════════════════════════════
             if (type == "TASK_DELETED") {
                 Log.d(TAG, "📋 Task deletion notification received for taskId: $taskId")
 
-                // Remove task from local cache if using a local database
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        // Optional: Remove from local database if you have task caching
-                        // taskProgressDao.deleteByTaskId(taskId)
                         Log.d(TAG, "Processed task deletion for $taskId")
                     } catch (e: Exception) {
                         Log.e(TAG, "Error processing task deletion", e)
@@ -83,13 +84,33 @@ class PushNotificationService : FirebaseMessagingService() {
                 }
             }
 
+            // ════════════════════════════════════════════════════════════════════════
+            // Handle TASK_UPDATED notification type
+            // ════════════════════════════════════════════════════════════════════════
+            if (type == "TASK_UPDATED") {
+                Log.d(TAG, "✅ TASK_UPDATED received for taskId: $taskId")
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        Log.d(TAG, "Processing task update for $taskId")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing task update", e)
+                    }
+                }
+            }
+
+            // ════════════════════════════════════════════════════════════════════════
+            // Save notification to database
+            // ══��═════════════════════════════════════════════════════════════════════
             val notification = AppNotification(
                 id = java.util.UUID.randomUUID().toString(),
                 userId = userId,
                 type = try {
                     NotificationType.valueOf(type)
                 } catch (e: Exception) {
-                    if (type == "TASK_DELETED") NotificationType.TASK_REMINDER else NotificationType.TASK_REMINDER
+                    if (type == "TASK_DELETED") NotificationType.TASK_REMINDER
+                    else if (type == "TASK_UPDATED") NotificationType.TASK_REMINDER
+                    else NotificationType.TASK_REMINDER
                 },
                 title = title,
                 body = body,
@@ -109,17 +130,20 @@ class PushNotificationService : FirebaseMessagingService() {
             }
 
             // ════════════════════════════════════════════════════════════════════════
-            // ✨ Trigger refresh for TASK_DELETED, TASK_ASSIGNED, CHALLENGE_ASSIGNED
+            // Trigger UI refresh for TASK_DELETED, TASK_ASSIGNED, TASK_UPDATED, CHALLENGE
             // ════════════════════════════════════════════════════════════════════════
             if (refreshTrigger == "true" && (
                         type.contains("DELETED") ||
                                 type.contains("ASSIGNED") ||
+                                type.contains("UPDATED") ||
                                 type.contains("TASK") ||
                                 type.contains("CHALLENGE")
                         )) {
                 Log.d(TAG, "🔄 Triggering UI refresh for notification type: $type")
                 CoroutineScope(Dispatchers.Default).launch {
+                    Log.d(TAG, "📢 Calling RefreshEventManager.triggerRefresh()")
                     RefreshEventManager.triggerRefresh()
+                    Log.d(TAG, "✅ RefreshEventManager.triggerRefresh() called successfully")
                 }
             }
 
@@ -127,7 +151,7 @@ class PushNotificationService : FirebaseMessagingService() {
         }
 
         if (remoteMessage.data.isNotEmpty()) {
-            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
+            Log.d(TAG, "📦 Message data payload: ${remoteMessage.data}")
         }
     }
 

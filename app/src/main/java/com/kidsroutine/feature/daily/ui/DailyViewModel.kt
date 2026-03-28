@@ -111,7 +111,6 @@ class DailyViewModel @Inject constructor(
         assignmentListener = firestore
             .collection("taskAssignments")
             .whereEqualTo("childId", user.userId)
-            // ✨ REMOVE the status filter to catch REMOVED events!
             .addSnapshotListener { snapshot, error ->
                 Log.d("DailyViewModel", "📡 Snapshot received, documentChanges: ${snapshot?.documentChanges?.size ?: 0}")
 
@@ -132,15 +131,23 @@ class DailyViewModel @Inject constructor(
 
                 val addedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
-                            && it.document.getString("status") == "ASSIGNED"  // ✨ Filter here instead
+                            && it.document.getString("status") == "ASSIGNED"
+                }
+
+                val modifiedChanges = documentChanges.filter {
+                    it.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED
+                            && it.document.getString("status") == "ASSIGNED"
                 }
 
                 val removedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED
                 }
 
-                Log.d("DailyViewModel", "✅ Added: ${addedChanges.size}, ❌ Removed: ${removedChanges.size}")
+                Log.d("DailyViewModel", "✅ Added: ${addedChanges.size}, 📝 Modified: ${modifiedChanges.size}, ❌ Removed: ${removedChanges.size}")
 
+                // ════════════════════════════════════════════════════════════════════════
+                // Handle NEW assignments
+                // ════════════════════════════════════════════════════════════════════════
                 if (addedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🔔 ${addedChanges.size} new task assignment(s)")
                     viewModelScope.launch {
@@ -179,7 +186,52 @@ class DailyViewModel @Inject constructor(
                     }
                 }
 
-                // ✨ Handle REMOVED assignments - NOW IT WILL WORK!
+                // ════════════════════════════════════════════════════════════════════════
+                // Handle UPDATED tasks
+                // ════════════════════════════════════════════════════════════════════════
+                if (modifiedChanges.isNotEmpty()) {
+                    Log.d("DailyViewModel", "📝 ${modifiedChanges.size} task(s) updated")
+                    viewModelScope.launch {
+                        val updatedInstances = mutableListOf<TaskInstance>()
+
+                        for (change in modifiedChanges) {
+                            val taskId = change.document.getString("taskId") ?: continue
+                            try {
+                                Log.d("DailyViewModel", "Fetching updated task: $taskId")
+                                val taskDoc = firestore
+                                    .collection("tasks")
+                                    .document(taskId)
+                                    .get()
+                                    .await()
+                                val taskModel = taskDoc.toObject(TaskModel::class.java)
+                                if (taskModel != null && taskModel.title.isNotBlank()) {
+                                    updatedInstances.add(
+                                        TaskInstance(
+                                            instanceId            = "${taskId}_assigned",
+                                            templateId            = taskId,
+                                            task                  = taskModel,
+                                            assignedDate          = date,
+                                            userId                = user.userId,
+                                            injectedByChallengeId = null
+                                        )
+                                    )
+                                    Log.d("DailyViewModel", "✅ Task updated in memory: ${taskModel.title}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("DailyViewModel", "Failed to fetch updated task $taskId: ${e.message}")
+                            }
+                        }
+
+                        if (updatedInstances.isNotEmpty()) {
+                            Log.d("DailyViewModel", "Merging ${updatedInstances.size} updated tasks into repository")
+                            dailyRepository.mergeAssignedTasks(user.userId, date, updatedInstances)
+                        }
+                    }
+                }
+
+                // ════════════════════════════════════════════════════════════════════════
+                // Handle DELETED assignments
+                // ════════════════════════════════════════════════════════════════════════
                 if (removedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🗑️ ${removedChanges.size} task assignment(s) deleted")
                     viewModelScope.launch {
@@ -189,9 +241,8 @@ class DailyViewModel @Inject constructor(
                                 val instanceId = "${taskId}_assigned"
                                 Log.d("DailyViewModel", "Deleting task instance: $instanceId")
                                 dailyRepository.deleteTaskInstance(user.userId, instanceId)
-                                // Room Flow will emit and update UI automatically
                             } catch (e: Exception) {
-                                Log.e("DailyViewModel", "Error deleting task instance: ${e.message}")
+                                Log.e("DailyViewModel", "Error deleting task: ${e.message}")
                             }
                         }
                     }

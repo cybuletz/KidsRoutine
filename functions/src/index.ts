@@ -804,3 +804,59 @@ export const notifyTaskDeletion = functions.firestore
       console.error(`[Task Deletion] ❌ Unexpected error: ${error.message}`);
     }
   });
+
+// ===== TASK UPDATE NOTIFICATIONS =====
+exports.notifyTaskUpdate = functions.firestore
+    .document('tasks/{taskId}')
+    .onWrite(async (change, context) => {
+        const taskId = context.params.taskId;
+        const beforeData = change.before.data();
+        const afterData = change.after.data();
+
+        console.log("🔍 notifyTaskUpdate TRIGGERED for taskId: " + taskId);
+
+        // Skip if delete
+        if (!afterData) {
+            console.log("⏭️ Skipping - document deleted");
+            return;
+        }
+
+        // Skip if create
+        if (!beforeData) {
+            console.log("⏭️ Skipping - document created");
+            return;
+        }
+
+        console.log("✅ This is an UPDATE");
+
+        try {
+            const db = admin.firestore();
+
+            // Find all taskAssignments for this task
+            const assignmentsSnapshot = await db
+                .collection('taskAssignments')
+                .where('taskId', '==', taskId)
+                .get();
+
+            console.log("🎯 Found " + assignmentsSnapshot.size + " assignments");
+
+            if (assignmentsSnapshot.empty) {
+                console.log("⚠️ No assignments");
+                return;
+            }
+
+            // Update all taskAssignments with a timestamp to trigger MODIFIED event
+            const batch = db.batch();
+            for (const doc of assignmentsSnapshot.docs) {
+                console.log("📝 Marking taskAssignment as modified: " + doc.id);
+                batch.update(doc.ref, {
+                    taskUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            await batch.commit();
+            console.log("✅ All taskAssignments marked as modified");
+
+        } catch (error) {
+            console.error("❌ Error:", error);
+        }
+    });

@@ -2,6 +2,7 @@ package com.kidsroutine.feature.tasks.data
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.kidsroutine.core.model.TaskModel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -89,14 +90,58 @@ class TaskRepository @Inject constructor(
     suspend fun updateTask(familyId: String, task: TaskModel) {
         try {
             Log.d("TaskRepository", "Updating task: ${task.id}")
-            firestore
+            val batch = firestore.batch()
+
+            // Update in family subcollection (same as delete pattern)
+            val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
                 .collection("tasks")
                 .document(task.id)
-                .set(task)
+            batch.set(familyTaskRef, task)
+
+            // Update in global tasks collection (same as delete pattern)
+            val globalTaskRef = firestore.collection("tasks").document(task.id)
+            batch.set(globalTaskRef, mapOf(
+                "id" to task.id,
+                "type" to task.type.name,
+                "title" to task.title,
+                "description" to task.description,
+                "category" to task.category.name,
+                "difficulty" to task.difficulty.name,
+                "estimatedDurationSec" to task.estimatedDurationSec,
+                "reward" to mapOf("xp" to task.reward.xp),
+                "validationType" to task.validationType.name,
+                "requiresParent" to task.requiresParent,
+                "requiresCoop" to task.requiresCoop,
+                "tags" to task.tags,
+                "createdBy" to task.createdBy.name,
+                "interactionBlocks" to emptyList<Map<String, Any>>(),
+                "isActive" to task.isActive,
+                "familyId" to familyId,
+                "gameType" to task.gameType.name,
+                "expiresAt" to task.expiresAt,
+                "durationDays" to task.durationDays
+            ))
+
+            // ✅ SAME PATTERN AS DELETE - Find ALL taskAssignments and TOUCH them
+            val assignments = firestore
+                .collection("taskAssignments")
+                .whereEqualTo("taskId", task.id)
+                .get()
                 .await()
-            Log.d("TaskRepository", "Task updated successfully")
+
+            Log.d("TaskRepository", "Found ${assignments.size()} assignments for task ${task.id}")
+
+            // Touch each assignment to trigger MODIFIED event on child's listener
+            for (doc in assignments.documents) {
+                batch.update(doc.reference, mapOf(
+                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                ))
+            }
+
+            batch.commit().await()
+            Log.d("TaskRepository", "✅ Task updated successfully + ${assignments.size()} assignments touched")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error updating task", e)
             throw e

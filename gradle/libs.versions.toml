@@ -31,6 +31,7 @@ lifecycleProcess = "2.10.0"
 firebaseConfigKtx = "22.1.2"
 billingKtx = "8.3.0"
 foundationVersion = "1.10.6"
+adsMobileSdk = "0.25.0-beta01"
 
 
 [libraries]
@@ -83,6 +84,7 @@ androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-p
 firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebaseConfigKtx" }
 billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billingKtx" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" }
+ads-mobile-sdk = { group = "com.google.android.libraries.ads.mobile.sdk", name = "ads-mobile-sdk", version.ref = "adsMobileSdk" }
 
 [plugins]
 android-application      = { id = "com.android.application",                        version.ref = "agp" }

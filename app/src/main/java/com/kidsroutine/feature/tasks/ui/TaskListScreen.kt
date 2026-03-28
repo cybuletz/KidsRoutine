@@ -30,7 +30,7 @@ private val BgLight = Color(0xFFFFFBF0)
 fun TaskListScreen(
     currentUser: UserModel,
     onCreateTaskClick: () -> Unit,
-    onBackClick: () -> Unit,
+    onTaskDetailsClick: (TaskModel) -> Unit,  // ← ADD THIS
     viewModel: TaskManagementViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -107,7 +107,8 @@ fun TaskListScreen(
                 items(uiState.tasks) { task ->
                     TaskCard(
                         task = task,
-                        onDeleteClick = { showDeleteDialog = task }
+                        onDeleteClick = { showDeleteDialog = task },
+                        onEditClick = { onTaskDetailsClick(it) }  // ← ADD THIS, reference the parent callback
                     )
                 }
             }
@@ -140,12 +141,15 @@ fun TaskListScreen(
 @Composable
 private fun TaskCard(
     task: TaskModel,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onEditClick: (TaskModel) -> Unit  // ← ADD THIS
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     Card(
-        modifier  = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        modifier  = Modifier
+            .fillMaxWidth()
+            .clickable { onEditClick(task) },  // ← CHANGE THIS
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)

@@ -81,6 +81,31 @@ class TaskManagementViewModel @Inject constructor(
         }
     }
 
+    fun updateTask(familyId: String, task: TaskModel) {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+        viewModelScope.launch {
+            try {
+                Log.d("TaskManagementViewModel", "Updating task: ${task.id}")
+                taskRepository.updateTask(familyId, task)
+                Log.d("TaskManagementViewModel", "Task updated successfully")
+
+                // ✅ IMMEDIATELY update UI state (same as delete pattern)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    tasks = _uiState.value.tasks.map { if (it.id == task.id) task else it },
+                    successMessage = "Task updated successfully!"
+                )
+            } catch (e: Exception) {
+                Log.e("TaskManagementViewModel", "Error updating task", e)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to update task"
+                )
+            }
+        }
+    }
+
     fun deleteTask(familyId: String, taskId: String) {
         viewModelScope.launch {
             try {

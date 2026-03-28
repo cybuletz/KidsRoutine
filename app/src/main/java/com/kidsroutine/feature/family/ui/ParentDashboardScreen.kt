@@ -20,7 +20,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -28,23 +27,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.google.firebase.firestore.FirebaseFirestore
-import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.UserModel
+import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
-import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import com.kidsroutine.feature.community.ui.MarketplaceScreen
 import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.generation.ui.GenerationScreen
@@ -55,7 +54,9 @@ import com.kidsroutine.feature.parent.ui.ParentAiInsightCard
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
 import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen
 import com.kidsroutine.feature.settings.ui.SettingsScreen
+import com.kidsroutine.feature.tasks.ui.TaskDetailsScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
+import com.kidsroutine.feature.tasks.ui.TaskManagementViewModel
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val GradientStart = Color(0xFFFF6B35)
@@ -76,7 +77,7 @@ fun ParentDashboardScreen(
     onContentPacksClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
-    onSwitchToChild: (UserModel) -> Unit = {},   // ← NEW
+    onSwitchToChild: (UserModel) -> Unit = {},
     viewModel: ParentDashboardViewModel = hiltViewModel()
 ) {
     val innerNav = rememberNavController()
@@ -114,16 +115,44 @@ fun ParentDashboardScreen(
                     onCreateTaskClick         = { innerNav.navigate("tasks") },
                     onPrivilegeApprovalsClick = { innerNav.navigate("privilege_approvals") },
                     onChallengesClick         = { innerNav.navigate("tasks_challenges") },
-                    onGenerateForChild        = { innerNav.navigate("generation") }
+                    onGenerateForChild        = { innerNav.navigate("generation") },
+                    onTaskDetailsClick        = { task -> innerNav.navigate("taskDetails/${task.id}") }
                 )
             }
             composable("tasks") {
                 currentTab = "tasks"
                 ParentTasksTab(
                     currentUser    = currentUser,
-                    onUpgradeClick = onUpgradeClick
+                    onUpgradeClick = onUpgradeClick,
+                    onTaskDetailsClick = { task -> innerNav.navigate("taskDetails/${task.id}") }
                 )
             }
+
+            composable(
+                "taskDetails/{taskId}",
+                arguments = listOf(navArgument("taskId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val taskId = backStackEntry.arguments?.getString("taskId") ?: return@composable
+                val taskManagementViewModel: TaskManagementViewModel = hiltViewModel()
+                val taskUiState by taskManagementViewModel.uiState.collectAsState()
+
+                // Load tasks if not already loaded
+                LaunchedEffect(currentUser.familyId) {
+                    if (taskUiState.tasks.isEmpty()) {
+                        taskManagementViewModel.loadFamilyTasks(currentUser.familyId)
+                    }
+                }
+
+                val task = taskUiState.tasks.find { it.id == taskId } ?: return@composable
+
+                TaskDetailsScreen(
+                    task = task,
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+
+
             composable("tasks_challenges") {
                 currentTab = "tasks"
                 ParentTasksTab(
@@ -242,7 +271,8 @@ private fun ParentHomeTab(
     onCreateTaskClick: () -> Unit,
     onPrivilegeApprovalsClick: () -> Unit,
     onChallengesClick: () -> Unit = {},
-    onGenerateForChild: (UserModel) -> Unit = {}
+    onGenerateForChild: (UserModel) -> Unit = {},
+    onTaskDetailsClick: (TaskModel) -> Unit = {}
 ) {
     var selectedChild by remember { mutableStateOf<UserModel?>(null) }
 
@@ -457,7 +487,12 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, initialSegment: Int = 0) {
+private fun ParentTasksTab(
+    currentUser: UserModel,
+    onUpgradeClick: () -> Unit,
+    initialSegment: Int = 0,
+    onTaskDetailsClick: (TaskModel) -> Unit = {}  // ← ADD THIS
+) {
     var selectedSegment    by remember { mutableStateOf(initialSegment) }
     var showCreateTask     by remember { mutableStateOf(false) }
     var createdTask        by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
@@ -534,14 +569,19 @@ private fun ParentTasksTab(currentUser: UserModel, onUpgradeClick: () -> Unit, i
         }
 
         when (selectedSegment) {
-            0 -> TaskListScreen(currentUser = currentUser, onCreateTaskClick = { showCreateTask = true }, onBackClick = { })
+            0 -> TaskListScreen(
+                currentUser = currentUser,
+                onCreateTaskClick = { showCreateTask = true },
+                onTaskDetailsClick = onTaskDetailsClick  // ← PASS IT HERE
+            )
             1 -> ParentPendingTasksScreen(currentUser = currentUser, onBackClick = { })
             2 -> ActiveChallengesScreen(
                 currentUser           = currentUser,
                 onBackClick           = { },
                 onStartChallengeClick = { showStartChallenge = true },
                 onChallengeClick      = { challenge -> selectedChallenge = challenge }
-            )        }
+            )
+        }
     }
 
     // Challenge detail sheet
