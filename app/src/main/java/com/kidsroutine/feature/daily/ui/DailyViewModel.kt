@@ -224,10 +224,25 @@ class DailyViewModel @Inject constructor(
                                 }
                             }
 
+                            // ✅ NEW: Update Room database with modified task data
+                            for ((taskId, updatedTask) in updatedTasksMap) {
+                                val instanceToUpdate = currentState.dailyState.tasks.find { it.task.id == taskId }
+                                if (instanceToUpdate != null) {
+                                    // Save the updated task to Room
+                                    dailyRepository.saveDailyTasks(
+                                        currentState.currentUser.familyId,
+                                        currentState.dailyState.userId,
+                                        DateUtils.todayString(),
+                                        listOf(instanceToUpdate.copy(task = updatedTask))
+                                    )
+                                    Log.d("DailyViewModel", "✅ Updated in Room: ${updatedTask.title}")
+                                }
+                            }
+
                             val updatedDailyState = currentState.dailyState.copy(tasks = updatedTasks)
                             _uiState.value = currentState.copy(dailyState = updatedDailyState)
 
-                            Log.d("DailyViewModel", "✅ Updated ${updatedTasksMap.size} modified tasks in UI")
+                            Log.d("DailyViewModel", "✅ Updated ${updatedTasksMap.size} modified tasks in UI and Room")
                         }
                     }
                 }
@@ -244,11 +259,24 @@ class DailyViewModel @Inject constructor(
                             task.task.id in deletedTaskIds
                         }
 
+                        // ✅ NEW: Delete from Room database
+                        for (deletedTaskId in deletedTaskIds) {
+                            val taskToDelete = currentState.dailyState.tasks.find { it.task.id == deletedTaskId }
+                            if (taskToDelete != null) {
+                                dailyRepository.deleteTaskInstance(
+                                    currentState.currentUser.familyId,
+                                    currentState.dailyState.userId,
+                                    taskToDelete.instanceId
+                                )
+                                Log.d("DailyViewModel", "🗑️ Deleted from Room: ${taskToDelete.task.title}")
+                            }
+                        }
+
                         // Update the dailyState with filtered tasks
                         val updatedDailyState = currentState.dailyState.copy(tasks = updatedTasks)
                         _uiState.value = currentState.copy(dailyState = updatedDailyState)
 
-                        Log.d("DailyViewModel", "✅ Removed ${deletedTaskIds.size} deleted tasks from UI")
+                        Log.d("DailyViewModel", "✅ Removed ${deletedTaskIds.size} deleted tasks from UI and Room")
                     }
                 }
             }
