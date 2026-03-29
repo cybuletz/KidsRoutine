@@ -228,14 +228,12 @@ class DailyViewModel @Inject constructor(
                             for ((taskId, updatedTask) in updatedTasksMap) {
                                 val instanceToUpdate = currentState.dailyState.tasks.find { it.task.id == taskId }
                                 if (instanceToUpdate != null) {
-                                    // Save the updated task to Room
-                                    dailyRepository.saveDailyTasks(
+                                    dailyRepository.updateTaskInRoom(
                                         currentState.currentUser.familyId,
                                         currentState.dailyState.userId,
-                                        DateUtils.todayString(),
-                                        listOf(instanceToUpdate.copy(task = updatedTask))
+                                        instanceToUpdate.instanceId,
+                                        updatedTask
                                     )
-                                    Log.d("DailyViewModel", "✅ Updated in Room: ${updatedTask.title}")
                                 }
                             }
 

@@ -26,4 +26,6 @@ interface DailyRepository {
     // ✅ NEW: requires familyId
     suspend fun deleteTaskInstance(familyId: String, userId: String, instanceId: String)
 
+    suspend fun updateTaskInRoom(familyId: String, userId: String, instanceId: String, updatedTask: TaskModel)
+
 }

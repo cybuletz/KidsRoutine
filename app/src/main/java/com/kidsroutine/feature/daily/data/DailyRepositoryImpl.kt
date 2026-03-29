@@ -2,6 +2,7 @@ package com.kidsroutine.feature.daily.data
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kidsroutine.core.common.util.DateUtils
 import com.kidsroutine.core.database.dao.TaskInstanceDao
 import com.kidsroutine.core.database.dao.TaskProgressDao
 import com.kidsroutine.core.database.entity.TaskInstanceEntity
@@ -127,6 +128,26 @@ class DailyRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("DailyRepository", "Error refreshing tasks for date", e)
+        }
+    }
+
+    override suspend fun updateTaskInRoom(familyId: String, userId: String, instanceId: String, updatedTask: TaskModel) {
+        try {
+            val entity = TaskInstanceEntity(
+                instanceId = instanceId,
+                templateId = "", // dummy
+                taskJson = json.toJson(updatedTask),
+                assignedDate = DateUtils.todayString(),
+                userId = userId,
+                familyId = familyId,
+                injectedByChallengeId = null,
+                status = "PENDING",
+                completedAt = 0L
+            )
+            taskInstanceDao.insertAll(listOf(entity))
+            Log.d("DailyRepository", "✅ Task updated in Room: ${updatedTask.title}")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "Error updating task in Room", e)
         }
     }
 
