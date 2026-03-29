@@ -23,6 +23,7 @@ interface DailyRepository {
     suspend fun refreshTasksForDate(familyId: String, userId: String, date: String)
     suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate>
     suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel>
-    suspend fun deleteTaskInstance(userId: String, instanceId: String)
+    // ✅ NEW: requires familyId
+    suspend fun deleteTaskInstance(familyId: String, userId: String, instanceId: String)
 
 }

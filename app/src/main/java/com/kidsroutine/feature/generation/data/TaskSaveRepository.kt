@@ -69,7 +69,7 @@ class TaskSaveRepository @Inject constructor(
                 reward = TaskReward(xp = generatedTask.xpReward),
                 requiresParent = false,
                 requiresCoop = false,
-                createdBy = if (createdBy == "PARENT_AI") TaskCreator.PARENT else TaskCreator.SYSTEM,
+                createdBy = TaskCreator.AI_GENERATED,  // ✅ All AI-generated tasks use this
                 familyId = familyId,
                 isActive = true
             )

@@ -157,10 +157,11 @@ class DailyRepositoryImpl @Inject constructor(
     }
 
     // ✨ NEW: Delete a task instance
-    override suspend fun deleteTaskInstance(userId: String, instanceId: String) {
+    // ✅ NEW: requires familyId
+    override suspend fun deleteTaskInstance(familyId: String, userId: String, instanceId: String) {
         try {
-            Log.d("DailyRepository", "Deleting task instance: $instanceId for user: $userId")
-            taskInstanceDao.deleteByInstanceId(userId, instanceId)
+            Log.d("DailyRepository", "Deleting task instance: $instanceId for user: $userId in family: $familyId")
+            taskInstanceDao.deleteByInstanceId(familyId, userId, instanceId)
             Log.d("DailyRepository", "✅ Task instance deleted: $instanceId")
         } catch (e: Exception) {
             Log.e("DailyRepository", "❌ Error deleting task instance: ${e.message}", e)

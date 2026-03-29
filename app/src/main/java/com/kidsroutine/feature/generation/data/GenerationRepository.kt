@@ -465,7 +465,7 @@ fun GeneratedTask.toTaskModel(familyId: String): TaskModel {
         difficulty  = DifficultyLevel.valueOf(this.difficulty.takeIf { it.isNotBlank() } ?: "MEDIUM"),
         estimatedDurationSec = this.estimatedDurationSec,
         reward      = TaskReward(xp = this.xpReward),
-        createdBy   = TaskCreator.PARENT_AI,
+        createdBy = TaskCreator.AI_GENERATED,  // ✅ Use AI_GENERATED instead
         familyId    = familyId
     )
 }
