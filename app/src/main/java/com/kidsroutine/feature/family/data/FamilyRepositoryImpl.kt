@@ -54,6 +54,18 @@ class FamilyRepositoryImpl @Inject constructor(
             .update("familyId", familyId)
             .await()
 
+        // ✅ ADD THIS: Create parent in family/users
+        firestore.collection("families")
+            .document(familyId)
+            .collection("users")
+            .document(userId)
+            .set(mapOf(
+                "userId" to userId,
+                "familyId" to familyId,
+                "joinedAt" to System.currentTimeMillis()
+            ))
+            .await()
+
         // Sync familyId into Room so observeUser() emits the change immediately
         userDao.getUserSync(userId)?.let { entity ->
             userDao.upsert(entity.copy(familyId = familyId))
@@ -154,6 +166,18 @@ class FamilyRepositoryImpl @Inject constructor(
             userDao.getUserSync(memberId)?.let { entity ->
                 userDao.upsert(entity.copy(familyId = familyId))
             }
+
+            // ✅ ADD THIS: Create child in family/users
+            firestore.collection("families")
+                .document(familyId)
+                .collection("users")
+                .document(memberId)
+                .set(mapOf(
+                    "userId" to memberId,
+                    "familyId" to familyId,
+                    "joinedAt" to System.currentTimeMillis()
+                ))
+                .await()
 
             Log.d("FamilyRepository", "Member added: $memberId to family: $familyId")
         } catch (e: Exception) {
