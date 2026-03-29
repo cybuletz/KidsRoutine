@@ -61,7 +61,7 @@ class TaskRepository @Inject constructor(
             Log.d("TaskRepository", "Updating task: ${task.id}")
             val batch = firestore.batch()
 
-            // ✅ SINGLE UPDATE: Family-scoped ONLY
+            // ✅ UPDATE family-scoped task
             val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
@@ -69,23 +69,45 @@ class TaskRepository @Inject constructor(
                 .document(task.id)
             batch.set(familyTaskRef, task)
 
-            // Touch all assignments to trigger client refresh
-            val assignments = firestore
-                .collection("taskAssignments")
-                .whereEqualTo("taskId", task.id)
+            // ✅ Get ALL users in this family
+            val usersSnapshot = firestore
+                .collection("families")
+                .document(familyId)
+                .collection("users")
                 .get()
                 .await()
 
-            Log.d("TaskRepository", "Found ${assignments.size()} assignments for task ${task.id}")
+            Log.d("TaskRepository", "Found ${usersSnapshot.size()} users in family")
 
-            for (doc in assignments.documents) {
-                batch.update(doc.reference, mapOf(
-                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
-                ))
+            var assignmentsTouched = 0
+
+            // ✅ For each user, find and touch their assignments for this task
+            for (userDoc in usersSnapshot.documents) {
+                val userId = userDoc.id
+
+                val assignmentsSnapshot = firestore
+                    .collection("families")
+                    .document(familyId)
+                    .collection("users")
+                    .document(userId)
+                    .collection("assignments")
+                    .whereEqualTo("taskId", task.id)
+                    .get()
+                    .await()
+
+                Log.d("TaskRepository", "User $userId has ${assignmentsSnapshot.size()} assignments for this task")
+
+                for (assignmentDoc in assignmentsSnapshot.documents) {
+                    batch.update(
+                        assignmentDoc.reference,
+                        mapOf("updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp())
+                    )
+                    assignmentsTouched++
+                }
             }
 
             batch.commit().await()
-            Log.d("TaskRepository", "✅ Task updated successfully + ${assignments.size()} assignments touched")
+            Log.d("TaskRepository", "✅ Task updated successfully + $assignmentsTouched assignments touched")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error updating task", e)
             throw e
@@ -97,7 +119,7 @@ class TaskRepository @Inject constructor(
             Log.d("TaskRepository", "Deleting task: $taskId")
             val batch = firestore.batch()
 
-            // ✅ DELETE ONLY from family-scoped (not global)
+            // ✅ DELETE from family-scoped tasks
             val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
@@ -105,22 +127,40 @@ class TaskRepository @Inject constructor(
                 .document(taskId)
             batch.delete(familyTaskRef)
 
-            // Delete all assignments
-            val assignments = firestore
-                .collection("taskAssignments")
-                .whereEqualTo("taskId", taskId)
+            // ✅ Delete all assignments across all users
+            // NEW PATH: /families/{familyId}/users/{userId}/assignments/
+            var assignmentsDeleted = 0
+
+            // Get all users in family
+            val usersSnapshot = firestore
+                .collection("families")
+                .document(familyId)
+                .collection("users")
                 .get()
                 .await()
 
-            Log.d("TaskRepository", "Found ${assignments.size()} assignments for taskId=$taskId")
+            // For each user, delete their assignments that reference this task
+            for (userDoc in usersSnapshot.documents) {
+                val userId = userDoc.id
+                val assignmentsSnapshot = firestore
+                    .collection("families")
+                    .document(familyId)
+                    .collection("users")
+                    .document(userId)
+                    .collection("assignments")
+                    .whereEqualTo("taskId", taskId)
+                    .get()
+                    .await()
 
-            for (doc in assignments.documents) {
-                Log.d("TaskRepository", "Deleting assignment: ${doc.id}")
-                batch.delete(doc.reference)
+                for (assignmentDoc in assignmentsSnapshot.documents) {
+                    batch.delete(assignmentDoc.reference)
+                    assignmentsDeleted++
+                    Log.d("TaskRepository", "Deleting assignment: ${assignmentDoc.id}")
+                }
             }
 
             batch.commit().await()
-            Log.d("TaskRepository", "✅ Task and ${assignments.size()} assignments deleted successfully")
+            Log.d("TaskRepository", "✅ Task deleted: $taskId + $assignmentsDeleted assignments deleted")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error deleting task", e)
             throw e

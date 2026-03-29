@@ -109,9 +109,11 @@ class DailyViewModel @Inject constructor(
 
         Log.d("DailyViewModel", "🔌 STARTING listener for child: ${user.userId} in family: ${user.familyId}")
 
+        // ✅ NEW PATH: Listen to /families/{familyId}/users/{userId}/assignments/
         assignmentListener = firestore
-            .collection("taskAssignments")
-            .whereEqualTo("childId", user.userId)
+            .collection("families").document(user.familyId)
+            .collection("users").document(user.userId)
+            .collection("assignments")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     Log.e("DailyViewModel", "Assignment listener error: ${error.message}")

@@ -6,63 +6,74 @@ const messaging = admin.messaging();
 
 /**
  * Task Update Notifications
- * Listens to global tasks collection updates
- * Syncs to family-scoped path and notifies children
+ * Listens to family-scoped task updates
+ * Touches all assignments in that family to trigger UI refresh
  */
 export const notifyTaskUpdate = functions.firestore
-  .document('tasks/{taskId}')
+  .document('families/{familyId}/tasks/{taskId}')
   .onUpdate(async (change, context) => {
     const taskId = context.params.taskId;
+    const familyId = context.params.familyId;
     const afterData = change.after.data();
 
-    console.log(`[TaskUpdate] TRIGGERED for taskId: ${taskId}`);
+    console.log(`[TaskUpdate] TRIGGERED for taskId: ${taskId} in family: ${familyId}`);
 
     try {
-      const assignmentsSnapshot = await db
-        .collection('taskAssignments')
-        .where('taskId', '==', taskId)
+      // ✅ Query all users in this family (use .doc() not .document())
+      const usersSnapshot = await db
+        .collection('families').doc(familyId)
+        .collection('users')
         .get();
 
-      console.log(`[TaskUpdate] Found ${assignmentsSnapshot.size} assignments`);
+      console.log(`[TaskUpdate] Found ${usersSnapshot.size} users in family`);
 
-      if (assignmentsSnapshot.empty) {
-        console.log("[TaskUpdate] No assignments found");
-        return;
-      }
-
-      // Mark all assignments as modified to trigger UI refresh
+      let touchedCount = 0;
       const batch = db.batch();
-      const familyId = afterData.familyId || "unknown";
 
-      for (const doc of assignmentsSnapshot.docs) {
-        batch.update(doc.ref, {
-          taskUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      await batch.commit();
-      console.log("[TaskUpdate] All assignments marked as modified");
+      // ✅ For each user, find and touch their assignments for this task
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        const assignmentsSnapshot = await db
+          .collection('families').doc(familyId)
+          .collection('users').doc(userId)
+          .collection('assignments')
+          .where('taskId', '==', taskId)
+          .get();
 
-      // Sync to family-scoped path if familyId exists
-      if (familyId !== "unknown") {
-        try {
-          await db
-            .collection("families").doc(familyId)
-            .collection("tasks").doc(taskId)
-            .update({
-              ...afterData,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-          console.log(`[TaskUpdate] Synced to family-scoped path: ${familyId}/tasks/${taskId}`);
-        } catch (e: any) {
-          console.warn(`[TaskUpdate] Could not sync to family path: ${e.message}`);
+        for (const assignmentDoc of assignmentsSnapshot.docs) {
+          batch.update(assignmentDoc.ref, {
+            taskUpdatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+          touchedCount++;
         }
       }
 
-      // Send FCM notifications to children
-      for (const assignmentDoc of assignmentsSnapshot.docs) {
-        const assignment = assignmentDoc.data();
-        const childId = assignment.childId;
+      // ✅ Commit batch updates
+      if (touchedCount > 0) {
+        await batch.commit();
+        console.log(`[TaskUpdate] ✅ Touched ${touchedCount} assignments`);
+      }
 
+      // ✅ Send FCM notifications to all children who have this task assigned
+      const childrenSet = new Set<string>();
+
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        const assignmentsSnapshot = await db
+          .collection('families').doc(familyId)
+          .collection('users').doc(userId)
+          .collection('assignments')
+          .where('taskId', '==', taskId)
+          .get();
+
+        if (!assignmentsSnapshot.empty) {
+          childrenSet.add(userId);
+        }
+      }
+
+      console.log(`[TaskUpdate] Notifying ${childrenSet.size} children`);
+
+      for (const childId of childrenSet) {
         try {
           const childDoc = await db.collection("users").doc(childId).get();
           const fcmToken = childDoc.data()?.fcmToken;
@@ -91,7 +102,10 @@ export const notifyTaskUpdate = functions.firestore
           console.log(`[TaskUpdate] FCM sent to child: ${childId}`);
         } catch (error: any) {
           if (error?.code === "messaging/registration-token-not-registered") {
+            console.log(`[TaskUpdate] Invalid FCM token for ${childId}, clearing...`);
             await db.collection("users").doc(childId).update({ fcmToken: "" });
+          } else {
+            console.error(`[TaskUpdate] Error sending to ${childId}:`, error.message);
           }
         }
       }
@@ -112,6 +126,7 @@ export const notifyTaskInstanceUpdateFamilyScoped = functions.firestore
     const afterData = change.after.data();
     const { familyId, userId, instanceId } = context.params;
 
+    // Only trigger if task just became COMPLETED
     if (beforeData.status === "COMPLETED" || afterData.status !== "COMPLETED") {
       return;
     }

@@ -286,21 +286,25 @@ fun SelectChildrenScreen(
 
 
                                 selectedChildrenIds.forEach { childId ->
-                                    val taskAssignmentId = "${childId}_${taskId}_${System.currentTimeMillis()}"
+                                    val taskAssignmentId = "${taskId}_${System.currentTimeMillis()}"
 
-                                    // Create task assignment ONLY (task already exists in families/{familyId}/tasks)
-                                    firestore.collection("taskAssignments").document(taskAssignmentId).set(
-                                        mapOf(
-                                            "taskId" to taskId,
-                                            "childId" to childId,
-                                            "familyId" to currentUser.familyId,
-                                            "assignedDate" to today,
-                                            "status" to "ASSIGNED",
-                                            "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
-                                        )
-                                    ).await()
+                                    // ✅ NEW PATH: /families/{familyId}/users/{childId}/assignments/{docId}
+                                    firestore
+                                        .collection("families").document(currentUser.familyId)
+                                        .collection("users").document(childId)
+                                        .collection("assignments").document(taskAssignmentId)
+                                        .set(
+                                            mapOf(
+                                                "taskId" to taskId,
+                                                "childId" to childId,
+                                                "familyId" to currentUser.familyId,
+                                                "assignedDate" to today,
+                                                "status" to "ASSIGNED",
+                                                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                                            )
+                                        ).await()
 
-                                    Log.d("SelectChildren", "Task assignment created for child: $childId")
+                                    Log.d("SelectChildren", "Task assignment created for child: $childId at /families/${currentUser.familyId}/users/$childId/assignments/")
                                 }
 
                                 isSaving = false

@@ -9,8 +9,9 @@ const messaging = admin.messaging();
  * Listens to taskAssignments deletions
  * Notifies child that task was removed
  */
+// ✅ NEW: Listen to family-scoped assignment deletions
 export const notifyTaskDeletion = functions.firestore
-  .document("taskAssignments/{docId}")
+  .document("families/{familyId}/users/{userId}/assignments/{docId}")
   .onDelete(async (snap: any, context: any) => {
     const assignment = snap.data();
     const childId = assignment.childId;

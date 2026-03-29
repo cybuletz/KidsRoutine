@@ -75,15 +75,17 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
-    // ✅ NEW: requires familyId
     override suspend fun refreshTasksForDate(familyId: String, userId: String, date: String) {
         try {
             Log.d("DailyRepository", "Refreshing tasks for family=$familyId, user=$userId, date=$date")
 
-            // Re-fetch assigned tasks
+            // ✅ NEW PATH: /families/{familyId}/users/{userId}/assignments/
             val assignmentsSnapshot = firestore
-                .collection("taskAssignments")
-                .whereEqualTo("childId", userId)
+                .collection("families")
+                .document(familyId)
+                .collection("users")
+                .document(userId)
+                .collection("assignments")
                 .whereEqualTo("status", "ASSIGNED")
                 .get()
                 .await()
@@ -93,7 +95,7 @@ class DailyRepositoryImpl @Inject constructor(
 
             for (taskId in taskIds) {
                 try {
-                    // ✅ CHANGED: Fetch from family-scoped path
+                    // Fetch from family-scoped path
                     val taskDoc = firestore
                         .collection("families").document(familyId)
                         .collection("tasks").document(taskId)
@@ -159,7 +161,6 @@ class DailyRepositoryImpl @Inject constructor(
     }
 
     // ✨ NEW: Delete a task instance
-    // ✅ NEW: requires familyId
     override suspend fun deleteTaskInstance(familyId: String, userId: String, instanceId: String) {
         try {
             Log.d("DailyRepository", "Deleting task instance: $instanceId for user: $userId in family: $familyId")

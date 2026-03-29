@@ -137,16 +137,19 @@ class GenerateDailyTasksUseCase @Inject constructor(
     private suspend fun fetchParentAssignedTasks(user: UserModel, date: String): List<TaskInstance> {
         val result = mutableListOf<TaskInstance>()
         try {
+            // ✅ NEW PATH: /families/{familyId}/users/{userId}/assignments/
             val assignmentsSnapshot = firestore
-                .collection("taskAssignments")
-                .whereEqualTo("childId", user.userId)
+                .collection("families")
+                .document(user.familyId)
+                .collection("users")
+                .document(user.userId)
+                .collection("assignments")
                 .whereEqualTo("status", "ASSIGNED")
                 .get().await()
 
             val assignedTaskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
             for (taskId in assignedTaskIds) {
                 try {
-                    // ✅ CHANGED: Fetch from family-scoped path
                     val taskDoc = firestore
                         .collection("families").document(user.familyId)
                         .collection("tasks").document(taskId)

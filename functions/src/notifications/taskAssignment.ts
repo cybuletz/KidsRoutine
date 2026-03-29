@@ -9,8 +9,9 @@ const messaging = admin.messaging();
  * Listens to taskAssignments creation
  * Notifies child of new task
  */
+// ✅ NEW PATH: Listen to family-scoped assignments
 export const notifyTaskAssignment = functions.firestore
-  .document("taskAssignments/{docId}")
+  .document("families/{familyId}/users/{userId}/assignments/{docId}")
   .onCreate(async (snap: any, context: any) => {
     const assignment = snap.data();
     const childId = assignment.childId;
