@@ -36,4 +36,15 @@ interface TaskInstanceDao {
 
     @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
     suspend fun deleteAllForUserAndDate(userId: String, date: String)
+
+    // ✅ ADD THIS: Atomic delete + insert transaction
+    @Transaction
+    suspend fun deleteAndInsertForUserAndDate(
+        userId: String,
+        date: String,
+        newEntities: List<TaskInstanceEntity>
+    ) {
+        deleteAllForUserAndDate(userId, date)
+        insertAll(newEntities)
+    }
 }

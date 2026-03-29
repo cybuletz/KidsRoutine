@@ -128,7 +128,6 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
-    // ✅ NEW: requires familyId
     override suspend fun mergeAssignedTasks(
         familyId: String,
         userId: String,
@@ -136,10 +135,6 @@ class DailyRepositoryImpl @Inject constructor(
         newInstances: List<TaskInstance>
     ) {
         try {
-            // ✅ FIRST: Delete all existing instances for this user/date
-            taskInstanceDao.deleteAllForUserAndDate(userId, date)
-
-            // ✅ THEN: Insert the new ones
             val entitiesToInsert = newInstances.map { instance ->
                 TaskInstanceEntity(
                     instanceId = instance.instanceId,
@@ -153,7 +148,10 @@ class DailyRepositoryImpl @Inject constructor(
                     completedAt = instance.completedAt
                 )
             }
-            taskInstanceDao.insertAll(entitiesToInsert)
+
+            // ✅ CHANGED: Use atomic transaction instead of separate delete + insert
+            taskInstanceDao.deleteAndInsertForUserAndDate(userId, date, entitiesToInsert)
+
             Log.d("DailyRepository", "✅ Merged ${newInstances.size} new assigned tasks for family=$familyId, user=$userId")
         } catch (e: Exception) {
             Log.e("DailyRepository", "Error merging assigned tasks", e)
