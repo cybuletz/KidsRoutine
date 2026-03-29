@@ -188,9 +188,45 @@ class DailyViewModel @Inject constructor(
                 if (modifiedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "✏️ ${modifiedChanges.size} task assignment(s) modified")
                     viewModelScope.launch {
-                        // ✅ NEW: Pass familyId to refreshTasksForDate
-                        dailyRepository.refreshTasksForDate(user.familyId, user.userId, date)
-                        Log.d("DailyViewModel", "✅ Refreshed tasks for modifications")
+                        val modifiedTaskIds = modifiedChanges.mapNotNull { it.document.getString("taskId") }
+
+                        // Fetch updated task data
+                        val updatedTasksMap = mutableMapOf<String, TaskModel>()
+
+                        for (taskId in modifiedTaskIds) {
+                            try {
+                                val taskDoc = firestore
+                                    .collection("families").document(user.familyId)
+                                    .collection("tasks").document(taskId)
+                                    .get()
+                                    .await()
+
+                                val taskModel = taskDoc.toObject(TaskModel::class.java)
+                                if (taskModel != null) {
+                                    updatedTasksMap[taskId] = taskModel
+                                    Log.d("DailyViewModel", "Updated task fetched: ${taskModel.title}")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("DailyViewModel", "Error fetching updated task $taskId", e)
+                            }
+                        }
+
+                        if (updatedTasksMap.isNotEmpty()) {
+                            // Update UI state with fresh task data (keeping same instances)
+                            val currentState = _uiState.value
+                            val updatedTasks = currentState.dailyState.tasks.map { instance ->
+                                if (instance.task.id in updatedTasksMap) {
+                                    instance.copy(task = updatedTasksMap[instance.task.id]!!)
+                                } else {
+                                    instance
+                                }
+                            }
+
+                            val updatedDailyState = currentState.dailyState.copy(tasks = updatedTasks)
+                            _uiState.value = currentState.copy(dailyState = updatedDailyState)
+
+                            Log.d("DailyViewModel", "✅ Updated ${updatedTasksMap.size} modified tasks in UI")
+                        }
                     }
                 }
 
@@ -198,10 +234,19 @@ class DailyViewModel @Inject constructor(
                 if (deletedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🗑️ ${deletedChanges.size} task assignment(s) deleted")
                     viewModelScope.launch {
-                        // When task is deleted, trigger a refresh to update progress
-                        // ✅ NEW: Pass familyId to refreshTasksForDate
-                        dailyRepository.refreshTasksForDate(user.familyId, user.userId, date)
-                        Log.d("DailyViewModel", "✅ Refreshed tasks after deletion")
+                        val deletedTaskIds = deletedChanges.mapNotNull { it.document.getString("taskId") }
+
+                        // Remove these task instances from Room/UI
+                        val currentState = _uiState.value
+                        val updatedTasks = currentState.dailyState.tasks.filterNot { task ->
+                            task.task.id in deletedTaskIds
+                        }
+
+                        // Update the dailyState with filtered tasks
+                        val updatedDailyState = currentState.dailyState.copy(tasks = updatedTasks)
+                        _uiState.value = currentState.copy(dailyState = updatedDailyState)
+
+                        Log.d("DailyViewModel", "✅ Removed ${deletedTaskIds.size} deleted tasks from UI")
                     }
                 }
             }

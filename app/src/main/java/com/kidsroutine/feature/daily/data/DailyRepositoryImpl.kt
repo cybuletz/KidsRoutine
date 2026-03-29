@@ -129,30 +129,34 @@ class DailyRepositoryImpl @Inject constructor(
     }
 
     // ✅ NEW: requires familyId
-    override suspend fun mergeAssignedTasks(familyId: String, userId: String, date: String, freshTasks: List<TaskInstance>) {
+    override suspend fun mergeAssignedTasks(
+        familyId: String,
+        userId: String,
+        date: String,
+        newInstances: List<TaskInstance>
+    ) {
         try {
-            val existingIds = taskInstanceDao.getExistingInstanceIds(familyId, userId, date)
-            val newTasks = freshTasks.filter { it.instanceId !in existingIds }
-            if (newTasks.isNotEmpty()) {
-                // ✅ Convert TaskInstance to TaskInstanceEntity inline
-                val entitiesToInsert = newTasks.map { instance ->
-                    TaskInstanceEntity(
-                        instanceId            = instance.instanceId,
-                        templateId            = instance.templateId,
-                        taskJson              = json.toJson(instance.task),
-                        assignedDate          = instance.assignedDate,
-                        userId                = userId,
-                        familyId              = familyId,  // ✅ NEW
-                        injectedByChallengeId = instance.injectedByChallengeId,
-                        status                = instance.status.name,
-                        completedAt           = instance.completedAt
-                    )
-                }
-                taskInstanceDao.insertAll(entitiesToInsert)
-                Log.d("DailyRepository", "✅ Merged ${newTasks.size} new assigned tasks for family=$familyId, user=$userId")
+            // ✅ FIRST: Delete all existing instances for this user/date
+            taskInstanceDao.deleteAllForUserAndDate(userId, date)
+
+            // ✅ THEN: Insert the new ones
+            val entitiesToInsert = newInstances.map { instance ->
+                TaskInstanceEntity(
+                    instanceId = instance.instanceId,
+                    templateId = instance.templateId,
+                    taskJson = json.toJson(instance.task),
+                    assignedDate = instance.assignedDate,
+                    userId = userId,
+                    familyId = familyId,
+                    injectedByChallengeId = instance.injectedByChallengeId,
+                    status = instance.status.name,
+                    completedAt = instance.completedAt
+                )
             }
+            taskInstanceDao.insertAll(entitiesToInsert)
+            Log.d("DailyRepository", "✅ Merged ${newInstances.size} new assigned tasks for family=$familyId, user=$userId")
         } catch (e: Exception) {
-            Log.e("DailyRepository", "❌ Error merging assigned tasks", e)
+            Log.e("DailyRepository", "Error merging assigned tasks", e)
         }
     }
 

@@ -33,4 +33,7 @@ interface TaskInstanceDao {
 
     @Query("DELETE FROM task_instances WHERE familyId = :familyId AND userId = :userId AND instanceId = :instanceId")
     suspend fun deleteByInstanceId(familyId: String, userId: String, instanceId: String)
+
+    @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    suspend fun deleteAllForUserAndDate(userId: String, date: String)
 }
