@@ -84,8 +84,7 @@ fun DailyScreen(
     LaunchedEffect(Unit) {
         RefreshEventManager.refreshEvent.collect {
             Log.d("DailyScreen", "🔔 Push refresh — forceRefresh")
-            viewModel.forceRefresh(currentUser)
-        }
+            viewModel.forceRefresh()        }
     }
 
     Box(
@@ -166,8 +165,10 @@ private fun DailyContent(
                     completedTaskTitles = uiState.dailyState.tasks
                         .filter { it.status == TaskStatus.COMPLETED }
                         .map { it.task.title },
-                    onAccept = { task ->
-                        viewModel.addSuggestedTask(task)
+                    onAccept = { generatedTask ->
+                        // ✅ Convert GeneratedTask to TaskModel
+                        val taskModel = generatedTask.toTaskModel(uiState.currentUser.familyId)
+                        viewModel.addSuggestedTask(taskModel)
                     }
                 )
             }

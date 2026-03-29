@@ -64,13 +64,13 @@ class DailyRepositoryImpl @Inject constructor(
                 }
 
             DailyStateModel(
-                date           = date,
-                userId         = userId,
-                tasks          = instances,   // ✅ Only PENDING tasks for display
-                completedCount = completedCount,
-                totalTasksAssigned = totalTasksAssigned,
-                totalXpEarned  = totalXp,
-                isGenerated    = allEntities.isNotEmpty()
+                date                = date,
+                userId              = userId,
+                tasks               = instances,
+                completedCount      = completedCount,
+                totalTasksAssigned  = totalTasksAssigned,  // ✅ ADD THIS
+                totalXpEarned       = totalXp,
+                isGenerated         = allEntities.isNotEmpty()
             )
         }
     }
@@ -179,6 +179,7 @@ class DailyRepositoryImpl @Inject constructor(
                 .collection("families").document(familyId)
                 .collection("users").document(userId)
 
+            // ✅ Save to Firestore
             for (instance in tasks) {
                 val ref = userRef.collection("task_instances").document(instance.instanceId)
                 batch.set(ref, mapOf(
@@ -188,8 +189,8 @@ class DailyRepositoryImpl @Inject constructor(
                     "taskType"     to instance.task.type.name,
                     "title"        to instance.task.title,
                     "date"         to instance.assignedDate,
-                    "familyId"     to familyId,  // ✅ NEW
-                    "userId"       to userId,    // ✅ NEW
+                    "familyId"     to familyId,
+                    "userId"       to userId,
                     "requiresCoop" to instance.task.requiresCoop,
                     "xp"           to instance.task.reward.xp,
                     "injectedByChallengeId" to instance.injectedByChallengeId,
@@ -198,7 +199,24 @@ class DailyRepositoryImpl @Inject constructor(
                 ))
             }
             batch.commit().await()
-            Log.d("DailyRepository", "✅ Daily tasks saved to Firestore for family=$familyId, user=$userId")
+
+            // ✅ Save to Room local DB
+            val entitiesToInsert = tasks.map { instance ->
+                TaskInstanceEntity(
+                    instanceId            = instance.instanceId,
+                    templateId            = instance.templateId,
+                    taskJson              = json.toJson(instance.task),
+                    assignedDate          = instance.assignedDate,
+                    userId                = userId,
+                    familyId              = familyId,
+                    injectedByChallengeId = instance.injectedByChallengeId,
+                    status                = instance.status.name,
+                    completedAt           = instance.completedAt
+                )
+            }
+            taskInstanceDao.insertAll(entitiesToInsert)
+
+            Log.d("DailyRepository", "✅ Daily tasks saved to Firestore and Room for family=$familyId, user=$userId")
         } catch (e: Exception) {
             Log.e("DailyRepository", "❌ Failed to save daily tasks", e)
             throw e

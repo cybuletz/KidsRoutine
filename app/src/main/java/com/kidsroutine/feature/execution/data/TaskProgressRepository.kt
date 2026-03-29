@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface TaskProgressRepository {
     suspend fun saveProgress(progress: TaskProgressModel)
     suspend fun getProgress(taskInstanceId: String): TaskProgressModel?
-    fun observeProgress(userId: String, date: String): Flow<List<TaskProgressModel>>
+    // ✅ NEW: requires familyId
+    fun observeProgress(familyId: String, userId: String, date: String): Flow<List<TaskProgressModel>>
     suspend fun syncPendingToFirestore()
 }

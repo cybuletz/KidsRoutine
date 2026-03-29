@@ -95,7 +95,7 @@ class ExecutionViewModel @Inject constructor(
                 photoUrl       = state.photoUrl,
                 currentStreak  = user?.streak ?: 0,
                 lastActiveDate = user?.lastActiveDate ?: "",
-                childName      = user?.name ?: "",
+                childName = user?.displayName ?: "",  // ✅ Use displayName (from UserModel)
                 childAge       = user?.age ?: 8,
                 familyId       = user?.familyId ?: ""
             )

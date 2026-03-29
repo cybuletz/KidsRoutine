@@ -218,6 +218,40 @@ class DailyViewModel @Inject constructor(
         }
     }
 
+    // ✅ NEW: Force refresh tasks (called from UI)
+    fun forceRefresh() {
+        val state = _uiState.value
+        if (state.dailyState.userId.isNotEmpty() && state.currentUser.familyId.isNotEmpty()) {
+            viewModelScope.launch {
+                dailyRepository.refreshTasksForDate(
+                    state.currentUser.familyId,
+                    state.dailyState.userId,
+                    DateUtils.todayString()
+                )
+                Log.d("DailyViewModel", "✅ Tasks refreshed")
+            }
+        }
+    }
+
+    // ✅ NEW: Add AI-suggested task
+    fun addSuggestedTask(task: TaskModel) {
+        val user = _uiState.value.currentUser
+        viewModelScope.launch {
+            try {
+                taskSaveRepository.assignTaskToChild(
+                    taskId = task.id,
+                    childId = user.userId,
+                    familyId = user.familyId
+                )
+                Log.d("DailyViewModel", "✅ Suggested task added: ${task.title}")
+                // Refresh to show the new task
+                forceRefresh()
+            } catch (e: Exception) {
+                Log.e("DailyViewModel", "❌ Error adding suggested task", e)
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         assignmentListener?.remove()

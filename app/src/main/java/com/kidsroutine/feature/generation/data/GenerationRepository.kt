@@ -3,11 +3,17 @@ package com.kidsroutine.feature.generation.data
 import android.util.Log
 import com.google.firebase.functions.FirebaseFunctions
 import com.kidsroutine.core.ai.AIGenerationService
+import com.kidsroutine.core.model.DifficultyLevel
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.kidsroutine.core.model.StoryArc
 import com.kidsroutine.core.model.StoryChapter
+import com.kidsroutine.core.model.TaskCategory
+import com.kidsroutine.core.model.TaskCreator
+import com.kidsroutine.core.model.TaskModel
+import com.kidsroutine.core.model.TaskReward
+import com.kidsroutine.core.model.TaskType
 
 /**
  * Repository for AI generation operations
@@ -448,3 +454,18 @@ data class GeneratedChallengesResponse(
     val cached: Boolean,
     val quotaRemaining: Int
 )
+
+fun GeneratedTask.toTaskModel(familyId: String): TaskModel {
+    return TaskModel(
+        id          = "gen_${System.currentTimeMillis()}",
+        type        = TaskType.valueOf(this.type.takeIf { it.isNotBlank() } ?: "REAL_LIFE"),
+        title       = this.title,
+        description = this.description,
+        category    = TaskCategory.valueOf(this.category.takeIf { it.isNotBlank() } ?: "CREATIVITY"),
+        difficulty  = DifficultyLevel.valueOf(this.difficulty.takeIf { it.isNotBlank() } ?: "MEDIUM"),
+        estimatedDurationSec = this.estimatedDurationSec,
+        reward      = TaskReward(xp = this.xpReward),
+        createdBy   = TaskCreator.PARENT_AI,
+        familyId    = familyId
+    )
+}

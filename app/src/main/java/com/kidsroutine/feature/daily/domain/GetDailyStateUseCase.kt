@@ -9,7 +9,7 @@ class GetDailyStateUseCase @Inject constructor(
     private val repository: DailyRepository
 ) {
     // ✅ NEW: requires familyId
-    operator fun invoke(familyId: String, userId: String, date: String): Flow<DailyStateModel> =
-        // ✅ NEW: Pass familyId
+    operator fun invoke(familyId: String, userId: String, date: String): Flow<DailyStateModel> {
         return repository.observeDailyState(familyId, userId, date)
+    }
 }
