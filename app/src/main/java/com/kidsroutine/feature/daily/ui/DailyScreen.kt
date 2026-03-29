@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kidsroutine.core.engine.SeasonalThemeManager
 import com.kidsroutine.feature.daily.ui.AiSuggestionCard
+import com.kidsroutine.feature.generation.data.toTaskModel
 
 
 
