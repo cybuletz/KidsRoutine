@@ -7,12 +7,22 @@ import com.kidsroutine.core.model.TaskTemplate
 import kotlinx.coroutines.flow.Flow
 
 interface DailyRepository {
-    fun observeDailyState(userId: String, date: String): Flow<DailyStateModel>
-    suspend fun saveDailyTasks(userId: String, date: String, tasks: List<TaskInstance>)
-    suspend fun hasTasksForDate(userId: String, date: String): Boolean
+    // ✅ NEW: requires familyId
+    suspend fun saveDailyTasks(familyId: String, userId: String, date: String, tasks: List<TaskInstance>)
+
+    // ✅ NEW: requires familyId
+    fun observeDailyState(familyId: String, userId: String, date: String): Flow<DailyStateModel>
+
+    // ✅ NEW: requires familyId
+    suspend fun hasTasksForDate(familyId: String, userId: String, date: String): Boolean
+
+    // ✅ NEW: requires familyId
+    suspend fun mergeAssignedTasks(familyId: String, userId: String, date: String, freshTasks: List<TaskInstance>)
+
+    // ✅ NEW: requires familyId
+    suspend fun refreshTasksForDate(familyId: String, userId: String, date: String)
     suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate>
     suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel>
-    suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>)
     suspend fun deleteTaskInstance(userId: String, instanceId: String)
-    suspend fun refreshTasksForDate(userId: String, date: String)
+
 }

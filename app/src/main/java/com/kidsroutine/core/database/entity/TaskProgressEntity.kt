@@ -7,12 +7,12 @@ import androidx.room.PrimaryKey
 data class TaskProgressEntity(
     @PrimaryKey val taskInstanceId: String,
     val userId: String,
+    val familyId: String,  // ✅ NEW: Required for queries
     val date: String,
     val status: String,
     val completionTime: Long?,
     val validationStatus: String,
     val photoUrl: String?,
-    val taskTitle: String = "",      // ← ADD THIS
-    val familyId: String = "",       // ← ADD THIS
+    val taskTitle: String = "",
     val syncedToFirestore: Boolean = false
 )

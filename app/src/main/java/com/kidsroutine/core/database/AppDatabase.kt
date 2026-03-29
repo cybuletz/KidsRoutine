@@ -72,6 +72,15 @@ val MIGRATION_5_TO_6 = object : Migration(5, 6) {
     }
 }
 
+val MIGRATION_6_TO_7 = object : Migration(6, 7) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // ✅ Add familyId column to task_instances
+        database.execSQL("ALTER TABLE task_instances ADD COLUMN familyId TEXT NOT NULL DEFAULT ''")
+        // ✅ Add familyId column to task_progress
+        database.execSQL("ALTER TABLE task_progress ADD COLUMN familyId TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
@@ -79,9 +88,10 @@ val MIGRATION_5_TO_6 = object : Migration(5, 6) {
         UserEntity::class,
         AvatarEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
+
 // REMOVED: @TypeConverters(AvatarTypeConverters::class) — not needed, AvatarEntity has only primitives/Strings
 abstract class AppDatabase : RoomDatabase() {
 
@@ -103,7 +113,8 @@ abstract class AppDatabase : RoomDatabase() {
                     .addMigrations(
                         MIGRATION_1_TO_2,
                         MIGRATION_4_TO_5,
-                        MIGRATION_5_TO_6
+                        MIGRATION_5_TO_6,
+                        MIGRATION_6_TO_7
                     )
                     .build()
                     .also { instance = it }

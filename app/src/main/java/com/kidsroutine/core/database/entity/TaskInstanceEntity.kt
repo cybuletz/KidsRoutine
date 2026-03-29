@@ -10,7 +10,8 @@ data class TaskInstanceEntity(
     val taskJson: String,
     val assignedDate: String,
     val userId: String,
+    val familyId: String,  // ✅ NEW: Required for Firestore path scoping
     val injectedByChallengeId: String? = null,
-    val status: String = "PENDING",           // ← NEW
-    val completedAt: Long = 0L                // ← NEW
+    val status: String = "PENDING",
+    val completedAt: Long = 0L
 )

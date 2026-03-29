@@ -26,24 +26,29 @@ class CompleteTaskUseCase @Inject constructor(
     private val achievementRepository: AchievementRepository,
     private val storyArcRepository: StoryArcRepository,
     private val taskInstanceDao: com.kidsroutine.core.database.dao.TaskInstanceDao,
-    private val aiGenerationService: AIGenerationService   // ← NEW injection
+    private val aiGenerationService: AIGenerationService
 ) {
     suspend operator fun invoke(
         task: TaskModel,
         userId: String,
-        instanceId: String = task.id,   // ← NEW: actual Room instanceId
+        familyId: String,  // ✅ NEW: REQUIRED for family-scoped Firestore paths
+        instanceId: String = task.id,
         photoUrl: String? = null,
         currentStreak: Int = 0,
         lastActiveDate: String = "",
         childName: String = "",
-        childAge: Int = 8,
-        familyId: String = ""
+        childAge: Int = 8
     ): CompletionResult {
         Log.d("CompleteTaskUseCase", "=== START TASK COMPLETION ===")
-        Log.d("CompleteTaskUseCase", "userId=$userId, taskId=${task.id}, baseXp=${task.reward.xp}")
+        Log.d("CompleteTaskUseCase", "familyId=$familyId, userId=$userId, taskId=${task.id}, baseXp=${task.reward.xp}")
 
         val today      = DateUtils.todayString()
-        val progress   = TaskProgressModel(taskInstanceId = task.id, userId = userId, date = today)
+        val progress   = TaskProgressModel(
+            taskInstanceId = task.id,
+            userId = userId,
+            familyId = familyId,  // ✅ NEW
+            date = today
+        )
         val validation = taskEngine.validate(task, progress, photoUrl)
 
         val (status, validationStatus) = when (validation) {
@@ -59,67 +64,69 @@ class CompleteTaskUseCase @Inject constructor(
         val progressModel = TaskProgressModel(
             taskInstanceId    = task.id,
             userId            = userId,
+            familyId          = familyId,  // ✅ NEW
             date              = today,
             status            = status,
             completionTime    = System.currentTimeMillis(),
             validationStatus  = validationStatus,
             photoUrl          = photoUrl,
+            taskTitle         = task.title,
             syncedToFirestore = false
         )
         repository.saveProgress(progressModel)
 
-        // 1.5 Sync taskProgress to Firestore
+        // ✅ 1.5: Sync taskProgress to Firestore with FAMILY-SCOPED path
+        val completionTimestamp = System.currentTimeMillis()
         try {
-            firestore.collection("taskProgress")
-                .document("${task.id}_${userId}_${System.currentTimeMillis()}")
+            firestore
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+                .collection("task_progress")
+                .document("${instanceId}_${completionTimestamp}")
                 .set(mapOf(
                     "taskInstanceId"  to task.id,
                     "userId"          to userId,
+                    "familyId"        to familyId,  // ✅ NEW
                     "date"            to today,
                     "status"          to status.name,
-                    "completionTime"  to System.currentTimeMillis(),
+                    "completionTime"  to completionTimestamp,
                     "validationStatus" to validationStatus.name,
                     "photoUrl"        to photoUrl,
-                    "taskTitle"       to task.title,
-                    "familyId"        to task.familyId,
-                    "xpGained"        to 0
+                    "taskTitle"       to task.title
                 ))
                 .await()
+            Log.d("CompleteTaskUseCase", "✅ Task progress synced to family-scoped Firestore path")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "taskProgress Firestore sync failed", e)
+            Log.e("CompleteTaskUseCase", "❌ taskProgress Firestore sync failed", e)
         }
 
-        // 1.6 — Write task_instances to Firestore AND update local Room DB
-        val completionTimestamp = System.currentTimeMillis()
+        // ✅ 1.6: Update task_instances in Firestore with FAMILY-SCOPED path
         try {
-            firestore.collection("task_instances")
-                .document("${userId}_${task.id}_$today")
-                .set(mapOf(
-                    "userId"         to userId,
-                    "familyId"       to task.familyId,
-                    "taskId"         to task.id,
-                    "taskTitle"      to task.title,
-                    "status"         to status.name,
-                    "date"           to today,
-                    "completedAt"    to completionTimestamp,
-                    "xpReward"       to task.reward.xp
+            firestore
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+                .collection("task_instances")
+                .document(instanceId)
+                .update(mapOf(
+                    "status"      to status.name,
+                    "completedAt" to completionTimestamp
                 ))
                 .await()
-            Log.d("CompleteTaskUseCase", "task_instances Firestore doc written ✓")
+            Log.d("CompleteTaskUseCase", "✅ task_instances updated to COMPLETED in Firestore")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "task_instances Firestore write failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "❌ task_instances Firestore update failed (non-fatal)", e)
         }
 
-        // ── Update Room local DB so the Flow in DailyViewModel picks up COMPLETED status ──
+        // ✅ Update Room local DB so Room Flow picks up the COMPLETED status
         try {
             taskInstanceDao.updateStatus(
                 instanceId  = instanceId,
                 status      = status.name,
                 completedAt = completionTimestamp
             )
-            Log.d("CompleteTaskUseCase", "Room task_instances updated to COMPLETED ✓")
+            Log.d("CompleteTaskUseCase", "✅ Room task_instances updated to COMPLETED")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "Room task_instances update failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "❌ Room task_instances update failed (non-fatal)", e)
         }
 
         // 2. Calculate XP
@@ -134,11 +141,11 @@ class CompleteTaskUseCase @Inject constructor(
         try {
             userRepository.updateUserXp(userId, xpGained)
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "XP update FAILED", e)
+            Log.e("CompleteTaskUseCase", "❌ XP update FAILED", e)
             throw e
         }
 
-        // 3.1 Write streak + lastActiveDate back to Firestore users doc
+        // 3.1: Write streak + lastActiveDate back to Firestore users doc
         try {
             firestore.collection("users").document(userId).update(
                 mapOf(
@@ -147,9 +154,9 @@ class CompleteTaskUseCase @Inject constructor(
                     "lastActiveDate" to today
                 )
             ).await()
-            Log.d("CompleteTaskUseCase", "Streak updated to $newStreak ✓")
+            Log.d("CompleteTaskUseCase", "✅ Streak updated to $newStreak")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "Streak write failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "⚠️ Streak write failed (non-fatal)", e)
         }
 
         // 4. Check achievements
@@ -157,30 +164,29 @@ class CompleteTaskUseCase @Inject constructor(
             val newBadges = achievementRepository.checkAndUnlockAchievements(userId)
             if (newBadges.isNotEmpty()) Log.d("CompleteTaskUseCase", "🏆 Unlocked ${newBadges.size} badges!")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "Achievement check failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "⚠️ Achievement check failed (non-fatal)", e)
         }
 
         // 5. Advance story arc
         if (task.type == TaskType.STORY) {
             try {
                 val arcId = task.id.removePrefix("story_").substringBeforeLast("_day")
-                if (arcId.isNotBlank() && task.familyId.isNotBlank()) {
-                    val arc = storyArcRepository.getActiveArc(task.familyId)
+                if (arcId.isNotBlank()) {
+                    val arc = storyArcRepository.getActiveArc(familyId)
                     if (arc != null && arc.arcId == arcId) {
                         if (arc.currentDay >= arc.chapters.size) storyArcRepository.completeArc(arcId)
                         else storyArcRepository.advanceDay(arcId)
                     }
                 }
             } catch (e: Exception) {
-                Log.w("CompleteTaskUseCase", "Could not advance story arc: ${e.message}")
+                Log.w("CompleteTaskUseCase", "⚠️ Could not advance story arc: ${e.message}")
             }
         }
 
-        // 6. ── NEW: Generate AI celebration message (non-blocking, best-effort) ──
+        // 6. Generate AI celebration message (non-blocking, best-effort)
         var celebrationMessage = defaultCelebration(childName, task.title, newStreak)
         try {
-            val effectiveName   = childName.ifBlank { "Champion" }
-            val effectiveFamilyId = familyId.ifBlank { task.familyId }
+            val effectiveName = childName.ifBlank { "Champion" }
             val prompt = """
                 Write a single short celebratory sentence (max 12 words) for a child named $effectiveName
                 who just completed the task "${task.title}". They have a $newStreak-day streak.
@@ -192,7 +198,7 @@ class CompleteTaskUseCase @Inject constructor(
                 contentType = GenerationType.CUSTOM,
                 context     = GenerationContext(
                     userId    = userId,
-                    familyId  = effectiveFamilyId,
+                    familyId  = familyId,
                     childAge  = childAge
                 ),
                 maxTokens   = 60,
@@ -203,7 +209,7 @@ class CompleteTaskUseCase @Inject constructor(
                 if (msg.isNotBlank()) celebrationMessage = msg
             }
         } catch (e: Exception) {
-            Log.w("CompleteTaskUseCase", "Celebration message failed (non-fatal): ${e.message}")
+            Log.w("CompleteTaskUseCase", "⚠️ Celebration message failed (non-fatal): ${e.message}")
         }
 
         Log.d("CompleteTaskUseCase", "=== TASK COMPLETION SUCCESS ===")
@@ -211,7 +217,7 @@ class CompleteTaskUseCase @Inject constructor(
             xpGained           = xpGained,
             newStreak          = newStreak,
             needsParent        = validation is ValidationResult.PendingParent,
-            celebrationMessage = celebrationMessage   // ← NEW field
+            celebrationMessage = celebrationMessage
         )
     }
 
@@ -230,7 +236,7 @@ sealed class CompletionResult {
         val xpGained: Int,
         val newStreak: Int,
         val needsParent: Boolean,
-        val celebrationMessage: String = ""   // ← NEW field
+        val celebrationMessage: String = ""
     ) : CompletionResult()
     data class Rejected(val reason: String) : CompletionResult()
 }

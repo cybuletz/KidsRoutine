@@ -8,6 +8,8 @@ import javax.inject.Inject
 class GetDailyStateUseCase @Inject constructor(
     private val repository: DailyRepository
 ) {
-    operator fun invoke(userId: String, date: String): Flow<DailyStateModel> =
-        repository.observeDailyState(userId, date)
+    // ✅ NEW: requires familyId
+    operator fun invoke(familyId: String, userId: String, date: String): Flow<DailyStateModel> =
+        // ✅ NEW: Pass familyId
+        return repository.observeDailyState(familyId, userId, date)
 }

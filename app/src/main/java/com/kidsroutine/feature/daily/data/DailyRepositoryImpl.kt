@@ -26,13 +26,15 @@ class DailyRepositoryImpl @Inject constructor(
 ) : DailyRepository {
 
 
-    override fun observeDailyState(userId: String, date: String): Flow<DailyStateModel> {
-        val tasksFlow    = taskInstanceDao.getTasksForDate(userId, date)         // ← PENDING only
-        val allTasksFlow = taskInstanceDao.getAllTasksForDate(userId, date)      // ← ALL for progress
-        val progressFlow = taskProgressDao.getProgressForDate(userId, date)
+    // ✅ NEW: requires familyId for family-scoped queries
+    override fun observeDailyState(familyId: String, userId: String, date: String): Flow<DailyStateModel> {
+        val tasksFlow    = taskInstanceDao.getTasksForDate(familyId, userId, date)         // ← PENDING only
+        val allTasksFlow = taskInstanceDao.getAllTasksForDate(familyId, userId, date)      // ← ALL for progress
+        val progressFlow = taskProgressDao.getProgressForDate(familyId, userId, date)
             .onStart { emit(emptyList()) }
 
         return combine(tasksFlow, allTasksFlow, progressFlow) { pendingEntities, allEntities, progressEntities ->
+            // ✅ Create PENDING instances for display (progress pills only show pending tasks)
             val instances = pendingEntities.map { entity ->
                 val taskModel = json.fromJson(entity.taskJson, TaskModel::class.java)
                 TaskInstance(
@@ -42,11 +44,17 @@ class DailyRepositoryImpl @Inject constructor(
                     assignedDate          = entity.assignedDate,
                     userId                = entity.userId,
                     injectedByChallengeId = entity.injectedByChallengeId,
-                    status                = runCatching { TaskStatus.valueOf(entity.status) }.getOrDefault(TaskStatus.PENDING),
-                    completedAt           = entity.completedAt
+                    status                = TaskStatus.PENDING,
+                    completedAt           = 0L
                 )
             }
+
+            // ✅ CRITICAL: Count completed from progressEntities (child's actual accomplishments)
             val completedCount = progressEntities.count { it.status == "COMPLETED" }
+
+            // ✅ CRITICAL: Total assigned = pending tasks that exist + tasks completed today
+            val totalTasksAssigned = pendingEntities.size + completedCount
+
             val totalXp = progressEntities
                 .filter { it.status == "COMPLETED" }
                 .sumOf { p ->
@@ -54,20 +62,23 @@ class DailyRepositoryImpl @Inject constructor(
                         ?.let { json.fromJson(it.taskJson, TaskModel::class.java) }
                     task?.reward?.xp ?: 0
                 }
+
             DailyStateModel(
                 date           = date,
                 userId         = userId,
-                tasks          = instances,   // ← only PENDING tasks shown
+                tasks          = instances,   // ✅ Only PENDING tasks for display
                 completedCount = completedCount,
+                totalTasksAssigned = totalTasksAssigned,
                 totalXpEarned  = totalXp,
                 isGenerated    = allEntities.isNotEmpty()
             )
         }
     }
 
-    override suspend fun refreshTasksForDate(userId: String, date: String) {
+    // ✅ NEW: requires familyId
+    override suspend fun refreshTasksForDate(familyId: String, userId: String, date: String) {
         try {
-            Log.d("DailyRepository", "Refreshing tasks for date: $date")
+            Log.d("DailyRepository", "Refreshing tasks for family=$familyId, user=$userId, date=$date")
 
             // Re-fetch assigned tasks
             val assignmentsSnapshot = firestore
@@ -82,63 +93,67 @@ class DailyRepositoryImpl @Inject constructor(
 
             for (taskId in taskIds) {
                 try {
-                    val taskDoc = firestore.collection("tasks").document(taskId).get().await()
+                    // ✅ CHANGED: Fetch from family-scoped path
+                    val taskDoc = firestore
+                        .collection("families").document(familyId)
+                        .collection("tasks").document(taskId)
+                        .get().await()
+
                     val taskModel = taskDoc.toObject(TaskModel::class.java)
                     if (taskModel != null && taskModel.title.isNotBlank()) {
                         refreshedTasks.add(
                             TaskInstance(
-                                instanceId = "${taskId}_assigned",
+                                instanceId = "refresh_${taskId}_${System.currentTimeMillis()}",
                                 templateId = taskId,
                                 task = taskModel,
                                 assignedDate = date,
                                 userId = userId,
-                                injectedByChallengeId = null
+                                injectedByChallengeId = null,
+                                status = TaskStatus.PENDING,
+                                completedAt = 0L
                             )
                         )
+                        Log.d("DailyRepository", "Refreshed task: ${taskModel.title}")
                     }
                 } catch (e: Exception) {
-                    Log.e("DailyRepository", "Error fetching task $taskId: ${e.message}")
+                    Log.e("DailyRepository", "Error refreshing task $taskId", e)
                 }
             }
 
-            // Update Room database with refreshed tasks
-            taskInstanceDao.deleteTasksForDate(userId, date)
-            val entities = refreshedTasks.map { instance ->
-                TaskInstanceEntity(
-                    instanceId = instance.instanceId,
-                    templateId = instance.templateId,
-                    taskJson = json.toJson(instance.task),
-                    assignedDate = instance.assignedDate,
-                    userId = instance.userId,
-                    injectedByChallengeId = instance.injectedByChallengeId
-                )
+            if (refreshedTasks.isNotEmpty()) {
+                mergeAssignedTasks(familyId, userId, date, refreshedTasks)
             }
-            taskInstanceDao.insertAll(entities)
-
-            Log.d("DailyRepository", "✅ Tasks refreshed successfully")
         } catch (e: Exception) {
-            Log.e("DailyRepository", "Error refreshing tasks: ${e.message}", e)
+            Log.e("DailyRepository", "Error refreshing tasks for date", e)
         }
     }
 
-    // Guard mergeAssignedTasks — only insert truly NEW task IDs:
-    override suspend fun mergeAssignedTasks(userId: String, date: String, newTasks: List<TaskInstance>) {
-        Log.d("DailyRepository", "Merging ${newTasks.size} tasks (will update existing + insert new)")
-
-        val entities = newTasks.map { instance ->
-            TaskInstanceEntity(
-                instanceId            = instance.instanceId,
-                templateId            = instance.templateId,
-                taskJson              = json.toJson(instance.task),
-                assignedDate          = instance.assignedDate,
-                userId                = instance.userId,
-                injectedByChallengeId = instance.injectedByChallengeId
-            )
+    // ✅ NEW: requires familyId
+    override suspend fun mergeAssignedTasks(familyId: String, userId: String, date: String, freshTasks: List<TaskInstance>) {
+        try {
+            val existingIds = taskInstanceDao.getExistingInstanceIds(familyId, userId, date)
+            val newTasks = freshTasks.filter { it.instanceId !in existingIds }
+            if (newTasks.isNotEmpty()) {
+                // ✅ Convert TaskInstance to TaskInstanceEntity inline
+                val entitiesToInsert = newTasks.map { instance ->
+                    TaskInstanceEntity(
+                        instanceId            = instance.instanceId,
+                        templateId            = instance.templateId,
+                        taskJson              = json.toJson(instance.task),
+                        assignedDate          = instance.assignedDate,
+                        userId                = userId,
+                        familyId              = familyId,  // ✅ NEW
+                        injectedByChallengeId = instance.injectedByChallengeId,
+                        status                = instance.status.name,
+                        completedAt           = instance.completedAt
+                    )
+                }
+                taskInstanceDao.insertAll(entitiesToInsert)
+                Log.d("DailyRepository", "✅ Merged ${newTasks.size} new assigned tasks for family=$familyId, user=$userId")
+            }
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "❌ Error merging assigned tasks", e)
         }
-
-        // insertAll already has OnConflictStrategy.REPLACE, so it will update existing tasks
-        taskInstanceDao.insertAll(entities)  // ← No filtering, just insert/replace all
-        Log.d("DailyRepository", "✅ Merged ${newTasks.size} tasks")
     }
 
     // ✨ NEW: Delete a task instance
@@ -152,28 +167,20 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveDailyTasks(userId: String, date: String, tasks: List<TaskInstance>) {
-        // DELETE existing tasks for this date first
-        taskInstanceDao.deleteTasksForDate(userId, date)  // ← ADD THIS
+    // ✅ NEW: requires familyId for family-scoped saves
+    override suspend fun saveDailyTasks(familyId: String, userId: String, date: String, tasks: List<TaskInstance>) {
+        try {
+            Log.d("DailyRepository", "Saving ${tasks.size} tasks for userId=$userId in family=$familyId on $date")
 
-        val entities = tasks.map { instance ->
-            TaskInstanceEntity(
-                instanceId   = instance.instanceId,
-                templateId   = instance.templateId,
-                taskJson     = json.toJson(instance.task),
-                assignedDate = instance.assignedDate,
-                userId       = instance.userId,
-                injectedByChallengeId = instance.injectedByChallengeId
-            )
-        }
-        taskInstanceDao.insertAll(entities)
-        // Also push to Firestore for cross-device sync
-        safeFirestoreCall {
             val batch = firestore.batch()
-            tasks.forEach { instance ->
-                val ref = firestore
-                    .collection("users").document(userId)
-                    .collection("daily_tasks").document(instance.instanceId)
+
+            // ✅ CHANGED: Family-scoped path
+            val userRef = firestore
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+
+            for (instance in tasks) {
+                val ref = userRef.collection("task_instances").document(instance.instanceId)
                 batch.set(ref, mapOf(
                     "instanceId"   to instance.instanceId,
                     "templateId"   to instance.templateId,
@@ -181,17 +188,26 @@ class DailyRepositoryImpl @Inject constructor(
                     "taskType"     to instance.task.type.name,
                     "title"        to instance.task.title,
                     "date"         to instance.assignedDate,
+                    "familyId"     to familyId,  // ✅ NEW
+                    "userId"       to userId,    // ✅ NEW
                     "requiresCoop" to instance.task.requiresCoop,
                     "xp"           to instance.task.reward.xp,
-                    "injectedByChallengeId" to instance.injectedByChallengeId
+                    "injectedByChallengeId" to instance.injectedByChallengeId,
+                    "status"       to instance.status.name,
+                    "completedAt"  to instance.completedAt
                 ))
             }
             batch.commit().await()
+            Log.d("DailyRepository", "✅ Daily tasks saved to Firestore for family=$familyId, user=$userId")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "❌ Failed to save daily tasks", e)
+            throw e
         }
     }
 
-    override suspend fun hasTasksForDate(userId: String, date: String): Boolean {
-        return taskInstanceDao.countTasksForDate(userId, date) > 0
+    // ✅ NEW: requires familyId
+    override suspend fun hasTasksForDate(familyId: String, userId: String, date: String): Boolean {
+        return taskInstanceDao.countTasksForDate(familyId, userId, date) > 0
     }
 
     override suspend fun fetchTaskTemplatesFromFirestore(familyId: String): List<TaskTemplate> {

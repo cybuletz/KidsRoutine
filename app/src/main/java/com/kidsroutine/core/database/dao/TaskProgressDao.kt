@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskProgressDao {
 
-    @Query("SELECT * FROM task_progress WHERE userId = :userId AND date = :date")
-    fun getProgressForDate(userId: String, date: String): Flow<List<TaskProgressEntity>>
+    @Query("SELECT * FROM task_progress WHERE familyId = :familyId AND userId = :userId AND date = :date")
+    fun getProgressForDate(familyId: String, userId: String, date: String): Flow<List<TaskProgressEntity>>
 
     @Query("SELECT * FROM task_progress WHERE syncedToFirestore = 0")
     suspend fun getUnsynced(): List<TaskProgressEntity>

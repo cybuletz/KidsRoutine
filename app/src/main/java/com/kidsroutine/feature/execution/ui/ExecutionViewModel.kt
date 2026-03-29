@@ -90,16 +90,14 @@ class ExecutionViewModel @Inject constructor(
 
             val result = completeTaskUseCase(
                 task           = state.task,
-                instanceId = state.instanceId.ifBlank { state.task.id },
                 userId         = userId,
+                instanceId     = state.instanceId,
                 photoUrl       = state.photoUrl,
                 currentStreak  = user?.streak ?: 0,
-                lastActiveDate = user?.lastActiveAt?.let {
-                    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date(it))
-                } ?: "",
-                childName      = user?.displayName?.split(" ")?.first() ?: "",
-                childAge       = runCatching { user?.age ?: 8 }.getOrDefault(8),
-                familyId       = user?.familyId ?: state.task.familyId
+                lastActiveDate = user?.lastActiveDate ?: "",
+                childName      = user?.name ?: "",
+                childAge       = user?.age ?: 8,
+                familyId       = user?.familyId ?: ""
             )
 
             if (result is CompletionResult.Success) {

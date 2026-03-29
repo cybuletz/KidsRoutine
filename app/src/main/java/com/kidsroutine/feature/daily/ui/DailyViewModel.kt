@@ -11,12 +11,12 @@ import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.domain.GenerateDailyTasksUseCase
 import com.kidsroutine.feature.daily.domain.GetDailyStateUseCase
 import com.kidsroutine.feature.daily.data.UserRepository
+import com.kidsroutine.feature.daily.data.StoryArcRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-import com.kidsroutine.feature.daily.data.StoryArcRepository
 import com.kidsroutine.feature.generation.data.GeneratedTask
 import com.kidsroutine.feature.generation.data.TaskSaveRepository
 
@@ -35,8 +35,8 @@ class DailyViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val storyArcRepository: StoryArcRepository,
     private val taskSaveRepository: TaskSaveRepository,
-    private val dailyRepository: DailyRepository,      // ← injected directly for mergeAssignedTasks
-    private val firestore: FirebaseFirestore            // ← injected for the snapshot listener
+    private val dailyRepository: DailyRepository,
+    private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DailyUiState())
@@ -50,14 +50,14 @@ class DailyViewModel @Inject constructor(
 
     fun init(user: UserModel) {
         val today = DateUtils.todayString()
-        val key   = "${user.userId}_$today"
+        val key   = "${user.familyId}_${user.userId}_$today"  // ✅ NEW: Include familyId
 
         if (initializedFor == key) {
             Log.d("DailyViewModel", "init() skipped — already initialized for $key")
             return
         }
         initializedFor = key
-        Log.d("DailyViewModel", "init() starting for $key")
+        Log.d("DailyViewModel", "init() starting for familyId=${user.familyId}, userId=${user.userId}, date=$today")
 
         // Step 1: Run initial generation (idempotent — skips if already done today)
         viewModelScope.launch {
@@ -65,15 +65,16 @@ class DailyViewModel @Inject constructor(
         }
 
         // Step 2: Observe Room — emits whenever tasks change (completion, new inserts)
+        // ✅ NEW: Pass familyId to getDailyState
         viewModelScope.launch {
-            getDailyState(user.userId, today)
+            getDailyState(user.familyId, user.userId, today)
                 .catch { e ->
                     Log.e("DailyViewModel", "Daily state error", e)
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
                 .collect { dailyState ->
                     _uiState.update { it.copy(isLoading = false, dailyState = dailyState) }
-                    Log.d("DailyViewModel", "Tasks loaded: ${dailyState.tasks.size}")
+                    Log.d("DailyViewModel", "✅ Tasks loaded: ${dailyState.tasks.size} pending, ${dailyState.completedCount} completed")
                 }
         }
 
@@ -106,14 +107,12 @@ class DailyViewModel @Inject constructor(
         // Remove any previous listener first
         assignmentListener?.remove()
 
-        Log.d("DailyViewModel", "🔌 STARTING listener for child: ${user.userId}")
+        Log.d("DailyViewModel", "🔌 STARTING listener for child: ${user.userId} in family: ${user.familyId}")
 
         assignmentListener = firestore
             .collection("taskAssignments")
             .whereEqualTo("childId", user.userId)
             .addSnapshotListener { snapshot, error ->
-                Log.d("DailyViewModel", "📡 Snapshot received, documentChanges: ${snapshot?.documentChanges?.size ?: 0}")
-
                 if (error != null) {
                     Log.e("DailyViewModel", "Assignment listener error: ${error.message}")
                     return@addSnapshotListener
@@ -125,9 +124,6 @@ class DailyViewModel @Inject constructor(
 
                 val documentChanges = snapshot.documentChanges
                 Log.d("DailyViewModel", "📊 Document changes count: ${documentChanges.size}")
-                documentChanges.forEach { change ->
-                    Log.d("DailyViewModel", "  - ${change.type}: ${change.document.id}")
-                }
 
                 val addedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.ADDED
@@ -135,20 +131,15 @@ class DailyViewModel @Inject constructor(
                 }
 
                 val modifiedChanges = documentChanges.filter {
-                    Log.d("DailyViewModel", "Checking MODIFIED: ${it.document.id}, status=${it.document.getString("status")}")  // ← ADD THIS LOG
                     it.type == com.google.firebase.firestore.DocumentChange.Type.MODIFIED
                             && it.document.getString("status") == "ASSIGNED"
                 }
 
-                val removedChanges = documentChanges.filter {
+                val deletedChanges = documentChanges.filter {
                     it.type == com.google.firebase.firestore.DocumentChange.Type.REMOVED
                 }
 
-                Log.d("DailyViewModel", "✅ Added: ${addedChanges.size}, 📝 Modified: ${modifiedChanges.size}, ❌ Removed: ${removedChanges.size}")
-
-                // ════════════════════════════════════════════════════════════════════════
-                // Handle NEW assignments
-                // ════════════════════════════════════════════════════════════════════════
+                // ✅ Handle new assignments
                 if (addedChanges.isNotEmpty()) {
                     Log.d("DailyViewModel", "🔔 ${addedChanges.size} new task assignment(s)")
                     viewModelScope.launch {
@@ -157,145 +148,79 @@ class DailyViewModel @Inject constructor(
                         for (change in addedChanges) {
                             val taskId = change.document.getString("taskId") ?: continue
                             try {
+                                // ✅ CHANGED: Fetch from family-scoped path
                                 val taskDoc = firestore
-                                    .collection("tasks")
-                                    .document(taskId)
+                                    .collection("families").document(user.familyId)
+                                    .collection("tasks").document(taskId)
                                     .get()
                                     .await()
+
                                 val taskModel = taskDoc.toObject(TaskModel::class.java)
                                 if (taskModel != null && taskModel.title.isNotBlank()) {
                                     newInstances.add(
                                         TaskInstance(
-                                            instanceId            = "${taskId}_assigned",
-                                            templateId            = taskId,
-                                            task                  = taskModel,
-                                            assignedDate          = date,
-                                            userId                = user.userId,
-                                            injectedByChallengeId = null
+                                            instanceId           = "new_${taskId}_${System.currentTimeMillis()}",
+                                            templateId           = taskId,
+                                            task                 = taskModel,
+                                            assignedDate         = date,
+                                            userId               = user.userId,
+                                            injectedByChallengeId = null,
+                                            status               = TaskStatus.PENDING,
+                                            completedAt          = 0L
                                         )
                                     )
-                                    Log.d("DailyViewModel", "New task: ${taskModel.title}")
+                                    Log.d("DailyViewModel", "New task fetched: ${taskModel.title}")
                                 }
                             } catch (e: Exception) {
-                                Log.e("DailyViewModel", "Failed to fetch task $taskId: ${e.message}")
+                                Log.e("DailyViewModel", "Error fetching task $taskId from family ${user.familyId}", e)
                             }
                         }
 
                         if (newInstances.isNotEmpty()) {
-                            dailyRepository.mergeAssignedTasks(user.userId, date, newInstances)
+                            // ✅ NEW: Pass familyId to mergeAssignedTasks
+                            dailyRepository.mergeAssignedTasks(user.familyId, user.userId, date, newInstances)
+                            Log.d("DailyViewModel", "✅ Merged ${newInstances.size} new assigned tasks")
                         }
                     }
                 }
 
-                // ════════════════════════════════════════════════════════════════════════
-                // Handle UPDATED tasks
-                // ════════════════════════════════════════════════════════════════════════
+                // ✅ Handle modified assignments (task updated by parent)
                 if (modifiedChanges.isNotEmpty()) {
-                    Log.d("DailyViewModel", "📝 ${modifiedChanges.size} task(s) updated")
+                    Log.d("DailyViewModel", "✏️ ${modifiedChanges.size} task assignment(s) modified")
                     viewModelScope.launch {
-                        val updatedInstances = mutableListOf<TaskInstance>()
-
-                        for (change in modifiedChanges) {
-                            val taskId = change.document.getString("taskId") ?: continue
-                            try {
-                                Log.d("DailyViewModel", "Fetching updated task: $taskId")
-                                val taskDoc = firestore
-                                    .collection("tasks")
-                                    .document(taskId)
-                                    .get()
-                                    .await()
-                                val taskModel = taskDoc.toObject(TaskModel::class.java)
-                                if (taskModel != null && taskModel.title.isNotBlank()) {
-                                    updatedInstances.add(
-                                        TaskInstance(
-                                            instanceId            = "${taskId}_assigned",
-                                            templateId            = taskId,
-                                            task                  = taskModel,
-                                            assignedDate          = date,
-                                            userId                = user.userId,
-                                            injectedByChallengeId = null
-                                        )
-                                    )
-                                    Log.d("DailyViewModel", "✅ Task updated in memory: ${taskModel.title}")
-                                }
-                            } catch (e: Exception) {
-                                Log.e("DailyViewModel", "Failed to fetch updated task $taskId: ${e.message}")
-                            }
-                        }
-
-                        if (updatedInstances.isNotEmpty()) {
-                            Log.d("DailyViewModel", "Merging ${updatedInstances.size} updated tasks into repository")
-                            dailyRepository.mergeAssignedTasks(user.userId, date, updatedInstances)
-                        }
+                        // ✅ NEW: Pass familyId to refreshTasksForDate
+                        dailyRepository.refreshTasksForDate(user.familyId, user.userId, date)
+                        Log.d("DailyViewModel", "✅ Refreshed tasks for modifications")
                     }
                 }
 
-                // ════════════════════════════════════════════════════════════════════════
-                // Handle DELETED assignments
-                // ════════════════════════════════════════════════════════════════════════
-                if (removedChanges.isNotEmpty()) {
-                    Log.d("DailyViewModel", "🗑️ ${removedChanges.size} task assignment(s) deleted")
+                // ✅ Handle deleted assignments (parent deleted a task)
+                if (deletedChanges.isNotEmpty()) {
+                    Log.d("DailyViewModel", "🗑️ ${deletedChanges.size} task assignment(s) deleted")
                     viewModelScope.launch {
-                        for (change in removedChanges) {
-                            val taskId = change.document.getString("taskId") ?: continue
-                            try {
-                                val instanceId = "${taskId}_assigned"
-                                Log.d("DailyViewModel", "Deleting task instance: $instanceId")
-                                dailyRepository.deleteTaskInstance(user.userId, instanceId)
-                            } catch (e: Exception) {
-                                Log.e("DailyViewModel", "Error deleting task: ${e.message}")
-                            }
-                        }
+                        // When task is deleted, trigger a refresh to update progress
+                        // ✅ NEW: Pass familyId to refreshTasksForDate
+                        dailyRepository.refreshTasksForDate(user.familyId, user.userId, date)
+                        Log.d("DailyViewModel", "✅ Refreshed tasks after deletion")
                     }
                 }
             }
-    }
-
-    // Called only by push-notification refresh — bypasses the guard key
-    fun forceRefresh(user: UserModel) {
-        initializedFor = ""
-        init(user)
-    }
-
-    fun addSuggestedTask(task: GeneratedTask) {
-        val user = _uiState.value.currentUser
-        if (user.userId.isBlank()) return
-
-        viewModelScope.launch {
-            try {
-                val result = taskSaveRepository.saveAndAssignToFamily(
-                    generatedTask = task,
-                    familyId      = user.familyId,
-                    childrenIds   = listOf(user.userId)
-                )
-                result.onSuccess {
-                    Log.d("DailyVM", "AI suggested task added: ${task.title}")
-                }
-                result.onFailure { e ->
-                    Log.e("DailyVM", "Failed to add suggested task: ${e.message}")
-                    _uiState.update { it.copy(error = "Couldn't add task: ${e.message}") }
-                }
-            } catch (e: Exception) {
-                Log.e("DailyVM", "Exception adding suggested task", e)
-            }
-        }
     }
 
     private fun loadActiveStoryArc(familyId: String) {
-        if (familyId.isEmpty()) return
         viewModelScope.launch {
             try {
                 val arc = storyArcRepository.getActiveArc(familyId)
                 _uiState.update { it.copy(activeStoryArc = arc) }
             } catch (e: Exception) {
-                Log.w("DailyViewModel", "Could not load story arc: ${e.message}")
+                Log.e("DailyViewModel", "Error loading story arc", e)
             }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        assignmentListener?.remove()  // ← clean up Firestore listener when ViewModel is destroyed
-        Log.d("DailyViewModel", "ViewModel cleared, Firestore listener removed")
+        assignmentListener?.remove()
+        Log.d("DailyViewModel", "🧹 ViewModel cleared, listener removed")
     }
 }
