@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import kotlinx.coroutines.launch
 import android.content.ClipData
 import androidx.compose.ui.platform.ClipEntry
+import com.kidsroutine.core.model.Role
 import com.kidsroutine.feature.avatar.data.AvatarSeeder
 import kotlinx.coroutines.tasks.await
 
@@ -266,6 +267,62 @@ fun SettingsScreen(
                 subtitle = "How we protect your family's data",
                 onClick = { /* TODO: open URL */ }
             )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ── Admin/Developer Tools ─────────────────────────────────────────
+        if (currentUser.isAdmin || currentUser.role == Role.PARENT) {
+            SettingsSection(title = "Developer Tools") {
+                var showCleanupDialog by remember { mutableStateOf(false) }
+
+                SettingsRow(
+                    icon = Icons.Default.Delete,
+                    iconColor = Color(0xFFE74C3C),
+                    title = "Cleanup Legacy Data",
+                    subtitle = "Delete old task data (testing only)",
+                    onClick = { showCleanupDialog = true }
+                )
+
+                if (showCleanupDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showCleanupDialog = false },
+                        title = { Text("⚠️ Delete Legacy Data?") },
+                        text = {
+                            Text(
+                                "This will permanently delete all old task data (tasks, taskProgress, taskAssignments) but preserve user accounts and families.\n\n" +
+                                        "This cannot be undone. Continue?",
+                                color = Color.Gray
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val functions = com.google.firebase.functions.FirebaseFunctions.getInstance()
+                                    functions.getHttpsCallable("cleanupLegacyData")
+                                        .call(emptyMap<String, Any>())
+                                        .addOnSuccessListener { result ->
+                                            val data = result.data as? Map<*, *>
+                                            val totalDeleted = data?.get("totalDeleted") as? Number
+                                            android.util.Log.d("Cleanup", "✅ Deleted $totalDeleted documents")
+                                            showCleanupDialog = false
+                                        }
+                                        .addOnFailureListener { e ->
+                                            android.util.Log.e("Cleanup", "❌ Error: ${e.message}")
+                                        }
+                                }
+                            ) {
+                                Text("Delete", color = Color(0xFFE74C3C), fontWeight = FontWeight.Bold)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showCleanupDialog = false }) {
+                                Text("Cancel")
+                            }
+                        }
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(24.dp))

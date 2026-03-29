@@ -2,14 +2,9 @@ package com.kidsroutine.feature.tasks.data
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import com.kidsroutine.core.model.TaskModel
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-import com.kidsroutine.feature.generation.data.GeneratedChallenge
 
 class TaskRepository @Inject constructor(
     private val firestore: FirebaseFirestore
@@ -45,8 +40,7 @@ class TaskRepository @Inject constructor(
         try {
             Log.d("TaskRepository", "Creating task: ${task.title}")
 
-            // Save to BOTH locations so it can be found when deleted
-            // 1. Family subcollection (for family-level task management)
+            // ✅ SINGLE WRITE: Family-scoped ONLY
             firestore
                 .collection("families")
                 .document(familyId)
@@ -55,32 +49,7 @@ class TaskRepository @Inject constructor(
                 .set(task)
                 .await()
 
-            // 2. Global tasks collection (so assignments can reference it and deletion works)
-            firestore
-                .collection("tasks")
-                .document(task.id)
-                .set(mapOf(
-                    "id" to task.id,
-                    "type" to task.type.name,
-                    "title" to task.title,
-                    "description" to task.description,
-                    "category" to task.category.name,
-                    "difficulty" to task.difficulty.name,
-                    "estimatedDurationSec" to task.estimatedDurationSec,
-                    "reward" to mapOf("xp" to task.reward.xp),
-                    "validationType" to task.validationType.name,
-                    "requiresParent" to false,
-                    "requiresCoop" to task.requiresCoop,
-                    "tags" to task.tags,
-                    "createdBy" to task.createdBy.name,
-                    "interactionBlocks" to emptyList<Map<String, Any>>(),
-                    "isActive" to task.isActive,
-                    "familyId" to familyId,
-                    "gameType" to task.gameType.name,
-                ))
-                .await()
-
-            Log.d("TaskRepository", "Task created successfully in both locations")
+            Log.d("TaskRepository", "Task created successfully")
         } catch (e: Exception) {
             Log.e("TaskRepository", "Error creating task", e)
             throw e
@@ -92,7 +61,7 @@ class TaskRepository @Inject constructor(
             Log.d("TaskRepository", "Updating task: ${task.id}")
             val batch = firestore.batch()
 
-            // Update in family subcollection (same as delete pattern)
+            // ✅ SINGLE UPDATE: Family-scoped ONLY
             val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
@@ -100,31 +69,7 @@ class TaskRepository @Inject constructor(
                 .document(task.id)
             batch.set(familyTaskRef, task)
 
-            // Update in global tasks collection (same as delete pattern)
-            val globalTaskRef = firestore.collection("tasks").document(task.id)
-            batch.set(globalTaskRef, mapOf(
-                "id" to task.id,
-                "type" to task.type.name,
-                "title" to task.title,
-                "description" to task.description,
-                "category" to task.category.name,
-                "difficulty" to task.difficulty.name,
-                "estimatedDurationSec" to task.estimatedDurationSec,
-                "reward" to mapOf("xp" to task.reward.xp),
-                "validationType" to task.validationType.name,
-                "requiresParent" to task.requiresParent,
-                "requiresCoop" to task.requiresCoop,
-                "tags" to task.tags,
-                "createdBy" to task.createdBy.name,
-                "interactionBlocks" to emptyList<Map<String, Any>>(),
-                "isActive" to task.isActive,
-                "familyId" to familyId,
-                "gameType" to task.gameType.name,
-                "expiresAt" to task.expiresAt,
-                "durationDays" to task.durationDays
-            ))
-
-            // ✅ SAME PATTERN AS DELETE - Find ALL taskAssignments and TOUCH them
+            // Touch all assignments to trigger client refresh
             val assignments = firestore
                 .collection("taskAssignments")
                 .whereEqualTo("taskId", task.id)
@@ -133,7 +78,6 @@ class TaskRepository @Inject constructor(
 
             Log.d("TaskRepository", "Found ${assignments.size()} assignments for task ${task.id}")
 
-            // Touch each assignment to trigger MODIFIED event on child's listener
             for (doc in assignments.documents) {
                 batch.update(doc.reference, mapOf(
                     "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -150,15 +94,10 @@ class TaskRepository @Inject constructor(
 
     suspend fun deleteTask(familyId: String, taskId: String) {
         try {
-            Log.d("TaskRepository", "Deleting task: $taskId and all its assignments")
+            Log.d("TaskRepository", "Deleting task: $taskId")
             val batch = firestore.batch()
 
-            // Delete from BOTH locations (for both creation paths)
-            // Path 1: Global tasks collection (SelectChildrenScreen)
-            val globalTaskRef = firestore.collection("tasks").document(taskId)
-            batch.delete(globalTaskRef)
-
-            // Path 2: Family subcollection (CreateTaskScreen via TaskRepository)
+            // ✅ DELETE ONLY from family-scoped (not global)
             val familyTaskRef = firestore
                 .collection("families")
                 .document(familyId)
@@ -166,7 +105,7 @@ class TaskRepository @Inject constructor(
                 .document(taskId)
             batch.delete(familyTaskRef)
 
-            // Find ALL assignments by taskId (no familyId filter needed)
+            // Delete all assignments
             val assignments = firestore
                 .collection("taskAssignments")
                 .whereEqualTo("taskId", taskId)
@@ -175,7 +114,6 @@ class TaskRepository @Inject constructor(
 
             Log.d("TaskRepository", "Found ${assignments.size()} assignments for taskId=$taskId")
 
-            // Delete each assignment (triggers notifyTaskDeletion Cloud Function)
             for (doc in assignments.documents) {
                 Log.d("TaskRepository", "Deleting assignment: ${doc.id}")
                 batch.delete(doc.reference)

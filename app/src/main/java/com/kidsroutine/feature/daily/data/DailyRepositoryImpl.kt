@@ -271,6 +271,8 @@ class DailyRepositoryImpl @Inject constructor(
 
             taskIds.mapNotNull { taskId ->
                 firestore
+                    .collection("families")  // ✅ FAMILY-SCOPED
+                    .document(familyId)
                     .collection("tasks")
                     .document(taskId)
                     .get()

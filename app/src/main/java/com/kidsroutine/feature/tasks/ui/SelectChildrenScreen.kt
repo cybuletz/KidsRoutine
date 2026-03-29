@@ -285,27 +285,23 @@ fun SelectChildrenScreen(
                                 Log.d("SelectChildrenScreen", "Using taskId: $taskId for assignment")
 
 
-                                firestore.collection("tasks").document(taskId).set(
-                                    mapOf(
-                                        "id" to taskId,
-                                        "type" to task.type.name,
-                                        "title" to task.title,
-                                        "description" to task.description,
-                                        "category" to task.category.name,
-                                        "difficulty" to task.difficulty.name,
-                                        "estimatedDurationSec" to task.estimatedDurationSec,
-                                        "reward" to mapOf("xp" to task.reward.xp),
-                                        "validationType" to task.validationType.name,
-                                        "requiresParent" to false,
-                                        "requiresCoop" to task.requiresCoop,
-                                        "tags" to task.tags,
-                                        "createdBy" to task.createdBy.name,
-                                        "interactionBlocks" to emptyList<Map<String, Any>>(),
-                                        "isActive" to task.isActive,
-                                        "familyId" to currentUser.familyId,
-                                        "gameType" to task.gameType.name,
-                                    )
-                                ).await()
+                                selectedChildrenIds.forEach { childId ->
+                                    val taskAssignmentId = "${childId}_${taskId}_${System.currentTimeMillis()}"
+
+                                    // Create task assignment ONLY (task already exists in families/{familyId}/tasks)
+                                    firestore.collection("taskAssignments").document(taskAssignmentId).set(
+                                        mapOf(
+                                            "taskId" to taskId,
+                                            "childId" to childId,
+                                            "familyId" to currentUser.familyId,
+                                            "assignedDate" to today,
+                                            "status" to "ASSIGNED",
+                                            "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                                        )
+                                    ).await()
+
+                                    Log.d("SelectChildren", "Task assignment created for child: $childId")
+                                }
 
                                 selectedChildrenIds.forEach { childId ->
                                     val taskAssignmentId = "${childId}_${taskId}_${System.currentTimeMillis()}"
