@@ -7,7 +7,8 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskProgressDao {
 
-    @Query("SELECT * FROM task_progress WHERE familyId = :familyId AND userId = :userId AND date = :date")
+    // Only get COMPLETED task_progress for TODAY (not historical data)
+    @Query("SELECT * FROM task_progress WHERE familyId = :familyId AND userId = :userId AND date = :date AND status = 'COMPLETED'")
     fun getProgressForDate(familyId: String, userId: String, date: String): Flow<List<TaskProgressEntity>>
 
     @Query("SELECT * FROM task_progress WHERE syncedToFirestore = 0")

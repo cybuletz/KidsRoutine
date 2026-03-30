@@ -29,6 +29,14 @@ class GenerateDailyTasksUseCase @Inject constructor(
     ): GenerationOutcome {
         Log.d("GenerateDailyTasks", "Starting generation for userId=${user.userId}, familyId=${user.familyId}, date=$date")
 
+        // ✅ Clean up yesterday's completed instances (so they don't reappear)
+        try {
+            repository.deleteOldCompletedInstances(user.familyId, user.userId, date)
+            Log.d("GenerateDailyTasks", "✅ Cleaned up old completed instances")
+        } catch (e: Exception) {
+            Log.e("GenerateDailyTasks", "⚠️ Cleanup failed (non-fatal)", e)
+        }
+
         // ✅ CRITICAL: Fetch ONLY parent-assigned tasks that have status="ASSIGNED" in assignments collection
         val freshAssignedTasks = fetchParentAssignedTasks(user, date)
         if (freshAssignedTasks.isNotEmpty()) {

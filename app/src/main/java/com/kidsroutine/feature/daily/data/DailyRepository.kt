@@ -28,4 +28,6 @@ interface DailyRepository {
 
     suspend fun updateTaskInRoom(familyId: String, userId: String, instanceId: String, updatedTask: TaskModel)
 
+    suspend fun deleteOldCompletedInstances(familyId: String, userId: String, today: String)
+
 }

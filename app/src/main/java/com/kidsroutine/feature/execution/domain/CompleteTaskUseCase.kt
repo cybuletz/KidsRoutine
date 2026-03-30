@@ -116,7 +116,8 @@ class CompleteTaskUseCase @Inject constructor(
 
         // ✅ Also delete from Room
         try {
-            taskInstanceDao.deleteByInstanceId(familyId, userId, instanceId)
+            // Mark as COMPLETED in Room (not delete, so history is kept)
+            taskInstanceDao.markCompleted(familyId, userId, instanceId, completionTimestamp)
             Log.d("CompleteTaskUseCase", "✅ Room task_instances deleted")
         } catch (e: Exception) {
             Log.e("CompleteTaskUseCase", "❌ Room deletion failed (non-fatal)", e)

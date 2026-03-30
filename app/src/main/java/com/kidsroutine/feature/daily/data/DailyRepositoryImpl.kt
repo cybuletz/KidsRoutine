@@ -79,6 +79,15 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun deleteOldCompletedInstances(familyId: String, userId: String, today: String) {
+        try {
+            taskInstanceDao.deleteOlderThan(today)
+            Log.d("DailyRepository", "✅ Deleted task instances older than $today")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "Error deleting old instances", e)
+        }
+    }
+
     override suspend fun refreshTasksForDate(familyId: String, userId: String, date: String) {
         try {
             Log.d("DailyRepository", "Refreshing tasks for family=$familyId, user=$userId, date=$date")

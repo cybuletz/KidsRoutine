@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskInstanceDao {
 
-    @Query("SELECT * FROM task_instances WHERE familyId = :familyId AND userId = :userId AND assignedDate = :date AND status != 'COMPLETED'")
+    @Query("SELECT * FROM task_instances WHERE familyId = :familyId AND userId = :userId AND assignedDate = :date AND status = 'PENDING'")
     fun getTasksForDate(familyId: String, userId: String, date: String): Flow<List<TaskInstanceEntity>>
 
     @Query("SELECT COUNT(*) FROM task_instances WHERE familyId = :familyId AND userId = :userId AND assignedDate = :date")
@@ -35,10 +35,14 @@ interface TaskInstanceDao {
     @Query("DELETE FROM task_instances WHERE familyId = :familyId AND userId = :userId AND instanceId = :instanceId")
     suspend fun deleteByInstanceId(familyId: String, userId: String, instanceId: String)
 
+    // Mark as completed INSTEAD of delete
+    @Query("UPDATE task_instances SET status = 'COMPLETED', completedAt = :timestamp WHERE familyId = :familyId AND userId = :userId AND instanceId = :instanceId")
+    suspend fun markCompleted(familyId: String, userId: String, instanceId: String, timestamp: Long)
+
     @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
     suspend fun deleteAllForUserAndDate(userId: String, date: String)
 
-    // ✅ ADD THIS: Atomic delete + insert transaction
+    // Atomic delete + insert transaction
     @Transaction
     suspend fun deleteAndInsertForUserAndDate(
         userId: String,
@@ -48,9 +52,4 @@ interface TaskInstanceDao {
         deleteAllForUserAndDate(userId, date)
         insertAll(newEntities)
     }
-
-
-    // ✅ CRITICAL FIX: Only get COMPLETED task_progress for TODAY (not historical data)
-    @Query("SELECT * FROM task_progress WHERE familyId = :familyId AND userId = :userId AND date = :date AND status = 'COMPLETED'")
-    fun getProgressForDate(familyId: String, userId: String, date: String): Flow<List<TaskProgressEntity>>
 }
