@@ -92,7 +92,8 @@ class CompleteTaskUseCase @Inject constructor(
                     "completionTime"  to completionTimestamp,
                     "validationStatus" to validationStatus.name,
                     "photoUrl"        to photoUrl,
-                    "taskTitle"       to task.title
+                    "taskTitle"       to task.title,
+                    "templateId"      to task.id  // ✅ ADD THIS LINE - store the task template ID
                 ))
                 .await()
             Log.d("CompleteTaskUseCase", "✅ Task progress synced to family-scoped Firestore path")

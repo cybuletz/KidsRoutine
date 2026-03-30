@@ -58,17 +58,17 @@ class GenerateDailyTasksUseCase @Inject constructor(
                 .whereEqualTo("date", date)
                 .get().await()
 
+            // ✅ Get completed task IDs for today to filter recurrent tasks
             val completedTaskIdsToday = todayProgressSnapshot.documents
-                .mapNotNull { it.getString("templateId") }  // Get the templateId (taskId) that was completed
+                .mapNotNull { it.getString("templateId") }  // ✅ This now works!
                 .toSet()
 
-            Log.d("GenerateDailyTasks", "Already completed today: ${completedTaskIdsToday.size} tasks")
+            Log.d("GenerateDailyTasks", "Already completed today: $completedTaskIdsToday")
 
             val assignedInstances = mutableListOf<TaskInstance>()
 
-            // ✅ CRITICAL: Filter out tasks already completed today
+            // ✅ Filter out tasks already completed today
             for (taskId in assignedTaskIds) {
-                // Skip if already completed today
                 if (taskId in completedTaskIdsToday) {
                     Log.d("GenerateDailyTasks", "⏭️ Skipping recurrent task (already completed today): $taskId")
                     continue
