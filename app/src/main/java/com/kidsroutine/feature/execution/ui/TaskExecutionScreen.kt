@@ -70,13 +70,8 @@ fun TaskExecutionScreen(
                 kotlinx.coroutines.delay(500)
             }
 
-            if (result.xpGained >= 50) {
-                val box = LootBox(earnedFor = "Task completed: ${task.title}")
-                lootBoxViewModel.presentBox(box)
-                kotlinx.coroutines.delay(800)
-            }
-
             onCompleted(result.xpGained)
+
         }
     }
 

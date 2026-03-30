@@ -218,7 +218,9 @@ private fun ProgressSection(
     onLootBoxClick: () -> Unit,
     onWorldClick: () -> Unit
 ) {
-    val allDone = state.completedCount == state.tasks.size && state.tasks.isNotEmpty()
+    val totalTasks = state.tasks.size
+    val actualCompletedCount = state.tasks.count { it.status == TaskStatus.COMPLETED }
+    val allDone = actualCompletedCount > 0 && actualCompletedCount >= totalTasks && totalTasks > 0
 
     val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
     val glowAlpha by infiniteTransition.animateFloat(
@@ -268,7 +270,7 @@ private fun ProgressSection(
                     )
                 } else {
                     Text(
-                        "${state.completedCount}/${state.tasks.size} done",
+                        "$actualCompletedCount/${state.tasks.size} done",
                         fontWeight = FontWeight.SemiBold
                     )
                 }

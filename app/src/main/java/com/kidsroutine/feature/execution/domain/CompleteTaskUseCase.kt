@@ -100,34 +100,28 @@ class CompleteTaskUseCase @Inject constructor(
             Log.e("CompleteTaskUseCase", "❌ taskProgress Firestore sync failed", e)
         }
 
-        // ✅ 1.6: Update task_instances in Firestore with FAMILY-SCOPED path
+        // ✅ 1.6: DELETE task_instances from Firestore (task is completed, no longer "assigned")
         try {
             firestore
                 .collection("families").document(familyId)
                 .collection("users").document(userId)
                 .collection("task_instances")
                 .document(instanceId)
-                .update(mapOf(
-                    "status"      to status.name,
-                    "completedAt" to completionTimestamp
-                ))
+                .delete()  // ✅ DELETE, not UPDATE
                 .await()
-            Log.d("CompleteTaskUseCase", "✅ task_instances updated to COMPLETED in Firestore")
+            Log.d("CompleteTaskUseCase", "✅ task_instances deleted from Firestore (task completed)")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "❌ task_instances Firestore update failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "❌ task_instances deletion failed (non-fatal)", e)
         }
 
-        // ✅ Update Room local DB so Room Flow picks up the COMPLETED status
+        // ✅ Also delete from Room
         try {
-            taskInstanceDao.updateStatus(
-                instanceId  = instanceId,
-                status      = status.name,
-                completedAt = completionTimestamp
-            )
-            Log.d("CompleteTaskUseCase", "✅ Room task_instances updated to COMPLETED")
+            taskInstanceDao.deleteByInstanceId(familyId, userId, instanceId)
+            Log.d("CompleteTaskUseCase", "✅ Room task_instances deleted")
         } catch (e: Exception) {
-            Log.e("CompleteTaskUseCase", "❌ Room task_instances update failed (non-fatal)", e)
+            Log.e("CompleteTaskUseCase", "❌ Room deletion failed (non-fatal)", e)
         }
+
 
         // 2. Calculate XP
         val newStreak = progressionEngine.streakCalculator.computeStreak(currentStreak, lastActiveDate, today)

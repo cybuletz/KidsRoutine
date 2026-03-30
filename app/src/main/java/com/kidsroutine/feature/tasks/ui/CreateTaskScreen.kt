@@ -103,6 +103,7 @@ fun CreateTaskScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
             // Top bar
@@ -425,6 +426,7 @@ fun CreateTaskScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+                    Spacer(modifier = Modifier.weight(1f))
                 }
 
                 // Difficulty selector
@@ -497,8 +499,7 @@ fun CreateTaskScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(bottom = 32.dp),
+                        .height(56.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GradientStart
@@ -519,6 +520,8 @@ fun CreateTaskScreen(
                             color = Color.White
                         )
                     }
+
+                    Spacer(Modifier.height(32.dp))
                 }
             }
         }

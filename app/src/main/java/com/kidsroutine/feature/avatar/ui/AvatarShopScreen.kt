@@ -53,13 +53,6 @@ fun AvatarShopScreen(
 
             // ── XP Balance Banner ───────────────────────────────────────────
             XpBalanceBanner(
-                xp = uiState.xp,              // ← NOW will display correctly
-                onBuyXp = { viewModel.openCoinStore() }
-            )
-
-
-            // ── XP Balance Banner ───────────────────────────────────────────
-            XpBalanceBanner(
                 xp = uiState.xp,              // ← Update to show XP
                 onBuyXp = { viewModel.openCoinStore() }
             )
@@ -311,7 +304,8 @@ fun ShopPackCard(
                             Brush.horizontalGradient(
                                 listOf(accentColor, accentColor.copy(alpha = 0.7f))
                             )
-                        ),
+                        )
+                        .clickable { onBuy() },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -415,24 +409,23 @@ fun XpBalanceBanner(xp: Int, onBuyXp: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF00FFD700)
                 )
-                Text("Your current XP balance",
+                Text("Available to spend",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.5f))
             }
         }
 
         Surface(
-            onClick = onBuyXp,
+            onClick = { /* XP is earned by completing tasks — no store needed */ },
             shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF00FFD700)
+            color = Color(0xFF00FFD700).copy(alpha = 0.3f)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Icon(Icons.Default.Add, "Buy", tint = Color.Black, modifier = Modifier.size(16.dp))
-                Text("Earn XP", style = MaterialTheme.typography.labelMedium,
+                Text("Complete tasks to earn XP", style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
