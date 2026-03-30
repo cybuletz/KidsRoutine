@@ -88,6 +88,34 @@ class DailyRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun replaceTasksForDate(familyId: String, userId: String, date: String, instances: List<TaskInstance>) {
+        try {
+            // Step 1: Delete all old Room records for this date
+            taskInstanceDao.deleteAllForDate(userId, date)
+            Log.d("DailyRepository", "✅ Deleted all old tasks for $date")
+
+            // Step 2: Insert fresh instances from Firestore
+            val entities = instances.map { instance ->
+                TaskInstanceEntity(
+                    instanceId = instance.instanceId,
+                    templateId = instance.templateId,
+                    taskJson = json.toJson(instance.task),
+                    assignedDate = instance.assignedDate,
+                    userId = userId,
+                    familyId = familyId,
+                    injectedByChallengeId = instance.injectedByChallengeId,
+                    status = instance.status.name,
+                    completedAt = instance.completedAt
+                )
+            }
+
+            taskInstanceDao.insertAll(entities)
+            Log.d("DailyRepository", "✅ Inserted ${entities.size} fresh tasks from Firestore for $date")
+        } catch (e: Exception) {
+            Log.e("DailyRepository", "Error replacing tasks for date", e)
+        }
+    }
+
     override suspend fun refreshTasksForDate(familyId: String, userId: String, date: String) {
         try {
             Log.d("DailyRepository", "Refreshing tasks for family=$familyId, user=$userId, date=$date")

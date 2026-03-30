@@ -30,4 +30,6 @@ interface DailyRepository {
 
     suspend fun deleteOldCompletedInstances(familyId: String, userId: String, today: String)
 
+    suspend fun replaceTasksForDate(familyId: String, userId: String, date: String, instances: List<TaskInstance>)
+
 }

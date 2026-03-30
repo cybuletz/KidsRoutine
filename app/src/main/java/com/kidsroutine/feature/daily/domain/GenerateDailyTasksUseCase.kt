@@ -29,29 +29,126 @@ class GenerateDailyTasksUseCase @Inject constructor(
     ): GenerationOutcome {
         Log.d("GenerateDailyTasks", "Starting generation for userId=${user.userId}, familyId=${user.familyId}, date=$date")
 
-        // ✅ Clean up yesterday's completed instances (so they don't reappear)
+        // ✅ CRITICAL: ONE-TIME DAILY RESYNC FROM FIRESTORE
+        // Firestore is the single source of truth - wipe Room and rebuild completely
         try {
-            repository.deleteOldCompletedInstances(user.familyId, user.userId, date)
-            Log.d("GenerateDailyTasks", "✅ Cleaned up old completed instances")
+            Log.d("GenerateDailyTasks", "🔄 Starting daily Firestore resync...")
+
+            // Step 1: Get all ASSIGNED assignments from Firestore
+            val assignmentsSnapshot = firestore
+                .collection("families")
+                .document(user.familyId)
+                .collection("users")
+                .document(user.userId)
+                .collection("assignments")
+                .whereEqualTo("status", "ASSIGNED")
+                .get().await()
+
+            Log.d("GenerateDailyTasks", "Found ${assignmentsSnapshot.documents.size} ASSIGNED assignments in Firestore")
+
+            val assignedTaskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
+            val assignedInstances = mutableListOf<TaskInstance>()
+
+            for (taskId in assignedTaskIds) {
+                try {
+                    val taskDoc = firestore
+                        .collection("families").document(user.familyId)
+                        .collection("tasks").document(taskId)
+                        .get().await()
+
+                    val taskModel = taskDoc.toObject(TaskModel::class.java)
+                    if (taskModel != null && taskModel.title.isNotBlank()) {
+                        assignedInstances.add(
+                            TaskInstance(
+                                instanceId = "assign_${taskId}_${System.currentTimeMillis()}",
+                                templateId = taskId,
+                                task = taskModel,
+                                assignedDate = date,
+                                userId = user.userId,
+                                injectedByChallengeId = null,
+                                status = TaskStatus.PENDING,
+                                completedAt = 0L
+                            )
+                        )
+                        Log.d("GenerateDailyTasks", "Fetched assignment: ${taskModel.title}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("GenerateDailyTasks", "Error fetching task $taskId", e)
+                }
+            }
+
+            // Step 2: Get all COMPLETED task_progress from Firestore for TODAY
+            val progressSnapshot = firestore
+                .collection("families")
+                .document(user.familyId)
+                .collection("users")
+                .document(user.userId)
+                .collection("task_progress")
+                .whereEqualTo("date", date)
+                .get().await()
+
+            Log.d("GenerateDailyTasks", "Found ${progressSnapshot.documents.size} completed tasks in task_progress")
+
+            val completedInstances = mutableListOf<TaskInstance>()
+
+            for (doc in progressSnapshot.documents) {
+                try {
+                    val taskInstanceId = doc.getString("taskInstanceId") ?: continue
+                    val taskTitle = doc.getString("taskTitle") ?: "Completed Task"
+                    val completedAt = doc.getLong("completionTime") ?: 0L
+                    val taskJson = doc.getString("taskJson")
+
+                    // Try to deserialize task from JSON if available
+                    val taskModel = if (!taskJson.isNullOrBlank()) {
+                        try {
+                            val gson = com.google.gson.Gson()
+                            gson.fromJson(taskJson, TaskModel::class.java)
+                        } catch (e: Exception) {
+                            TaskModel(title = taskTitle)
+                        }
+                    } else {
+                        TaskModel(title = taskTitle)
+                    }
+
+                    completedInstances.add(
+                        TaskInstance(
+                            instanceId = taskInstanceId,
+                            templateId = doc.getString("templateId") ?: "",
+                            task = taskModel,
+                            assignedDate = date,
+                            userId = user.userId,
+                            injectedByChallengeId = null,
+                            status = TaskStatus.COMPLETED,
+                            completedAt = completedAt
+                        )
+                    )
+                    Log.d("GenerateDailyTasks", "Recovered completed task: $taskTitle")
+                } catch (e: Exception) {
+                    Log.e("GenerateDailyTasks", "Error processing completed task from Firestore", e)
+                }
+            }
+
+            // Step 3: Combine assigned + completed from Firestore
+            val firestoreTasks = assignedInstances + completedInstances
+
+            // Step 4: Replace Room entirely with Firestore data
+            repository.replaceTasksForDate(user.familyId, user.userId, date, firestoreTasks)
+
+            Log.d("GenerateDailyTasks", "✅ Resync complete: ${assignedInstances.size} pending, ${completedInstances.size} completed")
+
         } catch (e: Exception) {
-            Log.e("GenerateDailyTasks", "⚠️ Cleanup failed (non-fatal)", e)
+            Log.e("GenerateDailyTasks", "❌ Error during Firestore resync", e)
+            return GenerationOutcome.Error
         }
 
-        // ✅ CRITICAL: Fetch ONLY parent-assigned tasks that have status="ASSIGNED" in assignments collection
-        val freshAssignedTasks = fetchParentAssignedTasks(user, date)
-        if (freshAssignedTasks.isNotEmpty()) {
-            Log.d("GenerateDailyTasks", "Merging ${freshAssignedTasks.size} parent-assigned tasks")
-            repository.mergeAssignedTasks(user.familyId, user.userId, date, freshAssignedTasks)
-        }
-
-        // Enforce 1-per-day generation limit for the rest
+        // ✅ Check if we've already generated AI tasks for today
         if (repository.hasTasksForDate(user.familyId, user.userId, date)) {
-            Log.d("GenerateDailyTasks", "Tasks already generated for $date")
+            Log.d("GenerateDailyTasks", "Tasks already generated for $date, skipping AI generation")
             return GenerationOutcome.AlreadyGenerated
         }
 
+        // ✅ STEP 1: Fetch active challenges for this user
         try {
-            // STEP 1: Fetch active challenges for this user
             Log.d("GenerateDailyTasks", "Fetching active challenges for user: ${user.userId}")
             val activeChallenges = challengeRepository.getActiveChallenges(user.userId)
             Log.d("GenerateDailyTasks", "Found ${activeChallenges.size} active challenges")
@@ -125,18 +222,20 @@ class GenerateDailyTasksUseCase @Inject constructor(
                 Log.e("GenerateDailyTasks", "Error fetching story arc for family ${user.familyId}", e)
             }
 
-            // STEP 3: Combine all tasks
-            val allTasks = challengeTasks + storyTasks + injectedTasks
-            Log.d("GenerateDailyTasks", "Total tasks to save: ${allTasks.size}")
+            // STEP 3: Combine generated tasks with injected ones
+            val allGeneratedTasks = challengeTasks + storyTasks + injectedTasks
+            Log.d("GenerateDailyTasks", "Total generated tasks to save: ${allGeneratedTasks.size}")
 
-            if (allTasks.isNotEmpty()) {
-                repository.saveDailyTasks(user.familyId, user.userId, date, allTasks)
+            // STEP 4: Save generated tasks to Room and Firestore
+            if (allGeneratedTasks.isNotEmpty()) {
+                repository.saveDailyTasks(user.familyId, user.userId, date, allGeneratedTasks)
+                Log.d("GenerateDailyTasks", "✅ Saved ${allGeneratedTasks.size} generated tasks")
             }
 
-            return GenerationOutcome.Success(allTasks)
+            return GenerationOutcome.Success(allGeneratedTasks)
         } catch (e: Exception) {
-            Log.e("GenerateDailyTasks", "Error generating daily tasks", e)
-            return GenerationOutcome.NoTemplatesAvailable
+            Log.e("GenerateDailyTasks", "❌ Error generating daily tasks", e)
+            return GenerationOutcome.Error
         }
     }
 
@@ -197,4 +296,5 @@ sealed class GenerationOutcome {
     data class Success(val tasks: List<TaskInstance>) : GenerationOutcome()
     object AlreadyGenerated : GenerationOutcome()
     object NoTemplatesAvailable : GenerationOutcome()
+    object Error : GenerationOutcome()
 }

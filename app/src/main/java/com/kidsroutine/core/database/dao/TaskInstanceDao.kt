@@ -3,6 +3,7 @@ package com.kidsroutine.core.database.dao
 import androidx.room.*
 import com.kidsroutine.core.database.entity.TaskInstanceEntity
 import com.kidsroutine.core.database.entity.TaskProgressEntity
+import com.kidsroutine.core.model.TaskInstance
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -41,6 +42,9 @@ interface TaskInstanceDao {
 
     @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
     suspend fun deleteAllForUserAndDate(userId: String, date: String)
+
+    @Query("DELETE FROM task_instances WHERE userId = :userId AND assignedDate = :date")
+    suspend fun deleteAllForDate(userId: String, date: String)
 
     // Atomic delete + insert transaction
     @Transaction
