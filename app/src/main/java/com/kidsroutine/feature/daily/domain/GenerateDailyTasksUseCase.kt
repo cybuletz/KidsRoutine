@@ -29,7 +29,7 @@ class GenerateDailyTasksUseCase @Inject constructor(
     ): GenerationOutcome {
         Log.d("GenerateDailyTasks", "Starting generation for userId=${user.userId}, familyId=${user.familyId}, date=$date")
 
-        // ✅ NEW: Always sync parent-assigned tasks, even if day was already generated
+        // ✅ CRITICAL: Fetch ONLY parent-assigned tasks that have status="ASSIGNED" in assignments collection
         val freshAssignedTasks = fetchParentAssignedTasks(user, date)
         if (freshAssignedTasks.isNotEmpty()) {
             Log.d("GenerateDailyTasks", "Merging ${freshAssignedTasks.size} parent-assigned tasks")
@@ -122,7 +122,6 @@ class GenerateDailyTasksUseCase @Inject constructor(
             Log.d("GenerateDailyTasks", "Total tasks to save: ${allTasks.size}")
 
             if (allTasks.isNotEmpty()) {
-                // ✅ NEW: Pass familyId to save
                 repository.saveDailyTasks(user.familyId, user.userId, date, allTasks)
             }
 
@@ -133,19 +132,23 @@ class GenerateDailyTasksUseCase @Inject constructor(
         }
     }
 
-    // ✅ NEW: requires familyId for family-scoped queries
+    // ✅ FIXED: Only fetch from assignments collection where status="ASSIGNED"
+    // Never fetch from task_progress or anywhere else
     private suspend fun fetchParentAssignedTasks(user: UserModel, date: String): List<TaskInstance> {
         val result = mutableListOf<TaskInstance>()
         try {
-            // ✅ NEW PATH: /families/{familyId}/users/{userId}/assignments/
+            // ✅ CRITICAL: Only query /families/{familyId}/users/{userId}/assignments/
+            // with status="ASSIGNED" - this filters out completed/deleted tasks
             val assignmentsSnapshot = firestore
                 .collection("families")
                 .document(user.familyId)
                 .collection("users")
                 .document(user.userId)
                 .collection("assignments")
-                .whereEqualTo("status", "ASSIGNED")
+                .whereEqualTo("status", "ASSIGNED")  // ✅ ONLY ASSIGNED - never completed
                 .get().await()
+
+            Log.d("GenerateDailyTasks", "Found ${assignmentsSnapshot.documents.size} assignments with status=ASSIGNED")
 
             val assignedTaskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
             for (taskId in assignedTaskIds) {

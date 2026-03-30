@@ -27,15 +27,15 @@ class DailyRepositoryImpl @Inject constructor(
 ) : DailyRepository {
 
 
-    // ✅ NEW: requires familyId for family-scoped queries
+    // Line 30-77 (observeDailyState method)
     override fun observeDailyState(familyId: String, userId: String, date: String): Flow<DailyStateModel> {
-        val tasksFlow    = taskInstanceDao.getTasksForDate(familyId, userId, date)         // ← PENDING only
-        val allTasksFlow = taskInstanceDao.getAllTasksForDate(familyId, userId, date)      // ← ALL for progress
+        val tasksFlow    = taskInstanceDao.getTasksForDate(familyId, userId, date)
+        val allTasksFlow = taskInstanceDao.getAllTasksForDate(familyId, userId, date)
         val progressFlow = taskProgressDao.getProgressForDate(familyId, userId, date)
             .onStart { emit(emptyList()) }
 
         return combine(tasksFlow, allTasksFlow, progressFlow) { pendingEntities, allEntities, progressEntities ->
-            // ✅ Create PENDING instances for display (progress pills only show pending tasks)
+            // ✅ Create PENDING instances for display
             val instances = pendingEntities.map { entity ->
                 val taskModel = json.fromJson(entity.taskJson, TaskModel::class.java)
                 TaskInstance(
@@ -50,14 +50,17 @@ class DailyRepositoryImpl @Inject constructor(
                 )
             }
 
-            // ✅ CRITICAL: Count completed from progressEntities (child's actual accomplishments)
-            val completedCount = progressEntities.count { it.status == "COMPLETED" }
+            // ✅ CRITICAL DOUBLE-CHECK:
+            // Count ONLY completed tasks for TODAY (defense-in-depth)
+            // progressFlow should already be filtered by TaskProgressDao, but we add extra safety here
+            val completedCount = progressEntities.count {
+                it.status == "COMPLETED" && it.date == date
+            }
 
-            // ✅ CRITICAL: Total assigned = pending tasks that exist + tasks completed today
             val totalTasksAssigned = pendingEntities.size + completedCount
 
             val totalXp = progressEntities
-                .filter { it.status == "COMPLETED" }
+                .filter { it.status == "COMPLETED" && it.date == date }
                 .sumOf { p ->
                     val task = allEntities.find { it.instanceId == p.taskInstanceId }
                         ?.let { json.fromJson(it.taskJson, TaskModel::class.java) }
@@ -69,7 +72,7 @@ class DailyRepositoryImpl @Inject constructor(
                 userId              = userId,
                 tasks               = instances,
                 completedCount      = completedCount,
-                totalTasksAssigned  = totalTasksAssigned,  // ✅ ADD THIS
+                totalTasksAssigned  = totalTasksAssigned,
                 totalXpEarned       = totalXp,
                 isGenerated         = allEntities.isNotEmpty()
             )
@@ -172,7 +175,8 @@ class DailyRepositoryImpl @Inject constructor(
                 )
             }
 
-            // ✅ CHANGED: Use atomic transaction instead of separate delete + insert
+            // ✅ CRITICAL FIX: Delete all existing task_instances for this user/date FIRST, then insert new ones atomically
+            // This prevents duplicates when mergeAssignedTasks is called multiple times
             taskInstanceDao.deleteAndInsertForUserAndDate(userId, date, entitiesToInsert)
 
             Log.d("DailyRepository", "✅ Merged ${newInstances.size} new assigned tasks for family=$familyId, user=$userId")

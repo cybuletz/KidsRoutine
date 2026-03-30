@@ -2,6 +2,7 @@ package com.kidsroutine.core.database.dao
 
 import androidx.room.*
 import com.kidsroutine.core.database.entity.TaskInstanceEntity
+import com.kidsroutine.core.database.entity.TaskProgressEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -47,4 +48,9 @@ interface TaskInstanceDao {
         deleteAllForUserAndDate(userId, date)
         insertAll(newEntities)
     }
+
+
+    // ✅ CRITICAL FIX: Only get COMPLETED task_progress for TODAY (not historical data)
+    @Query("SELECT * FROM task_progress WHERE familyId = :familyId AND userId = :userId AND date = :date AND status = 'COMPLETED'")
+    fun getProgressForDate(familyId: String, userId: String, date: String): Flow<List<TaskProgressEntity>>
 }
