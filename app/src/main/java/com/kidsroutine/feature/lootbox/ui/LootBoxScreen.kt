@@ -295,8 +295,8 @@ fun LootBoxScreen(
 
                     Button(
                         onClick = {
-                            onClaim(lootBox.copy(isOpened = true))  // ✅ Call onClaim here
-                            onBack()  // Then go back
+                            onClaim(lootBox.copy(isOpened = true))
+                            onBack()
                         },
                         shape   = RoundedCornerShape(14.dp),
                         colors  = ButtonDefaults.buttonColors(containerColor = OrangePrimary),

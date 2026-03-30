@@ -45,6 +45,7 @@ import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
+import androidx.lifecycle.viewModelScope
 import com.kidsroutine.feature.family.ui.ChildTaskProposalScreen
 import com.kidsroutine.feature.lootbox.ui.LootBoxOverlay
 import com.kidsroutine.feature.lootbox.ui.LootBoxPhase
@@ -54,6 +55,7 @@ import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.rewards.ui.RewardsScreen
 import com.kidsroutine.feature.world.ui.WorldScreen
+import kotlinx.coroutines.launch
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight       = Color(0xFFFFFBF0)
@@ -204,23 +206,23 @@ fun ChildMainScreen(
                 currentRoute = "lootbox"
                 val lootBoxViewModel: LootBoxViewModel = hiltViewModel()
                 val lootBoxUiState by lootBoxViewModel.uiState.collectAsState()
-
-                // Seed a box if the viewmodel is idle (i.e. arrived here via nav, not from TaskExecution)
-                LaunchedEffect(Unit) {
-                    if (lootBoxUiState.phase == LootBoxPhase.IDLE) {
-                        lootBoxViewModel.presentBox(
-                            box    = LootBox(earnedFor = "All tasks done today!"),
-                            userId = currentUser.userId
-                        )
-                    }
-                }
+                val persistComplete by lootBoxViewModel.persistComplete.collectAsState()  // ✅ Listen
 
                 lootBoxUiState.lootBox?.let { box ->
                     LootBoxScreen(
                         lootBox = box,
                         onBack  = { innerNavController.popBackStack() },
-                        onClaim = { lootBoxViewModel.dismiss() }
+                        onClaim = {
+                            lootBoxViewModel.dismiss()
+                        }
                     )
+                }
+
+                // ✅ Navigate only after persist completes
+                LaunchedEffect(persistComplete) {
+                    if (persistComplete) {
+                        innerNavController.popBackStack()
+                    }
                 }
             }
         }

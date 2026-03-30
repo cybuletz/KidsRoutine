@@ -67,25 +67,24 @@ class LootBoxViewModel @Inject constructor(
         }
     }
 
+    private val _persistComplete = MutableStateFlow(false)
+    val persistComplete: StateFlow<Boolean> = _persistComplete.asStateFlow()
+
     fun dismiss() {
+        viewModelScope.launch {
+            _persistComplete.value = false
+            persistRewardSuspend()
+            _persistComplete.value = true  // ✅ Signal completion
+            _uiState.value = LootBoxUiState(phase = LootBoxPhase.DONE)
+        }
+    }
+
+    private suspend fun persistRewardSuspend() {
         val state = _uiState.value
         val reward = state.reward
         val userId = state.userId
 
-        // ✅ FIX: Persist reward to Firestore before clearing state
         if (reward != null && userId.isNotBlank()) {
-            persistReward(userId, reward)
-        }
-
-        _uiState.value = LootBoxUiState(phase = LootBoxPhase.DONE)
-    }
-
-    fun reset() {
-        _uiState.value = LootBoxUiState(phase = LootBoxPhase.IDLE)
-    }
-
-    private fun persistReward(userId: String, reward: LootBoxReward) {
-        viewModelScope.launch {
             try {
                 val userRef = firestore.collection("users").document(userId)
                 when (reward.type) {
@@ -135,10 +134,17 @@ class LootBoxViewModel @Inject constructor(
                     "xpValue"     to reward.xpValue,
                     "openedAt"    to System.currentTimeMillis()
                 )).await()
+                Log.d("LootBoxVM", "✓ Full reward persisted for $userId")
             } catch (e: Exception) {
-                Log.e("LootBoxVM", "Failed to persist reward: ${e.message}")
+                Log.e("LootBoxVM", "Failed to persist reward: ${e.message}", e)
             }
         }
+
+        _uiState.value = LootBoxUiState(phase = LootBoxPhase.DONE)
+    }
+
+    fun reset() {
+        _uiState.value = LootBoxUiState(phase = LootBoxPhase.IDLE)
     }
 
     private fun rollReward(): LootBoxReward {
