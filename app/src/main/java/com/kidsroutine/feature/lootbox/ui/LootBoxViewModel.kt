@@ -68,12 +68,15 @@ class LootBoxViewModel @Inject constructor(
     }
 
     private val _persistComplete = MutableStateFlow(false)
-    val persistComplete: StateFlow<Boolean> = _persistComplete.asStateFlow()
 
     fun dismiss() {
         viewModelScope.launch {
             _persistComplete.value = false
-            persistRewardSuspend()
+            try {
+                persistRewardSuspend()
+            } catch (e: Exception) {
+                Log.e("LootBoxVM", "Error in dismiss", e)
+            }
             _persistComplete.value = true  // ✅ Signal completion
             _uiState.value = LootBoxUiState(phase = LootBoxPhase.DONE)
         }

@@ -55,6 +55,7 @@ import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.rewards.ui.RewardsScreen
 import com.kidsroutine.feature.world.ui.WorldScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val OrangePrimary = Color(0xFFFF6B35)
@@ -206,21 +207,29 @@ fun ChildMainScreen(
                 currentRoute = "lootbox"
                 val lootBoxViewModel: LootBoxViewModel = hiltViewModel()
                 val lootBoxUiState by lootBoxViewModel.uiState.collectAsState()
-                val persistComplete by lootBoxViewModel.persistComplete.collectAsState()  // ✅ Listen
+
+                // Seed a box if the viewmodel is idle (i.e. arrived here via nav, not from TaskExecution)
+                LaunchedEffect(Unit) {
+                    if (lootBoxUiState.phase == LootBoxPhase.IDLE) {
+                        lootBoxViewModel.presentBox(
+                            box    = LootBox(earnedFor = "All tasks done today!"),
+                            userId = currentUser.userId
+                        )
+                    }
+                }
 
                 lootBoxUiState.lootBox?.let { box ->
                     LootBoxScreen(
                         lootBox = box,
                         onBack  = { innerNavController.popBackStack() },
-                        onClaim = {
-                            lootBoxViewModel.dismiss()
-                        }
+                        onClaim = { lootBoxViewModel.dismiss() }
                     )
                 }
 
-                // ✅ Navigate only after persist completes
-                LaunchedEffect(persistComplete) {
-                    if (persistComplete) {
+                // Navigate back after reward persists
+                LaunchedEffect(key1 = lootBoxUiState.phase) {
+                    if (lootBoxUiState.phase == LootBoxPhase.DONE) {
+                        delay(3500)
                         innerNavController.popBackStack()
                     }
                 }
