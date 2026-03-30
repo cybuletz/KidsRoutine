@@ -94,6 +94,9 @@ class DailyRepositoryImpl @Inject constructor(
             taskInstanceDao.deleteAllForDate(userId, date)
             Log.d("DailyRepository", "✅ Deleted all old tasks for $date")
 
+            // ✅ ADD THIS ONE LINE:
+            kotlinx.coroutines.delay(100)
+
             // Step 2: Insert fresh instances from Firestore
             val entities = instances.map { instance ->
                 TaskInstanceEntity(
