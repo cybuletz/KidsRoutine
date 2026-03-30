@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.avatar.ui
 
+import android.util.Log
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -181,14 +182,11 @@ fun ShopPackCard(
                 else accentColor.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(20.dp)
             )
-            // ✨ CHANGED: Only preview on long press, not regular click
-            .combinedClickable(
-                onClick = {
-                    if (!isOwned) onBuy()  // ← Buy on click if not owned
-                    else onPreview()        // ← Preview if already owned
-                },
-                onLongClick = { onPreview() }
-            )
+            .clickable {
+                Log.d("ShopPackCard", "Card clicked for pack: ${pack.name}, isOwned: $isOwned")  // ✅ DEBUG
+                if (!isOwned) onBuy()
+                else onPreview()
+            }
     ) {
         Column(
             modifier = Modifier
@@ -304,15 +302,14 @@ fun ShopPackCard(
                             Brush.horizontalGradient(
                                 listOf(accentColor, accentColor.copy(alpha = 0.7f))
                             )
-                        )
-                        .clickable { onBuy() },
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🪙", style = MaterialTheme.typography.labelMedium)
+                        Text("⭐", style = MaterialTheme.typography.labelMedium)
                         Text(
                             "${pack.packPrice}",
                             style = MaterialTheme.typography.titleSmall,
@@ -371,6 +368,7 @@ fun ShopTopBar(xp: Int, onBack: () -> Unit) {
 
 @Composable
 fun XpBalanceBanner(xp: Int, onBuyXp: () -> Unit) {
+
     val pulse = rememberInfiniteTransition(label = "xpPulse")
     val glow by pulse.animateFloat(
         initialValue = 0.5f, targetValue = 1f,
@@ -378,55 +376,42 @@ fun XpBalanceBanner(xp: Int, onBuyXp: () -> Unit) {
         label = "glow"
     )
 
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(Color(0xFF1A2000), Color(0xFF2D3300))
-                )
-            )
-            .border(
-                1.dp,
-                Color(0xFF00FFD700).copy(alpha = 0.3f * glow),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFF1A2000),
+        border = BorderStroke(
+            1.dp,
+            Color(0xFF00FFD700).copy(alpha = 0.3f * glow)
+        )
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text("⭐", style = MaterialTheme.typography.headlineMedium)
-            Column {
-                Text(
-                    "$xp XP",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF00FFD700)
-                )
-                Text("Available to spend",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.5f))
-            }
-        }
-
-        Surface(
-            onClick = { /* XP is earned by completing tasks — no store needed */ },
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFF00FFD700).copy(alpha = 0.3f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Text("Complete tasks to earn XP", style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold, color = Color.Black)
+                Text("⭐", style = MaterialTheme.typography.headlineMedium, color = Color(0xFF00FFD700))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "$xp XP",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        fontSize = 24.sp
+                    )
+                    Text("Available to spend",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f))
+                }
             }
         }
     }

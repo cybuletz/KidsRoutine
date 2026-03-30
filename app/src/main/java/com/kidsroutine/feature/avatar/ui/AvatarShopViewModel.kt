@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.avatar.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.SavedStateHandle
@@ -52,6 +53,8 @@ class AvatarShopViewModel @Inject constructor(
                 val userXp = repository.getUserXp(userId)
                 val ownedPacks = repository.getOwnedAvatarPacks(userId)
 
+                Log.d("AvatarShopVM", "Loaded XP: $userXp for user: $userId")  // ✅ ADD THIS
+
                 _uiState.update {
                     it.copy(
                         xp = userXp,
@@ -61,6 +64,7 @@ class AvatarShopViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                Log.e("AvatarShopVM", "Error loading shop data", e)  // ✅ ADD THIS
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -123,8 +127,11 @@ class AvatarShopViewModel @Inject constructor(
         val state = _uiState.value
         val totalXpCost = pack.packPrice
 
+        Log.d("AvatarShopVM", "purchasePack called for: ${pack.name}, cost: $totalXpCost, userXp: ${state.xp}")
+
         // Validate
         if (state.xp < totalXpCost) {
+            Log.d("AvatarShopVM", "Not enough XP!")
             _uiState.update {
                 it.copy(
                     errorMessage = "⚠️ Not enough XP! Need $totalXpCost XP. You have ${state.xp} XP."
@@ -134,6 +141,7 @@ class AvatarShopViewModel @Inject constructor(
         }
 
         // Show confirmation dialog
+        Log.d("AvatarShopVM", "Setting pendingPurchasePack to: ${pack.name}")
         _uiState.update { it.copy(pendingPurchasePack = pack) }
     }
 
@@ -148,23 +156,15 @@ class AvatarShopViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Deduct XP
+                // ✅ Deduct XP from Firestore FIRST (atomic transaction)
                 repository.deductUserXp(userId, totalXpCost)
 
-                // Get current avatar
+                // ✅ Get current avatar and unlock items
                 var currentAvatar = repository.getAvatar(userId) ?: AvatarState(userId = userId)
+                val newUnlockedIds = (currentAvatar.unlockedItemIds + pack.items.map { it.id }).toSet()
+                val newOwnedPacks = (currentAvatar.ownedPackIds + pack.id).toSet()
 
-                // Unlock all items in pack
-                val newUnlockedIds = currentAvatar.unlockedItemIds.toMutableSet()
-                for (item in pack.items) {
-                    newUnlockedIds.add(item.id)
-                }
-
-                // Add pack to owned packs
-                val newOwnedPacks = currentAvatar.ownedPackIds.toMutableSet()
-                newOwnedPacks.add(pack.id)
-
-                // Save updated avatar
+                // ✅ Save avatar with new items
                 val updatedAvatar = currentAvatar.copy(
                     unlockedItemIds = newUnlockedIds,
                     ownedPackIds = newOwnedPacks
@@ -172,12 +172,12 @@ class AvatarShopViewModel @Inject constructor(
                 repository.saveAvatar(updatedAvatar)
                 repository.addOwnedAvatarPack(userId, pack.id)
 
-                // Update UI state
+                // ✅ Reload shop data to get fresh XP balance
+                loadShopData(userId)
+
+                // ✅ Show success and dismiss
                 _uiState.update {
                     it.copy(
-                        xp = it.xp - totalXpCost,
-                        coins = it.coins - totalXpCost,
-                        ownedPackIds = newOwnedPacks,
                         pendingPurchasePack = null,
                         successMessage = "🎉 ${pack.name} pack unlocked!"
                     )
@@ -193,6 +193,8 @@ class AvatarShopViewModel @Inject constructor(
                         pendingPurchasePack = null
                     )
                 }
+                kotlinx.coroutines.delay(2000)
+                _uiState.update { it.copy(errorMessage = null) }
             }
         }
     }

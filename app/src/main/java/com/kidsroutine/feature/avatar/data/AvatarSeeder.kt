@@ -159,7 +159,7 @@ object AvatarSeeder {
             accentColor = 0xFF16213E,
             isTrending = true,
             isNew = false,
-            packPrice = 2500,  // Total XP cost for entire pack
+            packPrice = 150,  // Total XP cost for entire pack
             billingProductId = "pack_ninja_warriors_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -180,7 +180,7 @@ object AvatarSeeder {
                     tintColor = 0xFFC1121F,
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 750
+                    coinCost = 75
                 ),
                 AvatarLayerItem(
                     id = "ninja_bg_dojo",
@@ -189,7 +189,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.GradientBackground(0xFF1A0000, 0xFF8B0000, "Dojo"),
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 300
+                    coinCost = 30
                 ),
                 AvatarLayerItem(
                     id = "ninja_fx_fire",
@@ -198,7 +198,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.fx_fire),
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 600
+                    coinCost = 60
                 ),
                 AvatarLayerItem(
                     id = "ninja_accessory_headband",
@@ -208,7 +208,7 @@ object AvatarSeeder {
                     tintColor = 0xFFC1121F,
                     isPremium = true,
                     packId = "pack_ninja_warriors",
-                    coinCost = 350
+                    coinCost = 35
                 )
             )
         ),
@@ -221,7 +221,7 @@ object AvatarSeeder {
             accentColor = 0xFFFFCB05,
             isTrending = true,
             isNew = true,
-            packPrice = 2200,  // Total XP cost
+            packPrice = 100,  // Total XP cost
             billingProductId = "pack_monster_trainers_v1",
             items = listOf(
                 AvatarLayerItem(
@@ -232,7 +232,7 @@ object AvatarSeeder {
                     tintColor = 0xFFCC0000,
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 400
+                    coinCost = 40
                 ),
                 AvatarLayerItem(
                     id = "mt_outfit_trainer",
@@ -242,7 +242,7 @@ object AvatarSeeder {
                     tintColor = 0xFF003087,
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 700
+                    coinCost = 70
                 ),
                 AvatarLayerItem(
                     id = "mt_bg_tall_grass",
@@ -251,7 +251,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.GradientBackground(0xFF2D6A4F, 0xFF74C69D, "Plains"),
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 250
+                    coinCost = 25
                 ),
                 AvatarLayerItem(
                     id = "mt_bg_gym",
@@ -260,7 +260,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.GradientBackground(0xFF1B4332, 0xFF40916C, "Gym"),
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 250
+                    coinCost = 25
                 ),
                 AvatarLayerItem(
                     id = "mt_accessory_belt",
@@ -269,7 +269,7 @@ object AvatarSeeder {
                     source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
                     isPremium = true,
                     packId = "pack_monster_trainers",
-                    coinCost = 600
+                    coinCost = 60
                 )
             )
         ),

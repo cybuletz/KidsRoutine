@@ -1,6 +1,7 @@
 package com.kidsroutine.feature.avatar.data
 
 import android.util.Log
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.kidsroutine.core.database.dao.AvatarDao
@@ -69,27 +70,14 @@ class AvatarRepositoryImpl @Inject constructor(
      */
     override suspend fun deductUserXp(userId: String, amount: Int) {
         try {
-            Log.d("AvatarRepository", "Attempting to deduct $amount XP via Cloud Function")
+            Log.d("AvatarRepository", "Deducting $amount XP from $userId")
 
-            val data = hashMapOf(
-                "itemId" to "avatar_item_${System.currentTimeMillis()}",
-                "xpCost" to amount,
-                "packId" to null
-            )
-
-            val result = functions
-                .getHttpsCallable("onAvatarItemPurchase")
-                .call(data)
+            // Direct Firestore update instead of Cloud Function
+            firestore.collection("users").document(userId)
+                .update("xp", FieldValue.increment(-amount.toLong()))
                 .await()
 
-            val resultData = result.data as? Map<*, *>
-            if (resultData?.get("success") == true) {
-                val newBalance = resultData["newXpBalance"] as? Long ?: 0L
-                Log.d("AvatarRepository", "✅ XP deducted successfully. New balance: $newBalance")
-            } else {
-                throw Exception("Purchase failed on server")
-            }
-
+            Log.d("AvatarRepository", "✅ XP deducted successfully")
         } catch (e: Exception) {
             Log.e("AvatarRepository", "❌ Error deducting XP: ${e.message}", e)
             throw Exception("Failed to deduct XP: ${e.message}")
