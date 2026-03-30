@@ -95,7 +95,6 @@ fun DailyScreen(
     ) {
         when {
             uiState.isLoading -> DailyLoadingScreen()
-            uiState.dailyState.tasks.isEmpty() -> DailyEmptyScreen()
             else -> DailyContent(
                 uiState                = uiState,
                 onTaskClick            = onTaskClick,
@@ -108,7 +107,7 @@ fun DailyScreen(
                 onLootBoxClick         = onLootBoxClick,
                 onWorldClick           = onWorldClick,
                 viewModel = viewModel
-                )
+            )
         }
     }
 }
@@ -184,7 +183,7 @@ private fun DailyContent(
             }
 
             items(
-                items = uiState.dailyState.tasks,
+                items = uiState.dailyState.tasks.filter { it.status == TaskStatus.PENDING },  // ✅ Only pending for cards
                 key   = { it.instanceId }
             ) { instance ->
                 TaskCard(
@@ -282,7 +281,7 @@ private fun ProgressSection(
             // ── Segmented pill progress bar ───────────────────────────────
             // Each task gets its own pill — task type color fills when done
             if (state.tasks.isNotEmpty()) {
-                SegmentedProgressBar(tasks = state.tasks)
+                SegmentedProgressBar(tasks = state.tasks)  // ✅ Show all for pills
             }
 
             // ── World nudge banner ────────────────────────────────────────
@@ -531,10 +530,6 @@ fun TaskCard(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-// Fix: ProgressSection references state.dailyState which doesn't exist on DailyStateModel
-// The model already IS the daily state — use state.tasks directly
-// The SegmentedProgressBar call above passes state.tasks (corrected below in the actual call)
 
 @Composable
 private fun ChatBubbleButton(onClick: () -> Unit) {

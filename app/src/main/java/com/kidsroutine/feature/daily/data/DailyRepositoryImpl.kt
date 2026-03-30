@@ -73,7 +73,7 @@ class DailyRepositoryImpl @Inject constructor(
 
             Log.d("DailyRepository", "Completed today: $completedTaskIds")
 
-            // Filter assignments - exclude already completed
+            // ✅ Build PENDING tasks from assignments
             val pendingTasks = assignmentSnapshot.documents
                 .mapNotNull { doc ->
                     val taskId = doc.getString("taskId") ?: return@mapNotNull null
@@ -84,20 +84,36 @@ class DailyRepositoryImpl @Inject constructor(
                         return@mapNotNull null
                     }
 
-                    // For now, create a basic TaskInstance
-                    // In real app, you'd fetch from tasks collection
-                    TaskInstance(
-                        instanceId = "assign_${taskId}",
-                        templateId = taskId,
-                        task = TaskModel(id = taskId, title = doc.getString("taskTitle") ?: "Task"),
-                        assignedDate = date,
-                        userId = userId,
-                        status = TaskStatus.PENDING,
-                        completedAt = 0L
-                    )
+                    // ✅ Fetch full task from tasks collection
+                    try {
+                        val taskDoc = firestore
+                            .collection("families").document(familyId)
+                            .collection("tasks").document(taskId)
+                            .get()
+                            .await()
+
+                        val taskModel = taskDoc.toObject(TaskModel::class.java)
+                        if (taskModel != null) {
+                            TaskInstance(
+                                instanceId = "assign_${taskId}_${System.currentTimeMillis()}",
+                                templateId = taskId,
+                                task = taskModel,
+                                assignedDate = date,
+                                userId = userId,
+                                status = TaskStatus.PENDING,
+                                completedAt = 0L
+                            )
+                        } else null
+                    } catch (e: Exception) {
+                        Log.e("DailyRepository", "Error fetching task $taskId", e)
+                        null
+                    }
                 }
 
+            // ✅ Get completed count (DON'T create TaskInstances for display)
             val completedCount = progressSnapshot.documents.size
+
+            // ✅ Calculate totals
             val totalTasksAssigned = pendingTasks.size + completedCount
 
             val totalXp = progressSnapshot.documents
@@ -105,10 +121,30 @@ class DailyRepositoryImpl @Inject constructor(
                     (doc.getLong("xpGained") ?: 0L).toInt()
                 }
 
+            // ✅ Create fake TaskInstances for completed tasks (for pills only, not displayed as cards)
+            val completedTasksForPills = progressSnapshot.documents.mapNotNull { doc ->
+                val taskInstanceId = doc.getString("taskInstanceId") ?: return@mapNotNull null
+                val taskTitle = doc.getString("taskTitle") ?: "Completed Task"
+                val completedAt = doc.getLong("completionTime") ?: 0L
+
+                TaskInstance(
+                    instanceId = taskInstanceId,
+                    templateId = doc.getString("templateId") ?: "",
+                    task = TaskModel(title = taskTitle),
+                    assignedDate = date,
+                    userId = userId,
+                    status = TaskStatus.COMPLETED,
+                    completedAt = completedAt
+                )
+            }
+
+            // ✅ Combine: completed FIRST, then pending
+            val allTasksForPills = completedTasksForPills + pendingTasks
+
             DailyStateModel(
                 date = date,
                 userId = userId,
-                tasks = pendingTasks,
+                tasks = allTasksForPills,  // ✅ All tasks for pills (completed show as filled, pending as empty)
                 completedCount = completedCount,
                 totalTasksAssigned = totalTasksAssigned,
                 totalXpEarned = totalXp,
