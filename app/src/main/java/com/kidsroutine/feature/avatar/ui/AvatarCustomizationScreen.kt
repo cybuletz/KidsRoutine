@@ -31,13 +31,15 @@ fun AvatarCustomizationScreen(
     var selectedTab by remember { mutableStateOf(AvatarCustomizationTab.BACKGROUND) }
     var previewExpanded by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E)))
-            )
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFFFBF0))) {
+        // Gradient background for header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.18f)
+                .background(Brush.verticalGradient(listOf(Color(0xFF5272F2), Color(0xFF667EEA))))
+        )
+
         Column(modifier = Modifier.fillMaxSize()) {
 
             // ── Top Bar ──────────────────────────────────────────────────────
@@ -129,10 +131,14 @@ fun AvatarTopBar(
     onShop: () -> Unit,
     onReset: () -> Unit
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .statusBarsPadding()
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -178,6 +184,7 @@ fun AvatarTopBar(
             IconButton(onClick = onReset) {
                 Icon(Icons.Default.Refresh, "Reset", tint = Color.White.copy(alpha = 0.6f))
             }
+        }
         }
     }
 }

@@ -25,9 +25,8 @@ fun AvatarShopScreen(
     viewModel: AvatarShopViewModel,
     onBack: () -> Unit,
     onPackPurchased: (AvatarContentPack) -> Unit,
-    currentUserId: String  // ✨ ADD THIS PARAMETER
+    currentUserId: String
 ) {
-    // ✨ Initialize ViewModel on first compose
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotBlank()) {
             viewModel.init(currentUserId)
@@ -37,24 +36,81 @@ fun AvatarShopScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedCategory by remember { mutableStateOf("all") }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(listOf(Color(0xFF0D0D1A), Color(0xFF1A1A2E)))
-            )
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFFFBF0))) {
+        // Gradient background for header
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.22f)
+                .background(Brush.verticalGradient(listOf(Color(0xFF5272F2), Color(0xFF667EEA))))
+        )
+
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // ── Shop Top Bar ─────────────────────────────────────────────────
-            ShopTopBar(
-                xp = uiState.xp,              // ← NOW will display correctly
-                onBack = onBack
-            )
+            // ── Gradient Header with Back Button ──────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "🛍️ Avatar Shop",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                        Text(
+                            "Unlock epic character packs",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("⭐", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                "${uiState.xp} XP",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
 
             // ── XP Balance Banner ───────────────────────────────────────────
             XpBalanceBanner(
-                xp = uiState.xp,              // ← Update to show XP
+                xp = uiState.xp,
                 onBuyXp = { viewModel.openCoinStore() }
             )
 
@@ -318,45 +374,6 @@ fun ShopPackCard(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Shop Top Bar (UPDATED)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun ShopTopBar(xp: Int, onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Avatar Shop", style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold, color = Color.White)
-            Text("Unlock epic character packs", style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f))
-        }
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = Color(0xFF00FFD700).copy(alpha = 0.15f)
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("⭐", style = MaterialTheme.typography.labelLarge)
-                Text("$xp XP", style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold, color = Color(0xFF00FFD700))
             }
         }
     }
