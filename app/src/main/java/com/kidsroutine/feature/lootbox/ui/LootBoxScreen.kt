@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kidsroutine.core.model.*
 import kotlinx.coroutines.delay
 
@@ -50,10 +51,21 @@ private enum class OpenState { IDLE, SHAKING, REVEALING, DONE }
 fun LootBoxScreen(
     lootBox: LootBox,
     onBack: () -> Unit = {},
-    onClaim: (LootBox) -> Unit = {}
+    onClaim: (LootBox) -> Unit = {},
+    viewModel: LootBoxViewModel = hiltViewModel()
 ) {
+    val vmState by viewModel.uiState.collectAsState()
+
+    // Use reward from ViewModel (already rolled by presentBox()) — fallback to lootBox.reward
     var openState by remember { mutableStateOf(if (lootBox.isOpened) OpenState.DONE else OpenState.IDLE) }
-    var shownReward by remember { mutableStateOf(lootBox.reward) }
+    var shownReward by remember { mutableStateOf(vmState.reward ?: lootBox.reward) }
+
+    // Sync reward from ViewModel when it arrives
+    LaunchedEffect(vmState.reward) {
+        if (vmState.reward != null) {
+            shownReward = vmState.reward
+        }
+    }
 
     // Shake animation
     val infiniteTransition = rememberInfiniteTransition(label = "shake")
