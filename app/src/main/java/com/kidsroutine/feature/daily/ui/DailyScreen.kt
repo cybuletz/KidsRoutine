@@ -218,8 +218,9 @@ private fun ProgressSection(
     onLootBoxClick: () -> Unit,
     onWorldClick: () -> Unit
 ) {
-    val totalTasks = state.tasks.size
-    val actualCompletedCount = state.tasks.count { it.status == TaskStatus.COMPLETED }
+    // ✅ FIX: Use backend-calculated completedCount + totalTasksAssigned
+    val totalTasks = state.totalTasksAssigned  // ← USE THIS: includes pending + completed
+    val actualCompletedCount = state.completedCount  // ← USE THIS: from task_progress table
     val allDone = actualCompletedCount > 0 && actualCompletedCount >= totalTasks && totalTasks > 0
 
     val infiniteTransition = rememberInfiniteTransition(label = "allDonePulse")
@@ -269,8 +270,9 @@ private fun ProgressSection(
                         fontSize   = 16.sp
                     )
                 } else {
+                    // ✅ FIX: Show total assigned (pending + completed), not just visible
                     Text(
-                        "$actualCompletedCount/${state.tasks.size} done",
+                        "$actualCompletedCount/$totalTasks done",
                         fontWeight = FontWeight.SemiBold
                     )
                 }

@@ -27,7 +27,6 @@ class DailyRepositoryImpl @Inject constructor(
 ) : DailyRepository {
 
 
-    // Line 30-77 (observeDailyState method)
     override fun observeDailyState(familyId: String, userId: String, date: String): Flow<DailyStateModel> {
         val tasksFlow    = taskInstanceDao.getTasksForDate(familyId, userId, date)
         val allTasksFlow = taskInstanceDao.getAllTasksForDate(familyId, userId, date)
@@ -50,13 +49,12 @@ class DailyRepositoryImpl @Inject constructor(
                 )
             }
 
-            // ✅ CRITICAL DOUBLE-CHECK:
-            // Count ONLY completed tasks for TODAY (defense-in-depth)
-            // progressFlow should already be filtered by TaskProgressDao, but we add extra safety here
+            // ✅ Count ONLY completed tasks for TODAY
             val completedCount = progressEntities.count {
                 it.status == "COMPLETED" && it.date == date
             }
 
+            // ✅ CRITICAL: Calculate total assigned = pending + completed
             val totalTasksAssigned = pendingEntities.size + completedCount
 
             val totalXp = progressEntities
@@ -72,9 +70,10 @@ class DailyRepositoryImpl @Inject constructor(
                 userId              = userId,
                 tasks               = instances,
                 completedCount      = completedCount,
-                totalTasksAssigned  = totalTasksAssigned,
+                totalTasksAssigned  = totalTasksAssigned,  // ✅ ADD THIS LINE
                 totalXpEarned       = totalXp,
-                isGenerated         = allEntities.isNotEmpty()
+                isGenerated         = false,
+                generatedAt         = 0L
             )
         }
     }
