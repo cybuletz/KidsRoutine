@@ -16,7 +16,9 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.onStart
-
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.QuerySnapshot
 
 @Singleton
 class DailyRepositoryImpl @Inject constructor(
@@ -28,52 +30,90 @@ class DailyRepositoryImpl @Inject constructor(
 
 
     override fun observeDailyState(familyId: String, userId: String, date: String): Flow<DailyStateModel> {
-        val tasksFlow    = taskInstanceDao.getTasksForDate(familyId, userId, date)
-        val allTasksFlow = taskInstanceDao.getAllTasksForDate(familyId, userId, date)
-        val progressFlow = taskProgressDao.getProgressForDate(familyId, userId, date)
-            .onStart { emit(emptyList()) }
+        val assignmentsFlow = callbackFlow<QuerySnapshot> {
+            val listener = firestore
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+                .collection("assignments")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        trySend(snapshot)
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
 
-        return combine(tasksFlow, allTasksFlow, progressFlow) { pendingEntities, allEntities, progressEntities ->
-            // ✅ Create PENDING instances for display
-            val instances = pendingEntities.map { entity ->
-                val taskModel = json.fromJson(entity.taskJson, TaskModel::class.java)
-                TaskInstance(
-                    instanceId            = entity.instanceId,
-                    templateId            = entity.templateId,
-                    task                  = taskModel,
-                    assignedDate          = entity.assignedDate,
-                    userId                = entity.userId,
-                    injectedByChallengeId = entity.injectedByChallengeId,
-                    status                = TaskStatus.PENDING,
-                    completedAt           = 0L
-                )
-            }
+        val progressFlow = callbackFlow<QuerySnapshot> {
+            val listener = firestore
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+                .collection("task_progress")
+                .whereEqualTo("date", date)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        trySend(snapshot)
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
 
-            // ✅ Count ONLY completed tasks for TODAY
-            val completedCount = progressEntities.count {
-                it.status == "COMPLETED" && it.date == date
-            }
+        return combine(assignmentsFlow, progressFlow) { assignmentSnapshot, progressSnapshot ->
+            // Get completed task IDs for today
+            val completedTaskIds = progressSnapshot.documents
+                .mapNotNull { it.getString("templateId") }
+                .toSet()
 
-            // ✅ CRITICAL: Calculate total assigned = pending + completed
-            val totalTasksAssigned = pendingEntities.size + completedCount
+            Log.d("DailyRepository", "Completed today: $completedTaskIds")
 
-            val totalXp = progressEntities
-                .filter { it.status == "COMPLETED" && it.date == date }
-                .sumOf { p ->
-                    val task = allEntities.find { it.instanceId == p.taskInstanceId }
-                        ?.let { json.fromJson(it.taskJson, TaskModel::class.java) }
-                    task?.reward?.xp ?: 0
+            // Filter assignments - exclude already completed
+            val pendingTasks = assignmentSnapshot.documents
+                .mapNotNull { doc ->
+                    val taskId = doc.getString("taskId") ?: return@mapNotNull null
+                    val status = doc.getString("status") ?: return@mapNotNull null
+
+                    // Skip if not ASSIGNED or already completed today
+                    if (status != "ASSIGNED" || taskId in completedTaskIds) {
+                        return@mapNotNull null
+                    }
+
+                    // For now, create a basic TaskInstance
+                    // In real app, you'd fetch from tasks collection
+                    TaskInstance(
+                        instanceId = "assign_${taskId}",
+                        templateId = taskId,
+                        task = TaskModel(id = taskId, title = doc.getString("taskTitle") ?: "Task"),
+                        assignedDate = date,
+                        userId = userId,
+                        status = TaskStatus.PENDING,
+                        completedAt = 0L
+                    )
+                }
+
+            val completedCount = progressSnapshot.documents.size
+            val totalTasksAssigned = pendingTasks.size + completedCount
+
+            val totalXp = progressSnapshot.documents
+                .sumOf { doc ->
+                    (doc.getLong("xpGained") ?: 0L).toInt()
                 }
 
             DailyStateModel(
-                date                = date,
-                userId              = userId,
-                tasks               = instances,
-                completedCount      = completedCount,
-                totalTasksAssigned  = totalTasksAssigned,  // ✅ ADD THIS LINE
-                totalXpEarned       = totalXp,
-                isGenerated         = false,
-                generatedAt         = 0L
+                date = date,
+                userId = userId,
+                tasks = pendingTasks,
+                completedCount = completedCount,
+                totalTasksAssigned = totalTasksAssigned,
+                totalXpEarned = totalXp,
+                isGenerated = false,
+                generatedAt = 0L
             )
         }
     }
