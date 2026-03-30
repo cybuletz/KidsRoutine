@@ -1,5 +1,6 @@
 package com.kidsroutine.feature.lootbox.ui
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -54,6 +55,7 @@ fun LootBoxScreen(
 ) {
 
     var openState by remember { mutableStateOf(OpenState.IDLE) }
+    var triggerAnimation by remember { mutableStateOf(false) }  // ✅ ADD THIS
 
     val shownReward = remember {
         lootBox.reward ?: run {
@@ -177,7 +179,8 @@ fun LootBoxScreen(
                         )
                         .border(3.dp, GoldLight.copy(alpha = glowAlpha), RoundedCornerShape(32.dp))
                         .clickable(enabled = openState == OpenState.IDLE) {
-                            openState = OpenState.SHAKING
+                            Log.d("LootBoxScreen", "Box clicked! Current state: $openState")
+                            triggerAnimation = true  // ✅ CHANGE THIS
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -195,13 +198,16 @@ fun LootBoxScreen(
                 }
 
                 // Trigger sequence
-                LaunchedEffect(openState) {
-                    if (openState == OpenState.SHAKING) {
+                LaunchedEffect(triggerAnimation) {  // ✅ LISTEN TO triggerAnimation INSTEAD
+                    if (triggerAnimation) {
+                        Log.d("LootBoxScreen", "Starting animation sequence")
                         delay(900)
+                        Log.d("LootBoxScreen", "Setting to REVEALING")
                         openState = OpenState.REVEALING
-                        delay(400)
+                        delay(500)
+                        Log.d("LootBoxScreen", "Setting to DONE")
                         openState = OpenState.DONE
-                        onClaim(lootBox.copy(isOpened = true))
+                        triggerAnimation = false  // ✅ RESET THE TRIGGER
                     }
                 }
 
@@ -288,7 +294,10 @@ fun LootBoxScreen(
                     Spacer(Modifier.height(12.dp))
 
                     Button(
-                        onClick = onBack,
+                        onClick = {
+                            onClaim(lootBox.copy(isOpened = true))  // ✅ Call onClaim here
+                            onBack()  // Then go back
+                        },
                         shape   = RoundedCornerShape(14.dp),
                         colors  = ButtonDefaults.buttonColors(containerColor = OrangePrimary),
                         modifier = Modifier.fillMaxWidth(0.65f).height(50.dp)
