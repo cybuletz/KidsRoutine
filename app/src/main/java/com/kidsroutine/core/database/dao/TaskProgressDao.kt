@@ -22,4 +22,7 @@ interface TaskProgressDao {
 
     @Query("SELECT * FROM task_progress WHERE taskInstanceId = :id")
     suspend fun getById(id: String): TaskProgressEntity?
+
+    @Query("DELETE FROM task_progress WHERE userId = :userId AND date = :date")
+    suspend fun deleteForDate(userId: String, date: String)
 }

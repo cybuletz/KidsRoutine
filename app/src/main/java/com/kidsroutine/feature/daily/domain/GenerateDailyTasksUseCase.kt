@@ -47,9 +47,33 @@ class GenerateDailyTasksUseCase @Inject constructor(
             Log.d("GenerateDailyTasks", "Found ${assignmentsSnapshot.documents.size} ASSIGNED assignments in Firestore")
 
             val assignedTaskIds = assignmentsSnapshot.documents.mapNotNull { it.getString("taskId") }
+
+            // ✅ NEW: Get progress for today to filter out already-completed recurrent tasks
+            val todayProgressSnapshot = firestore
+                .collection("families")
+                .document(user.familyId)
+                .collection("users")
+                .document(user.userId)
+                .collection("task_progress")
+                .whereEqualTo("date", date)
+                .get().await()
+
+            val completedTaskIdsToday = todayProgressSnapshot.documents
+                .mapNotNull { it.getString("templateId") }  // Get the templateId (taskId) that was completed
+                .toSet()
+
+            Log.d("GenerateDailyTasks", "Already completed today: ${completedTaskIdsToday.size} tasks")
+
             val assignedInstances = mutableListOf<TaskInstance>()
 
+            // ✅ CRITICAL: Filter out tasks already completed today
             for (taskId in assignedTaskIds) {
+                // Skip if already completed today
+                if (taskId in completedTaskIdsToday) {
+                    Log.d("GenerateDailyTasks", "⏭️ Skipping recurrent task (already completed today): $taskId")
+                    continue
+                }
+
                 try {
                     val taskDoc = firestore
                         .collection("families").document(user.familyId)
@@ -78,20 +102,9 @@ class GenerateDailyTasksUseCase @Inject constructor(
             }
 
             // Step 2: Get all COMPLETED task_progress from Firestore for TODAY
-            val progressSnapshot = firestore
-                .collection("families")
-                .document(user.familyId)
-                .collection("users")
-                .document(user.userId)
-                .collection("task_progress")
-                .whereEqualTo("date", date)
-                .get().await()
-
-            Log.d("GenerateDailyTasks", "Found ${progressSnapshot.documents.size} completed tasks in task_progress")
-
             val completedInstances = mutableListOf<TaskInstance>()
 
-            for (doc in progressSnapshot.documents) {
+            for (doc in todayProgressSnapshot.documents) {
                 try {
                     val taskInstanceId = doc.getString("taskInstanceId") ?: continue
                     val taskTitle = doc.getString("taskTitle") ?: "Completed Task"

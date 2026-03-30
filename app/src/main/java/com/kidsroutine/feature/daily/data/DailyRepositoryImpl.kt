@@ -94,7 +94,15 @@ class DailyRepositoryImpl @Inject constructor(
             taskInstanceDao.deleteAllForDate(userId, date)
             Log.d("DailyRepository", "✅ Deleted all old tasks for $date")
 
-            // ✅ ADD THIS ONE LINE:
+            // ✅ CRITICAL: Also delete progress records for this date
+            // This prevents stale completed task counts
+            try {
+                taskProgressDao.deleteForDate(userId, date)
+                Log.d("DailyRepository", "✅ Deleted task_progress for $date")
+            } catch (e: Exception) {
+                Log.e("DailyRepository", "⚠️ Error deleting task_progress", e)
+            }
+
             kotlinx.coroutines.delay(100)
 
             // Step 2: Insert fresh instances from Firestore
