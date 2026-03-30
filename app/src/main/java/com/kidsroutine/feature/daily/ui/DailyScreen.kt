@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,9 +36,7 @@ import com.kidsroutine.core.model.StoryArc
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.draw.alpha
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kidsroutine.core.engine.SeasonalThemeManager
-import com.kidsroutine.feature.daily.ui.AiSuggestionCard
 import com.kidsroutine.feature.generation.data.toTaskModel
 
 
@@ -246,18 +243,20 @@ private fun ProgressSection(
             .padding(horizontal = 20.dp),
         shape  = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (allDone) Color(0xFFFFD700).copy(alpha = 0.12f) else Color.White
+            containerColor = if (allDone) Color(0xFFFFF8DC) else Color.White
         ),
         border    = if (allDone) BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = glowAlpha)) else null,
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier            = Modifier.padding(16.dp),
+            modifier            = Modifier.padding(if (allDone) 0.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // ── Header row ────────────────────────────────────────────────
             Row(
-                modifier              = Modifier.fillMaxWidth(),
+                modifier              = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = if (allDone) 16.dp else 0.dp, vertical = if (allDone) 14.dp else 0.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
@@ -279,9 +278,10 @@ private fun ProgressSection(
             }
 
             // ── Segmented pill progress bar ───────────────────────────────
-            // Each task gets its own pill — task type color fills when done
             if (state.tasks.isNotEmpty()) {
-                SegmentedProgressBar(tasks = state.tasks)  // ✅ Show all for pills
+                Box(modifier = Modifier.padding(horizontal = if (allDone) 16.dp else 0.dp)) {
+                    SegmentedProgressBar(tasks = state.tasks)
+                }
             }
 
             // ── World nudge banner ────────────────────────────────────────
