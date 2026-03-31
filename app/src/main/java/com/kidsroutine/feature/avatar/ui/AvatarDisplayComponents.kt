@@ -860,16 +860,31 @@ fun SkinTonePicker(
             val isSelected = selectedTone == tone
             Box(
                 modifier = Modifier
-                    .size(if (isSelected) 40.dp else 32.dp)
-                    .clip(CircleShape)
-                    .background(Color(tone))
-                    .border(
-                        width = if (isSelected) 3.dp else 1.dp,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.3f),
-                        shape = CircleShape
+                    .size(44.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Outer selection ring
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .border(2.5.dp, Color(0xFF5272F2), CircleShape)
                     )
-                    .clickable { onToneSelected(tone) }
-            )
+                }
+                // Swatch circle
+                Box(
+                    modifier = Modifier
+                        .size(if (isSelected) 34.dp else 30.dp)
+                        .clip(CircleShape)
+                        .background(Color(tone))
+                        .border(
+                            width = 1.5.dp,
+                            color = Color(0xFF000000).copy(alpha = 0.12f),
+                            shape = CircleShape
+                        )
+                        .clickable { onToneSelected(tone) }
+                )
+            }
         }
     }
 }
@@ -883,59 +898,34 @@ fun GenderSelector(
     selected: AvatarGender,
     onSelect: (AvatarGender) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    // Segmented pill container
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         AvatarGender.entries.forEach { gender ->
-            val isSelected = selected == gender
-            val label = if (gender == AvatarGender.BOY) "Boy" else "Girl"
-            val emoji = if (gender == AvatarGender.BOY) "👦" else "👧"
-            val gradientColors = if (gender == AvatarGender.BOY)
-                listOf(Color(0xFF1565C0), Color(0xFF42A5F5))
-            else
-                listOf(Color(0xFFAD1457), Color(0xFFF48FB1))
-
+            val isSelected = gender == selected
             Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp)
-                    .clickable { onSelect(gender) },
+                onClick = { onSelect(gender) },
                 shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent,
-                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(
-                    1.5.dp, Color.White.copy(alpha = 0.2f)
+                color = if (isSelected) Color(0xFF5272F2) else Color(0xFFE2DEFF),
+                border = BorderStroke(
+                    width = if (isSelected) 2.dp else 1.dp,
+                    color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
                 )
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            if (isSelected)
-                                Brush.horizontalGradient(gradientColors)
-                            else
-                                Brush.horizontalGradient(listOf(
-                                    Color.White.copy(alpha = 0.06f),
-                                    Color.White.copy(alpha = 0.06f)
-                                )),
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(emoji, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = Color.White
-                        )
-                    }
+                    Text(
+                        if (gender == AvatarGender.BOY) "👦" else "👧",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        gender.name.lowercase().replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color.White else Color(0xFF3D3A5C)
+                    )
                 }
             }
         }

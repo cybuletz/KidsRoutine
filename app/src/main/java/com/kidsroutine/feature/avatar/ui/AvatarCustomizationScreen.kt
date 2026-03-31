@@ -31,24 +31,80 @@ fun AvatarCustomizationScreen(
     var selectedTab by remember { mutableStateOf(AvatarCustomizationTab.BACKGROUND) }
     var previewExpanded by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFFFBF0))) {
-        // Gradient background for header
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFFFF5E8))) {
+        // Gradient header background (behind everything)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.18f)
+                .fillMaxHeight(0.15f)
                 .background(Brush.verticalGradient(listOf(Color(0xFF5272F2), Color(0xFF667EEA))))
+                .zIndex(0f)
         )
 
         Column(modifier = Modifier.fillMaxSize()) {
+            // ── Top Bar (overlays gradient) ────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(16.dp)
+                    .zIndex(1f)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
-            // ── Top Bar ──────────────────────────────────────────────────────
-            AvatarTopBar(
-                coins = uiState.coins,
-                onBack = onBack,
-                onShop = onNavigateToShop,
-                onReset = { viewModel.resetToDefault() }
-            )
+                    Text(
+                        "My Avatar",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Coin badge
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color.White.copy(alpha = 0.2f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text("🪙", style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    "${uiState.coins}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onNavigateToShop) {
+                            Icon(Icons.Default.ShoppingCart, "Shop", tint = Color.White)
+                        }
+
+                        IconButton(onClick = { viewModel.resetToDefault() }) {
+                            Icon(Icons.Default.Refresh, "Reset", tint = Color.White.copy(alpha = 0.6f))
+                        }
+                    }
+                }
+            }
 
             // ── Preview + Gender + Skin Row ──────────────────────────────────
             AnimatedContent(
@@ -121,75 +177,6 @@ fun AvatarCustomizationScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Top Bar
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-fun AvatarTopBar(
-    coins: Int,
-    onBack: () -> Unit,
-    onShop: () -> Unit,
-    onReset: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
-        }
-
-        Text(
-            "My Avatar",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Coin badge
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = Color(0xFFFFD700).copy(alpha = 0.18f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text("🪙", style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        "$coins",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD700)
-                    )
-                }
-            }
-
-            IconButton(onClick = onShop) {
-                Icon(Icons.Default.ShoppingCart, "Shop", tint = Color(0xFFFFD700))
-            }
-
-            IconButton(onClick = onReset) {
-                Icon(Icons.Default.Refresh, "Reset", tint = Color.White.copy(alpha = 0.6f))
-            }
-        }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 //  Preview Section (avatar card + gender + skin tone)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -204,6 +191,7 @@ fun AvatarPreviewSection(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(24.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -287,9 +275,8 @@ fun AvatarTabBar(
             Surface(
                 onClick = { onTabSelected(tab) },
                 shape = RoundedCornerShape(50),
-                color = if (isSelected) Color(0xFF5272F2) else Color.White.copy(alpha = 0.08f),
-                border = if (!isSelected) BorderStroke(1.dp, Color.White.copy(alpha = 0.12f))
-                else null
+                color = if (isSelected) Color(0xFF5272F2) else Color(0xFFE2DEFF),
+                border = if (!isSelected) BorderStroke(1.dp, Color(0xFF5272F2).copy(alpha = 0.25f))                else null
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -301,7 +288,7 @@ fun AvatarTabBar(
                         tab.label,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f)
+                        color = if (isSelected) Color.White else Color(0xFF3D3A5C)
                     )
                 }
             }
@@ -412,14 +399,14 @@ fun AvatarItemCard(
 ) {
     val borderColor = when {
         isSelected -> Color(0xFF5272F2)
-        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.5f)
-        else -> Color.White.copy(alpha = 0.1f)
+        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.6f)
+        else -> Color(0xFF5272F2).copy(alpha = 0.25f)
     }
 
     val bgColor = when {
         isSelected -> Color(0xFF5272F2).copy(alpha = 0.2f)
-        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.06f)
-        else -> Color.White.copy(alpha = 0.05f)
+        item.isPremium -> Color(0xFFFFD700).copy(alpha = 0.15f)
+        else -> Color(0xFFE2DEFF)
     }
 
     val tintColor = item.tintColor?.let { Color(it) }
@@ -432,7 +419,14 @@ fun AvatarItemCard(
         modifier = Modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(14.dp))
-            .background(bgColor)
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        bgColor.copy(alpha = 0.5f),
+                        bgColor.copy(alpha = 0.25f)
+                    )
+                )
+            )
             .border(
                 width = if (isSelected) 2.5.dp else 1.dp,
                 color = borderColor,
@@ -496,7 +490,11 @@ fun AvatarItemCard(
             Text(
                 item.name,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isLocked) Color.White.copy(alpha = 0.35f) else Color.White,
+                color = when {
+                    isLocked -> Color(0xFF888888)
+                    isSelected -> Color(0xFF5272F2)
+                    else -> Color(0xFF3D3D4E)
+                },
                 maxLines = 1,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
@@ -562,12 +560,18 @@ fun NoneItemCard(isSelected: Boolean, onClick: () -> Unit) {
             .aspectRatio(1f)
             .clip(RoundedCornerShape(14.dp))
             .background(
-                if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f)
-                else Color.White.copy(alpha = 0.05f)
+                brush = Brush.verticalGradient(
+                    listOf(
+                        if (isSelected) Color(0xFF5272F2).copy(alpha = 0.35f)
+                        else Color(0xFFF0EDFF),
+                        if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f)
+                        else Color(0xFFD6D2F5)
+                    )
+                )
             )
             .border(
                 width = if (isSelected) 2.5.dp else 1.dp,
-                color = if (isSelected) Color(0xFF5272F2) else Color.White.copy(alpha = 0.1f),
+                color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f),
                 shape = RoundedCornerShape(14.dp)
             )
             .clickable { onClick() },
@@ -594,7 +598,7 @@ fun NoneItemCard(isSelected: Boolean, onClick: () -> Unit) {
             Text(
                 "None",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = if (isSelected) 1f else 0.4f),
+                color = if (isSelected) Color(0xFF5272F2) else Color(0xFF555566),
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         }
