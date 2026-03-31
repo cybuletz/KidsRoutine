@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -32,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.navigation.navArgument
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,8 +44,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.firebase.firestore.FirebaseFirestore
+import com.kidsroutine.core.model.TaskInstance
 import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.core.model.TaskModel
+import com.kidsroutine.core.model.TaskStatus
+import com.kidsroutine.core.model.TaskType
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.MarketplaceScreen
 import com.kidsroutine.feature.community.ui.PublishScreen
@@ -425,16 +431,15 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
 
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
+
         db.collection("users").document(child.userId)
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
 
-        // ✅ Query Firestore directly for today's assignments
         val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-
         db.collection("families").document(child.familyId)
             .collection("users").document(child.userId)
             .collection("assignments")
-            .whereEqualTo("assignedDate", today)  // ← ADD THIS LINE
+            .whereEqualTo("assignedDate", today)
             .addSnapshotListener { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
 
@@ -446,53 +451,64 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
             }
     }
 
-    val sweepTarget = if (totalToday > 0) (completedToday.toFloat() / totalToday.toFloat()) * 360f else 0f
-    val animatedSweep by animateFloatAsState(targetValue = sweepTarget, animationSpec = tween(800), label = "ringSwipe_${child.userId}")
-
-    val ringColor = when {
-        totalToday == 0              -> Color.LightGray
-        completedToday == totalToday -> RingDone
-        completedToday > 0           -> OrangePrimary
-        else                         -> Color(0xFFE0E0E0)
-    }
-
     Card(
-        modifier  = Modifier.width(140.dp).clickable(onClick = onClick),
+        modifier  = Modifier
+            .height(80.dp)
+            .width(180.dp)
+            .clickable(onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(modifier = Modifier.size(64.dp), contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawArc(color = RingTrack, startAngle = -90f, sweepAngle = 360f, useCenter = false,
-                        style   = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
-                        topLeft = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
-                        size    = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx()))
-                }
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    if (animatedSweep > 0f) {
-                        drawArc(color = ringColor, startAngle = -90f, sweepAngle = animatedSweep, useCenter = false,
-                            style   = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
-                            topLeft = Offset(2.5.dp.toPx(), 2.5.dp.toPx()),
-                            size    = Size(size.width - 5.dp.toPx(), size.height - 5.dp.toPx()))
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // ── Avatar + Online indicator ──
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFFF6B35).copy(alpha = 0.15f)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text("👤", fontSize = 22.sp)
                     }
                 }
-                Surface(modifier = Modifier.size(52.dp), shape = CircleShape, color = OrangePrimary.copy(alpha = 0.15f)) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 26.sp) }
-                }
+                // Online/Offline bullet
                 if (isOnline) {
-                    Surface(modifier = Modifier.size(12.dp).align(Alignment.BottomEnd), shape = CircleShape, color = Color(0xFF4CAF50)) {}
+                    Surface(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .align(Alignment.BottomEnd),
+                        shape = CircleShape,
+                        color = Color(0xFF4CAF50)
+                    ) {}
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            Text(child.displayName.split(" ").first(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("Lv ${child.level}", fontSize = 11.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(4.dp))
-            if (totalToday > 0) {
-                Text("$completedToday/$totalToday done", fontSize = 10.sp, color = ringColor, fontWeight = FontWeight.SemiBold)
-            } else {
-                Text("${child.xp} XP", fontSize = 11.sp, color = Color.Gray)
+
+            // ── Name + Task Progress (on the right) ──
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    child.displayName.split(" ").first(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = Color(0xFF2D3436),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Text(
+                    "$completedToday/$totalToday",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (totalToday == 0) Color.Gray else Color(0xFFFF6B35)
+                )
             }
         }
     }
@@ -930,26 +946,89 @@ private fun DiscoverCard(emoji: String, title: String, subtitle: String, color: 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChildDetailSheet(child: UserModel, onDismiss: () -> Unit, onMessageClick: () -> Unit) {
+private fun ChildDetailSheet(
+    child: UserModel,
+    onDismiss: () -> Unit,
+    onMessageClick: () -> Unit
+) {
+    var showTasksPopup by remember { mutableStateOf(false) }
     var isOnline by remember { mutableStateOf(false) }
-    LaunchedEffect(child.userId) {
-        FirebaseFirestore.getInstance().collection("users").document(child.userId)
-            .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
+    var todaysTasks by remember { mutableStateOf(0) }
+    var completedTasks by remember { mutableStateOf(0) }
+
+    val today = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color.White, shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = OrangePrimary.copy(alpha = 0.15f)) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) { Text("👤", fontSize = 36.sp) }
+    // ✅ REAL-TIME listener for task progress
+    LaunchedEffect(child.userId) {
+        val db = FirebaseFirestore.getInstance()
+
+        db.collection("users").document(child.userId)
+            .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
+
+        // Listen to child's assignments for today
+        db.collection("families").document(child.familyId)
+            .collection("users").document(child.userId)
+            .collection("assignments")
+            .whereEqualTo("assignedDate", today)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    completedTasks = snap.documents.count { it.getString("status") == "COMPLETED" }
+                    todaysTasks = snap.size()
+                }
+            }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = CircleShape,
+                color = Color(0xFFFF6B35).copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("👤", fontSize = 36.sp)
+                }
             }
             Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(child.displayName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)) {}
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    child.displayName,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2D3436)
+                )
+                Surface(
+                    modifier = Modifier.size(10.dp),
+                    shape = CircleShape,
+                    color = if (isOnline) Color(0xFF4CAF50) else Color(0xFFBDBDBD)
+                ) {}
             }
-            Text("Level ${child.level}", fontSize = 14.sp, color = OrangePrimary, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Level ${child.level}",
+                fontSize = 14.sp,
+                color = Color(0xFFFF6B35),
+                fontWeight = FontWeight.SemiBold
+            )
             Spacer(Modifier.height(20.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
                 ChildStatItem("⭐", "${child.xp}", "Total XP")
                 ChildStatItem("🔥", "${child.streak}", "Day Streak")
                 ChildStatItem("🏆", "Lv ${child.level}", "Level")
@@ -957,78 +1036,322 @@ private fun ChildDetailSheet(child: UserModel, onDismiss: () -> Unit, onMessageC
             Spacer(Modifier.height(24.dp))
             HorizontalDivider(color = Color(0xFFF0F0F0))
             Spacer(Modifier.height(20.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Today's Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Surface(shape = RoundedCornerShape(8.dp), color = OrangePrimary.copy(alpha = 0.12f)) {
-                    Text("View in Daily Screen", fontSize = 12.sp, color = OrangePrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                }
-            }
 
-// ✅ Add notification badge for new content packs
-            var hasNewContent by remember { mutableStateOf(false) }
-            LaunchedEffect(child.userId) {
-                val db = FirebaseFirestore.getInstance()
-                db.collection("families").document(child.familyId)
-                    .collection("content_pack_assignments")
-                    .whereEqualTo("userId", child.userId)
-                    .whereEqualTo("viewed", false)
-                    .addSnapshotListener { snap, _ ->
-                        hasNewContent = snap?.size() ?: 0 > 0
-                    }
-            }
-
-            if (hasNewContent) {
-                Surface(modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(8.dp), color = Color(0xFFFFE082)) {
-                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🎁", fontSize = 12.sp)
-                        Text("New content pack unlocked!", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF57F17))
-                    }
+            // ✅ TODAY'S TASKS SECTION with real-time updates
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTasksPopup = true }
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Today's Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2D3436))
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFF6B35).copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        "View Details",
+                        fontSize = 12.sp,
+                        color = Color(0xFFFF6B35),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))
-            // ✅ Show actual task progress
-            var todaysTasks by remember { mutableStateOf(0) }
-            var completedTasks by remember { mutableStateOf(0) }
 
-            LaunchedEffect(child.userId) {
-                val db = FirebaseFirestore.getInstance()
-                db.collection("families").document(child.familyId)
-                    .collection("users").document(child.userId)
-                    .collection("assignments")
-                    .addSnapshotListener { snap, _ ->
-                        if (snap != null) {
-                            completedTasks = snap.documents.count { it.getString("status") == "COMPLETED" }
-                            todaysTasks = snap.size()
-                        }
-                    }
-            }
-
+            // ✅ Show real-time progress
             if (todaysTasks > 0) {
-                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFE8F5E9), tonalElevation = 0.dp) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("$completedTasks of $todaysTasks done today", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFE8F5E9),
+                    tonalElevation = 0.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "$completedTasks of $todaysTasks done today",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32)
+                        )
                         Spacer(Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { if (todaysTasks > 0) completedTasks.toFloat() / todaysTasks.toFloat() else 0f },
-                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
                             trackColor = Color(0xFFCCE4CA),
                             color = Color(0xFF2E7D32)
                         )
                     }
                 }
             } else {
-                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFF9F9F9), tonalElevation = 0.dp) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                        Text("No tasks assigned today", fontSize = 13.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF9F9F9),
+                    tonalElevation = 0.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No tasks assigned today",
+                            fontSize = 13.sp,
+                            color = Color.Gray,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
                     }
                 }
             }
             Spacer(Modifier.height(20.dp))
-            Button(onClick = { onDismiss(); onMessageClick() }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = PinkChat)) {
+            Button(
+                onClick = { onDismiss(); onMessageClick() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A))
+            ) {
                 Icon(Icons.Default.Message, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Message ${child.displayName.split(" ").first()}", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    "Message ${child.displayName.split(" ").first()}",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
+        }
+
+        // ✅ SHOW TASKS POPUP MODAL
+        if (showTasksPopup) {
+            TasksDetailsPopup(
+                child = child,
+                todaysTasks = todaysTasks,
+                completedTasks = completedTasks,
+                onDismiss = { showTasksPopup = false }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TasksDetailsPopup(
+    child: UserModel,
+    todaysTasks: Int,
+    completedTasks: Int,
+    onDismiss: () -> Unit
+) {
+    var tasks by remember { mutableStateOf<List<TaskInstance>>(emptyList()) }
+
+    val today = remember {
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+    }
+
+    // ✅ Fetch tasks from Firestore
+    LaunchedEffect(child.userId) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("families").document(child.familyId)
+            .collection("users").document(child.userId)
+            .collection("assignments")
+            .whereEqualTo("assignedDate", today)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    // Simple display of task IDs and status
+                    // In production, you'd fetch full task details
+                    tasks = snap.documents.mapIndexed { index, doc ->
+                        TaskInstance(
+                            instanceId = doc.id,
+                            templateId = doc.getString("taskId") ?: "",
+                            userId = child.userId,
+                            assignedDate = today,
+                            status = TaskStatus.valueOf(doc.getString("status") ?: "PENDING"),
+                            completedAt = doc.getLong("completedAt") ?: 0L,
+                            task = TaskModel(
+                                id = doc.getString("taskId") ?: "",
+                                title = "Task ${index + 1}"
+                            )
+                        )
+                    }
+                }
+            }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = Color.White,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                // ── Header ──
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "${child.displayName}'s Tasks",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2D3436)
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // ── Progress ──
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFE8F5E9)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "$completedTasks/$todaysTasks completed",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { if (todaysTasks > 0) completedTasks.toFloat() / todaysTasks.toFloat() else 0f },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            trackColor = Color(0xFFCCE4CA),
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ── Task List ──
+                Text(
+                    "Tasks",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF2D3436)
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                if (tasks.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No tasks assigned",
+                            fontSize = 13.sp,
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(tasks) { task ->
+                            TaskRowItem(task)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ── Close Button ──
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B35))
+                ) {
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskRowItem(task: TaskInstance) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(
+                    if (task.status == TaskStatus.COMPLETED)
+                        Color(0xFF06D6A0).copy(alpha = 0.2f)
+                    else
+                        Color(0xFFFF6B35).copy(alpha = 0.2f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                if (task.status == TaskStatus.COMPLETED) "✅" else "⏳",
+                fontSize = 16.sp
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                task.task.title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF2D3436),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            Text(
+                if (task.status == TaskStatus.COMPLETED) "✓ Done" else "Pending",
+                fontSize = 11.sp,
+                color = if (task.status == TaskStatus.COMPLETED) Color(0xFF06D6A0) else Color.Gray
+            )
         }
     }
 }

@@ -179,8 +179,86 @@ private fun DailyContent(
                 )
             }
 
+// ✅ Show offline message or all done confetti
+            val pendingTasks = uiState.dailyState.tasks.filter { it.status == TaskStatus.PENDING }
+            val allTasks = uiState.dailyState.tasks
+            val actualCompletedCount = uiState.dailyState.completedCount
+            val totalTasks = uiState.dailyState.totalTasksAssigned
+            val allDone = actualCompletedCount > 0 && actualCompletedCount >= totalTasks && totalTasks > 0
+
+            if (pendingTasks.isEmpty() && totalTasks == 0) {
+                // ✅ Show "Connect to Internet" message
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFEBEE),
+                        border = BorderStroke(1.5.dp, Color(0xFFEF5350))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("🌐", fontSize = 32.sp)
+                            Text(
+                                "Please connect to the internet",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFEF5350),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Text(
+                                "We need to sync your tasks. Check your connection and try again.",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else if (allDone && pendingTasks.isEmpty()) {
+                // ✅ Show "All Done" confetti message (localized to this area)
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF8DC),
+                        border = BorderStroke(2.dp, Color(0xFFFFD700))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text("🎉", fontSize = 48.sp)
+                            Text(
+                                "All tasks completed!",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = OrangePrimary
+                            )
+                            Text(
+                                "Great job! You've finished all your quests for today.",
+                                fontSize = 13.sp,
+                                color = Color.Gray,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+
             items(
-                items = uiState.dailyState.tasks.filter { it.status == TaskStatus.PENDING },  // ✅ Only pending for cards
+                items = pendingTasks,
                 key   = { it.instanceId }
             ) { instance ->
                 TaskCard(
