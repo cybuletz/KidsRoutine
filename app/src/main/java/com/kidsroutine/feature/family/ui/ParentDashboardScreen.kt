@@ -423,22 +423,26 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
     var completedToday by remember { mutableStateOf(0) }
     var totalToday     by remember { mutableStateOf(0) }
 
-    val today = remember {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-        sdf.format(java.util.Date())
-    }
-
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
         db.collection("users").document(child.userId)
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
-        db.collection("task_instances")
-            .whereEqualTo("userId", child.userId)
-            .whereEqualTo("assignedDate", today)
+
+        // ✅ Query Firestore directly for today's assignments
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+
+        db.collection("families").document(child.familyId)
+            .collection("users").document(child.userId)
+            .collection("assignments")
+            .whereEqualTo("assignedDate", today)  // ← ADD THIS LINE
             .addSnapshotListener { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
-                totalToday     = snap.size()
-                completedToday = snap.documents.count { doc -> doc.getString("status") == "COMPLETED" }
+
+                val pending = snap.documents.filter { doc -> doc.getString("status") == "ASSIGNED" }
+                val completed = snap.documents.filter { doc -> doc.getString("status") == "COMPLETED" }
+
+                totalToday = pending.size + completed.size
+                completedToday = completed.size
             }
     }
 
@@ -956,13 +960,67 @@ private fun ChildDetailSheet(child: UserModel, onDismiss: () -> Unit, onMessageC
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Today's Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Surface(shape = RoundedCornerShape(8.dp), color = OrangePrimary.copy(alpha = 0.12f)) {
-                    Text("View all", fontSize = 12.sp, color = OrangePrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                    Text("View in Daily Screen", fontSize = 12.sp, color = OrangePrimary, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                }
+            }
+
+// ✅ Add notification badge for new content packs
+            var hasNewContent by remember { mutableStateOf(false) }
+            LaunchedEffect(child.userId) {
+                val db = FirebaseFirestore.getInstance()
+                db.collection("families").document(child.familyId)
+                    .collection("content_pack_assignments")
+                    .whereEqualTo("userId", child.userId)
+                    .whereEqualTo("viewed", false)
+                    .addSnapshotListener { snap, _ ->
+                        hasNewContent = snap?.size() ?: 0 > 0
+                    }
+            }
+
+            if (hasNewContent) {
+                Surface(modifier = Modifier.padding(top = 12.dp), shape = RoundedCornerShape(8.dp), color = Color(0xFFFFE082)) {
+                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("🎁", fontSize = 12.sp)
+                        Text("New content pack unlocked!", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF57F17))
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFF9F9F9), tonalElevation = 0.dp) {
-                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Text("Open the Tasks tab to see ${child.displayName.split(" ").first()}'s tasks", fontSize = 13.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            // ✅ Show actual task progress
+            var todaysTasks by remember { mutableStateOf(0) }
+            var completedTasks by remember { mutableStateOf(0) }
+
+            LaunchedEffect(child.userId) {
+                val db = FirebaseFirestore.getInstance()
+                db.collection("families").document(child.familyId)
+                    .collection("users").document(child.userId)
+                    .collection("assignments")
+                    .addSnapshotListener { snap, _ ->
+                        if (snap != null) {
+                            completedTasks = snap.documents.count { it.getString("status") == "COMPLETED" }
+                            todaysTasks = snap.size()
+                        }
+                    }
+            }
+
+            if (todaysTasks > 0) {
+                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFE8F5E9), tonalElevation = 0.dp) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("$completedTasks of $todaysTasks done today", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                        Spacer(Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { if (todaysTasks > 0) completedTasks.toFloat() / todaysTasks.toFloat() else 0f },
+                            modifier = Modifier.fillMaxWidth().height(6.dp),
+                            trackColor = Color(0xFFCCE4CA),
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+            } else {
+                Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), color = Color(0xFFF9F9F9), tonalElevation = 0.dp) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("No tasks assigned today", fontSize = 13.sp, color = Color.Gray, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))
