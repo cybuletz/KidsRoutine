@@ -36,6 +36,9 @@ class StartChallengesViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // Seed default challenges if Firestore has none yet
+                challengeRepository.seedDefaultChallengesIfEmpty()
+
                 // Load both system and family challenges
                 val systemChallenges = challengeRepository.getSystemChallenges()
                 val familyChallenges = challengeRepository.getFamilyChallenges(familyId)

@@ -182,50 +182,41 @@ class CommunityRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun importTask(userId: String, taskId: String): TaskTemplate {
-        return try {
-            Log.d("CommunityRepo", "Importing task: $taskId for user: $userId")
+    override suspend fun importTask(userId: String, familyId: String, taskId: String): TaskTemplate {
+        val sharedTask = getTaskById(taskId) ?: throw Exception("Task not found")
 
-            val sharedTask = getTaskById(taskId) ?: throw Exception("Task not found")
+        val newTaskId = "imported_${taskId}"
+        val taskModel = TaskModel(
+            id = newTaskId,
+            title = sharedTask.title,
+            description = sharedTask.description,
+            category = sharedTask.category,
+            difficulty = sharedTask.difficulty,
+            type = sharedTask.type,
+            estimatedDurationSec = sharedTask.estimatedDurationSec,
+            reward = sharedTask.reward
+        )
 
-            val taskTemplate = TaskTemplate(
-                templateId = "imported_$taskId",
-                familyId = userId,
-                generationParams = emptyMap(),
-                baseTask = TaskModel(
-                    id = taskId,
-                    title = sharedTask.title,
-                    description = sharedTask.description,
-                    category = sharedTask.category,
-                    difficulty = sharedTask.difficulty,
-                    type = sharedTask.type,
-                    estimatedDurationSec = sharedTask.estimatedDurationSec,
-                    reward = sharedTask.reward
-                )
-            )
+        // ✅ FIX: Write to families/{familyId}/tasks/ — same collection TaskRepository reads
+        firestore.collection("families")
+            .document(familyId)          // ← actual familyId, not userId
+            .collection("tasks")         // ← "tasks" not "task_templates"
+            .document(newTaskId)
+            .set(taskModel)
+            .await()
 
-            // Save to user's templates
-            firestore.collection("families")
-                .document(userId)
-                .collection("task_templates")
-                .document(taskTemplate.templateId)
-                .set(taskTemplate)
-                .await()
+        // Increment usage count
+        firestore.collection("marketplace").document("tasks")
+            .collection("shared").document(taskId)
+            .update("usageCount", com.google.firebase.firestore.FieldValue.increment(1))
+            .await()
 
-            // Increment usage count
-            firestore.collection("marketplace")
-                .document("tasks")
-                .collection("shared")
-                .document(taskId)
-                .update("usageCount", com.google.firebase.firestore.FieldValue.increment(1))
-                .await()
-
-            Log.d("CommunityRepo", "Task imported successfully")
-            taskTemplate
-        } catch (e: Exception) {
-            Log.e("CommunityRepo", "Error importing task", e)
-            throw e
-        }
+        return TaskTemplate(
+            templateId = newTaskId,
+            familyId = familyId,
+            generationParams = emptyMap(),
+            baseTask = taskModel
+        )
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -333,49 +324,39 @@ class CommunityRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun importChallenge(userId: String, challengeId: String): ChallengeModel {
-        return try {
-            Log.d("CommunityRepo", "Importing challenge: $challengeId for user: $userId")
+    override suspend fun importChallenge(userId: String, familyId: String, challengeId: String): ChallengeModel {
+        val sharedChallenge = getChallengeById(challengeId) ?: throw Exception("Challenge not found")
 
-            val sharedChallenge = getChallengeById(challengeId) ?: throw Exception("Challenge not found")
+        val challengeModel = ChallengeModel(
+            challengeId = "imported_$challengeId",
+            title = sharedChallenge.title,
+            description = sharedChallenge.description,
+            category = sharedChallenge.category,
+            difficulty = sharedChallenge.difficulty,
+            duration = sharedChallenge.duration,
+            dailyXpReward = sharedChallenge.dailyXpReward,
+            completionBonusXp = sharedChallenge.completionBonusXp,
+            streakBonusXp = sharedChallenge.streakBonusXp,
+            createdBy = TaskCreator.PARENT,
+            familyId = familyId,   // ✅ store the actual familyId
+            isActive = true,
+            createdAt = System.currentTimeMillis()
+        )
 
-            val challengeModel = ChallengeModel(
-                challengeId = "imported_$challengeId",
-                title = sharedChallenge.title,
-                description = sharedChallenge.description,
-                category = sharedChallenge.category,
-                difficulty = sharedChallenge.difficulty,
-                duration = sharedChallenge.duration,
-                dailyXpReward = sharedChallenge.dailyXpReward,
-                completionBonusXp = sharedChallenge.completionBonusXp,
-                streakBonusXp = sharedChallenge.streakBonusXp,
-                createdBy = TaskCreator.PARENT,
-                isActive = true,
-                createdAt = System.currentTimeMillis()
-            )
+        // ✅ FIX: Use actual familyId, not userId
+        firestore.collection("families")
+            .document(familyId)
+            .collection("challenges")
+            .document(challengeModel.challengeId)
+            .set(challengeModel)
+            .await()
 
-            // Save to family challenges
-            firestore.collection("families")
-                .document(userId)
-                .collection("challenges")
-                .document(challengeModel.challengeId)
-                .set(challengeModel)
-                .await()
+        firestore.collection("marketplace").document("challenges")
+            .collection("shared").document(challengeId)
+            .update("usageCount", com.google.firebase.firestore.FieldValue.increment(1))
+            .await()
 
-            // Increment usage count
-            firestore.collection("marketplace")
-                .document("challenges")
-                .collection("shared")
-                .document(challengeId)
-                .update("usageCount", com.google.firebase.firestore.FieldValue.increment(1))
-                .await()
-
-            Log.d("CommunityRepo", "Challenge imported successfully")
-            challengeModel
-        } catch (e: Exception) {
-            Log.e("CommunityRepo", "Error importing challenge", e)
-            throw e
-        }
+        return challengeModel
     }
 
     // ═══════════════════════════════════════════════════════════════════════

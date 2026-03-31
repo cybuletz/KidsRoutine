@@ -199,8 +199,7 @@ fun MarketplaceScreen(
                             TasksContent(
                                 tasks = uiState.tasks,
                                 currentUser = currentUser,  // ADD THIS
-                                onImport = { task -> viewModel.importTask(currentUser.userId, task.taskId) },
-                                isImporting = uiState.isImporting,
+                                onImport = { task -> viewModel.importTask(currentUser.userId, currentUser.familyId, task.taskId) },                                isImporting = uiState.isImporting,
                                 viewModel = viewModel  // ADD THIS
                             )
                         }
@@ -208,7 +207,7 @@ fun MarketplaceScreen(
                             ChallengesContent(
                                 challenges = uiState.challenges,
                                 currentUser = currentUser,  // ADD THIS
-                                onImport = { challenge -> viewModel.importChallenge(currentUser.userId, challenge.challengeId) },
+                                onImport = { challenge -> viewModel.importChallenge(currentUser.userId, currentUser.familyId, challenge.challengeId) },
                                 isImporting = uiState.isImporting,
                                 viewModel = viewModel  // ADD THIS
                             )

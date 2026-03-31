@@ -89,36 +89,25 @@ class MarketplaceViewModel @Inject constructor(
         loadMarketplace()
     }
 
-    fun importTask(userId: String, taskId: String) {
-        Log.d("MarketplaceVM", "Importing task: $taskId")
-        _uiState.value = _uiState.value.copy(isImporting = true, error = null)
-
+    fun importTask(userId: String, familyId: String, taskId: String) {
         viewModelScope.launch {
             try {
-                communityRepository.importTask(userId, taskId)
-                Log.d("MarketplaceVM", "Task imported successfully")
-
-                _uiState.value = _uiState.value.copy(
-                    isImporting = false,
-                    successMessage = "✅ Task imported to your library!"
-                )
+                communityRepository.importTask(userId, familyId, taskId)
+                _uiState.value = _uiState.value.copy(successMessage = "✅ Task imported to your library!")
             } catch (e: Exception) {
-                Log.e("MarketplaceVM", "Error importing task", e)
-                _uiState.value = _uiState.value.copy(
-                    isImporting = false,
-                    error = e.message ?: "Failed to import task"
-                )
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to import task")
             }
         }
     }
 
-    fun importChallenge(userId: String, challengeId: String) {
+    fun importChallenge(userId: String, familyId: String, challengeId: String) {
         Log.d("MarketplaceVM", "Importing challenge: $challengeId")
         _uiState.value = _uiState.value.copy(isImporting = true, error = null)
 
         viewModelScope.launch {
             try {
-                communityRepository.importChallenge(userId, challengeId)
+                communityRepository.importChallenge(userId, familyId, challengeId)
+
                 Log.d("MarketplaceVM", "Challenge imported successfully")
 
                 _uiState.value = _uiState.value.copy(

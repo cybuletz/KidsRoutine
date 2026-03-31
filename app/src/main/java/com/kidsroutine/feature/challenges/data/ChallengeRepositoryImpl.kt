@@ -373,4 +373,106 @@ class ChallengeRepositoryImpl @Inject constructor(
             lastCompletedDate = data["lastCompletedDate"] as? String ?: ""
         )
     }
+
+    override suspend fun seedDefaultChallengesIfEmpty() {
+        try {
+            val existing = firestore.collection("challenges")
+                .whereEqualTo("isActive", true)
+                .limit(1)
+                .get()
+                .await()
+
+            if (!existing.isEmpty) return  // Already seeded, skip
+
+            val defaults = listOf(
+                mapOf(
+                    "challengeId" to "default_morning_routine",
+                    "title" to "Morning Routine Master",
+                    "description" to "Complete your morning routine every day for 7 days",
+                    "type" to "DAILY_HABIT",
+                    "category" to "HEALTH",
+                    "difficulty" to "EASY",
+                    "duration" to 7,
+                    "frequency" to "DAILY",
+                    "targetDaysPerWeek" to 7,
+                    "dailyXpReward" to 15,
+                    "completionBonusXp" to 50,
+                    "streakBonusXp" to 5,
+                    "createdBy" to "SYSTEM",
+                    "familyId" to "",
+                    "isCoOp" to false,
+                    "isActive" to true,
+                    "createdAt" to System.currentTimeMillis()
+                ),
+                mapOf(
+                    "challengeId" to "default_reading",
+                    "title" to "Bookworm Challenge",
+                    "description" to "Read for at least 15 minutes every day for 14 days",
+                    "type" to "DAILY_HABIT",
+                    "category" to "LEARNING",
+                    "difficulty" to "MEDIUM",
+                    "duration" to 14,
+                    "frequency" to "DAILY",
+                    "targetDaysPerWeek" to 7,
+                    "dailyXpReward" to 20,
+                    "completionBonusXp" to 100,
+                    "streakBonusXp" to 10,
+                    "createdBy" to "SYSTEM",
+                    "familyId" to "",
+                    "isCoOp" to false,
+                    "isActive" to true,
+                    "createdAt" to System.currentTimeMillis()
+                ),
+                mapOf(
+                    "challengeId" to "default_chores",
+                    "title" to "Chore Champion",
+                    "description" to "Complete all assigned chores 5 days in a row",
+                    "type" to "STREAK",
+                    "category" to "CHORES",
+                    "difficulty" to "EASY",
+                    "duration" to 7,
+                    "frequency" to "DAILY",
+                    "targetDaysPerWeek" to 5,
+                    "dailyXpReward" to 10,
+                    "completionBonusXp" to 75,
+                    "streakBonusXp" to 8,
+                    "createdBy" to "SYSTEM",
+                    "familyId" to "",
+                    "isCoOp" to false,
+                    "isActive" to true,
+                    "createdAt" to System.currentTimeMillis()
+                ),
+                mapOf(
+                    "challengeId" to "default_family_coop",
+                    "title" to "Family Team Challenge",
+                    "description" to "Work together as a family to complete tasks every day for 7 days",
+                    "type" to "CO_OP",
+                    "category" to "SOCIAL",
+                    "difficulty" to "MEDIUM",
+                    "duration" to 7,
+                    "frequency" to "DAILY",
+                    "targetDaysPerWeek" to 7,
+                    "dailyXpReward" to 25,
+                    "completionBonusXp" to 150,
+                    "streakBonusXp" to 15,
+                    "createdBy" to "SYSTEM",
+                    "familyId" to "",
+                    "isCoOp" to true,
+                    "isActive" to true,
+                    "createdAt" to System.currentTimeMillis()
+                )
+            )
+
+            val batch = firestore.batch()
+            defaults.forEach { challenge ->
+                val ref = firestore.collection("challenges")
+                    .document(challenge["challengeId"] as String)
+                batch.set(ref, challenge)
+            }
+            batch.commit().await()
+            Log.d("ChallengeRepository", "Seeded ${defaults.size} default challenges")
+        } catch (e: Exception) {
+            Log.e("ChallengeRepository", "Error seeding default challenges", e)
+        }
+    }
 }

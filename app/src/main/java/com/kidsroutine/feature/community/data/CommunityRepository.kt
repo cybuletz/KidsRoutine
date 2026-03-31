@@ -12,7 +12,7 @@ interface CommunityRepository {
     suspend fun getApprovedTasks(category: TaskCategory? = null, difficulty: DifficultyLevel? = null, limit: Int = 50): List<SharedTask>
     suspend fun getPendingTasks(limit: Int = 100): List<SharedTask>  // ADD THIS
     suspend fun getTaskById(taskId: String): SharedTask?
-    suspend fun importTask(userId: String, taskId: String): TaskTemplate
+    suspend fun importTask(userId: String, familyId: String, taskId: String): TaskTemplate
 
     // ═══════════════════════════════════════════════════════════════════════
     // CHALLENGE SHARING
@@ -21,7 +21,7 @@ interface CommunityRepository {
     suspend fun getApprovedChallenges(category: TaskCategory? = null, difficulty: DifficultyLevel? = null, limit: Int = 50): List<SharedChallenge>
     suspend fun getPendingChallenges(limit: Int = 100): List<SharedChallenge>  // ADD THIS
     suspend fun getChallengeById(challengeId: String): SharedChallenge?
-    suspend fun importChallenge(userId: String, challengeId: String): ChallengeModel
+    suspend fun importChallenge(userId: String, familyId: String, challengeId: String): ChallengeModel
 
     // ═══════════════════════════════════════════════════════════════════════
     // MODERATION
