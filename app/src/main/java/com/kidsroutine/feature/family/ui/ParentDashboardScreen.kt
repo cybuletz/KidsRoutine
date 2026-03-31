@@ -43,6 +43,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.common.collect.Multimaps.index
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.TaskInstance
 import com.kidsroutine.core.model.UserModel
@@ -431,23 +432,29 @@ private fun ChildSummaryCard(child: UserModel, onClick: () -> Unit) {
 
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
 
         db.collection("users").document(child.userId)
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
 
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        // ✅ FIX: Assignments have no assignedDate field — query all, count total
         db.collection("families").document(child.familyId)
             .collection("users").document(child.userId)
             .collection("assignments")
-            .whereEqualTo("assignedDate", today)
-            .addSnapshotListener { snap, err ->
-                if (err != null || snap == null) return@addSnapshotListener
+            .addSnapshotListener { assignSnap, err ->
+                if (err != null || assignSnap == null) return@addSnapshotListener
+                totalToday = assignSnap.size()
+            }
 
-                val pending = snap.documents.filter { doc -> doc.getString("status") == "ASSIGNED" }
-                val completed = snap.documents.filter { doc -> doc.getString("status") == "COMPLETED" }
-
-                totalToday = pending.size + completed.size
-                completedToday = completed.size
+        // ✅ FIX: Completed count comes from task_progress filtered by today's date
+        db.collection("families").document(child.familyId)
+            .collection("users").document(child.userId)
+            .collection("task_progress")
+            .whereEqualTo("date", today)
+            .addSnapshotListener { progressSnap, err ->
+                if (err != null || progressSnap == null) return@addSnapshotListener
+                completedToday = progressSnap.size()
             }
     }
 
@@ -960,23 +967,29 @@ private fun ChildDetailSheet(
         java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
     }
 
-    // ✅ REAL-TIME listener for task progress
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
 
         db.collection("users").document(child.userId)
             .addSnapshotListener { snap, _ -> isOnline = snap?.getBoolean("isOnline") ?: false }
 
-        // Listen to child's assignments for today
+        // ✅ FIX: Total tasks = all assigned tasks (no date filter on assignments)
         db.collection("families").document(child.familyId)
             .collection("users").document(child.userId)
             .collection("assignments")
-            .whereEqualTo("assignedDate", today)
             .addSnapshotListener { snap, _ ->
-                if (snap != null) {
-                    completedTasks = snap.documents.count { it.getString("status") == "COMPLETED" }
-                    todaysTasks = snap.size()
-                }
+                if (snap != null) todaysTasks = snap.size()
+            }
+
+        // ✅ FIX: Completed count = task_progress entries for today
+        db.collection("families").document(child.familyId)
+            .collection("users").document(child.userId)
+            .collection("task_progress")
+            .whereEqualTo("date", today)
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) completedTasks = snap.size()
             }
     }
 
@@ -1154,38 +1167,85 @@ private fun TasksDetailsPopup(
     completedTasks: Int,
     onDismiss: () -> Unit
 ) {
+    // 1. State — must be FIRST
     var tasks by remember { mutableStateOf<List<TaskInstance>>(emptyList()) }
 
+    // 2. today — must be defined BEFORE LaunchedEffect
     val today = remember {
-        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
     }
 
+    // 3. LaunchedEffect — uses both 'today' and 'tasks'
     // ✅ Fetch tasks from Firestore
     LaunchedEffect(child.userId) {
         val db = FirebaseFirestore.getInstance()
+        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            .format(java.util.Date())
+
+        // ✅ Step 1: Get completed templateIds from task_progress for today
         db.collection("families").document(child.familyId)
             .collection("users").document(child.userId)
-            .collection("assignments")
-            .whereEqualTo("assignedDate", today)
-            .addSnapshotListener { snap, _ ->
-                if (snap != null) {
-                    // Simple display of task IDs and status
-                    // In production, you'd fetch full task details
-                    tasks = snap.documents.mapIndexed { index, doc ->
-                        TaskInstance(
-                            instanceId = doc.id,
-                            templateId = doc.getString("taskId") ?: "",
-                            userId = child.userId,
-                            assignedDate = today,
-                            status = TaskStatus.valueOf(doc.getString("status") ?: "PENDING"),
-                            completedAt = doc.getLong("completedAt") ?: 0L,
-                            task = TaskModel(
-                                id = doc.getString("taskId") ?: "",
-                                title = "Task ${index + 1}"
-                            )
-                        )
+            .collection("task_progress")
+            .whereEqualTo("date", today)
+            .addSnapshotListener { progressSnap, _ ->
+                val completedTemplateIds = progressSnap?.documents
+                    ?.mapNotNull { it.getString("templateId") }
+                    ?.toSet() ?: emptySet()
+
+                // ✅ Step 2: Load all assignments and resolve real task titles
+                db.collection("families").document(child.familyId)
+                    .collection("users").document(child.userId)
+                    .collection("assignments")
+                    .get()
+                    .addOnSuccessListener { assignSnap ->
+                        val docs = assignSnap.documents
+                        if (docs.isEmpty()) { tasks = emptyList(); return@addOnSuccessListener }
+
+                        val resolved = mutableListOf<TaskInstance>()
+                        var remaining = docs.size
+
+                        docs.forEach { doc ->
+                            val taskId = doc.getString("taskId") ?: ""
+                            val isCompleted = taskId in completedTemplateIds
+
+                            // ✅ Fetch real title from families/{familyId}/tasks/{taskId}
+                            db.collection("families").document(child.familyId)
+                                .collection("tasks").document(taskId)
+                                .get()
+                                .addOnSuccessListener { taskDoc ->
+                                    val title = taskDoc.getString("title") ?: taskId
+                                    resolved.add(
+                                        TaskInstance(
+                                            instanceId   = doc.id,
+                                            templateId   = taskId,
+                                            userId       = child.userId,
+                                            assignedDate = today,
+                                            status       = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING,
+                                            completedAt  = 0L,
+                                            task         = TaskModel(id = taskId, title = title)
+                                        )
+                                    )
+                                    remaining--
+                                    if (remaining == 0) tasks = resolved.sortedBy { it.status }
+                                }
+                                .addOnFailureListener {
+                                    resolved.add(
+                                        TaskInstance(
+                                            instanceId   = doc.id,
+                                            templateId   = taskId,
+                                            userId       = child.userId,
+                                            assignedDate = today,
+                                            status       = if (isCompleted) TaskStatus.COMPLETED else TaskStatus.PENDING,
+                                            completedAt  = 0L,
+                                            task         = TaskModel(id = taskId, title = "Task ($taskId)")
+                                        )
+                                    )
+                                    remaining--
+                                    if (remaining == 0) tasks = resolved.sortedBy { it.status }
+                                }
+                        }
                     }
-                }
             }
     }
 

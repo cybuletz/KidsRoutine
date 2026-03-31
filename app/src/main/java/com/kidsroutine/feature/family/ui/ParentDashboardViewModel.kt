@@ -63,34 +63,4 @@ class ParentDashboardViewModel @Inject constructor(
             }
         }
     }
-
-    fun refreshMemberStatus(familyId: String) {
-        Log.d("ParentDashboardViewModel", "Refreshing member status only")
-        viewModelScope.launch {
-            try {
-                val familyDoc = FirebaseFirestore.getInstance()
-                    .collection("families")
-                    .document(familyId)
-                    .get()
-                    .await()
-
-                if (familyDoc.exists()) {
-                    val memberIds = familyDoc.get("memberIds") as? List<String> ?: emptyList()
-
-                    // Just trigger listeners to update without reloading everything
-                    memberIds.forEach { memberId ->
-                        FirebaseFirestore.getInstance()
-                            .collection("users")
-                            .document(memberId)
-                            .get() // This will trigger the snapshot listeners in the UI
-                            .await()
-                    }
-
-                    Log.d("ParentDashboardViewModel", "Member status refreshed")
-                }
-            } catch (e: Exception) {
-                Log.e("ParentDashboardViewModel", "Error refreshing member status", e)
-            }
-        }
-    }
 }
