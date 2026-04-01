@@ -59,7 +59,7 @@ fun ChallengeDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(challengeId) {
-        viewModel.loadChallengeDetail(currentUser.userId, challengeId)
+        viewModel.loadChallengeDetail(currentUser.userId, currentUser.familyId, challengeId)
     }
 
     LaunchedEffect(uiState.successMessage) {
@@ -505,7 +505,7 @@ fun ChallengeDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    viewModel.completeDayToday(currentUser.userId)
+                                    viewModel.completeDayToday(currentUser.userId, currentUser.familyId)
                                 },
                                 modifier = Modifier
                                     .weight(1f)
@@ -525,7 +525,7 @@ fun ChallengeDetailScreen(
 
                             Button(
                                 onClick = {
-                                    viewModel.skipDayToday(currentUser.userId)
+                                    viewModel.skipDayToday(currentUser.userId, currentUser.familyId)
                                 },
                                 modifier = Modifier
                                     .weight(1f)

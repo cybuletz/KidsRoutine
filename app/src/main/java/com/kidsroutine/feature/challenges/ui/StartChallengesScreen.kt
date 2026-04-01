@@ -197,7 +197,7 @@ fun StartChallengesScreen(
                                 ChallengeStartCard(
                                     challenge = challenge,
                                     onStart = {
-                                        viewModel.startChallenge(currentUser.userId, challenge.challengeId)
+                                        viewModel.startChallenge(currentUser.userId, currentUser.familyId, challenge.challengeId)
                                     },
                                     isStarting = uiState.isStarting
                                 )

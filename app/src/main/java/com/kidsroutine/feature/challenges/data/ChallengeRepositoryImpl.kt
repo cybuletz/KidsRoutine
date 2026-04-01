@@ -145,7 +145,7 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun startChallenge(userId: String, challengeId: String): ChallengeProgress {
+    override suspend fun startChallenge(userId: String, familyId: String, challengeId: String): ChallengeProgress {
         return try {
             Log.d("ChallengeRepository", "Starting challenge: $challengeId for user: $userId")
 
@@ -167,6 +167,8 @@ class ChallengeRepositoryImpl @Inject constructor(
             )
 
             firestore
+                .collection("families")
+                .document(familyId)
                 .collection("users")
                 .document(userId)
                 .collection("challenge_progress")
@@ -195,11 +197,13 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getActiveChallenges(userId: String): List<ChallengeProgress> {
+    override suspend fun getActiveChallenges(userId: String, familyId: String): List<ChallengeProgress> {
         return try {
             Log.d("ChallengeRepository", "Fetching active challenges for user: $userId")
 
             val snapshot = firestore
+                .collection("families")
+                .document(familyId)
                 .collection("users")
                 .document(userId)
                 .collection("challenge_progress")
@@ -226,12 +230,15 @@ class ChallengeRepositoryImpl @Inject constructor(
 
     override suspend fun getChallengeProgress(
         userId: String,
+        familyId: String,
         challengeId: String
     ): ChallengeProgress? {
         return try {
             Log.d("ChallengeRepository", "Fetching progress for challenge: $challengeId")
 
             val doc = firestore
+                .collection("families")
+                .document(familyId)
                 .collection("users")
                 .document(userId)
                 .collection("challenge_progress")
@@ -250,11 +257,13 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateChallengeProgress(progress: ChallengeProgress) {
+    override suspend fun updateChallengeProgress(progress: ChallengeProgress, familyId: String) {
         try {
             Log.d("ChallengeRepository", "Updating challenge progress: ${progress.challengeId}")
 
             firestore
+                .collection("families")
+                .document(familyId)
                 .collection("users")
                 .document(progress.userId)
                 .collection("challenge_progress")
@@ -278,9 +287,11 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeActiveChallenges(userId: String): Flow<List<ChallengeProgress>> = flow {
+    override fun observeActiveChallenges(userId: String, familyId: String): Flow<List<ChallengeProgress>> = flow {
         try {
             firestore
+                .collection("families")
+                .document(familyId)
                 .collection("users")
                 .document(userId)
                 .collection("challenge_progress")

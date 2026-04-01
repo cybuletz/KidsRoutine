@@ -27,13 +27,13 @@ class ActiveChallengesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ActiveChallengesUiState())
     val uiState: StateFlow<ActiveChallengesUiState> = _uiState.asStateFlow()
 
-    fun loadActiveChallenges(userId: String) {
+    fun loadActiveChallenges(userId: String, familyId: String) {
         Log.d("ActiveChallengesVM", "Loading active challenges for user: $userId")
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
             try {
-                val progressList = challengeRepository.getActiveChallenges(userId)
+                val progressList = challengeRepository.getActiveChallenges(userId, familyId)
                 Log.d("ActiveChallengesVM", "Found ${progressList.size} active challenges")
 
                 // Fetch full challenge details for each progress

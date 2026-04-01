@@ -114,14 +114,19 @@ class StatsRepositoryImpl @Inject constructor(
             val dailyXp = mutableListOf<Int>()
             val calendar = Calendar.getInstance()
 
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val familyId = userDoc.getString("familyId") ?: ""
+
             // Get last 7 days of progress
             repeat(7) {
                 val date = calendar.time
                 val dateStr = formatDate(date)
 
                 // Query taskProgress for this day
-                val snapshot = firestore.collection("taskProgress")
-                    .whereEqualTo("userId", userId)
+                val snapshot = firestore
+                    .collection("families").document(familyId)
+                    .collection("users").document(userId)
+                    .collection("task_progress")
                     .whereEqualTo("date", dateStr)
                     .get()
                     .await()
@@ -149,6 +154,9 @@ class StatsRepositoryImpl @Inject constructor(
             val weeklyXp = mutableListOf<Int>()
             val calendar = Calendar.getInstance()
 
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val familyId = userDoc.getString("familyId") ?: ""
+
             // Get last 4 weeks
             repeat(4) {
                 var weekTotal = 0
@@ -156,8 +164,11 @@ class StatsRepositoryImpl @Inject constructor(
                     val date = calendar.time
                     val dateStr = formatDate(date)
 
-                    val snapshot = firestore.collection("taskProgress")
-                        .whereEqualTo("userId", userId)
+
+                    val snapshot = firestore
+                        .collection("families").document(familyId)
+                        .collection("users").document(userId)
+                        .collection("task_progress")
                         .whereEqualTo("date", dateStr)
                         .get()
                         .await()
@@ -192,10 +203,16 @@ class StatsRepositoryImpl @Inject constructor(
             val calendar = Calendar.getInstance()
             var weekXp = 0
 
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val familyId = userDoc.getString("familyId") ?: ""
+
             repeat(7) {
                 val dateStr = formatDate(calendar.time)
-                val snapshot = firestore.collection("taskProgress")
-                    .whereEqualTo("userId", userId)
+
+                val snapshot = firestore
+                    .collection("families").document(familyId)
+                    .collection("users").document(userId)
+                    .collection("task_progress")
                     .whereEqualTo("date", dateStr)
                     .get()
                     .await()
@@ -219,10 +236,16 @@ class StatsRepositoryImpl @Inject constructor(
             val calendar = Calendar.getInstance()
             var monthXp = 0
 
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            val familyId = userDoc.getString("familyId") ?: ""
+
             repeat(30) {
                 val dateStr = formatDate(calendar.time)
-                val snapshot = firestore.collection("taskProgress")
-                    .whereEqualTo("userId", userId)
+
+                val snapshot = firestore
+                    .collection("families").document(familyId)
+                    .collection("users").document(userId)
+                    .collection("task_progress")
                     .whereEqualTo("date", dateStr)
                     .get()
                     .await()

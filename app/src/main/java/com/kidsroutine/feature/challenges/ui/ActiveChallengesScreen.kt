@@ -44,7 +44,7 @@ fun ActiveChallengesScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(currentUser.userId) {
-        viewModel.loadActiveChallenges(currentUser.userId)
+        viewModel.loadActiveChallenges(currentUser.userId, currentUser.familyId)
     }
 
     Column(

@@ -163,7 +163,8 @@ class GenerateDailyTasksUseCase @Inject constructor(
         // ✅ STEP 1: Fetch active challenges for this user
         try {
             Log.d("GenerateDailyTasks", "Fetching active challenges for user: ${user.userId}")
-            val activeChallenges = challengeRepository.getActiveChallenges(user.userId)
+            val activeChallenges = challengeRepository.getActiveChallenges(user.userId, user.familyId)
+
             Log.d("GenerateDailyTasks", "Found ${activeChallenges.size} active challenges")
 
             // STEP 2: Generate challenge tasks

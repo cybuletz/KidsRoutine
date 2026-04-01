@@ -37,14 +37,14 @@ class ChallengeDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChallengeDetailUiState())
     val uiState: StateFlow<ChallengeDetailUiState> = _uiState.asStateFlow()
 
-    fun loadChallengeDetail(userId: String, challengeId: String) {
+    fun loadChallengeDetail(userId: String, familyId: String, challengeId: String) {
         Log.d("ChallengeDetailVM", "Loading challenge detail: $challengeId for user: $userId")
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
             try {
                 val challenge = challengeRepository.getChallenge(challengeId)
-                val progress = challengeRepository.getChallengeProgress(userId, challengeId)
+                val progress = challengeRepository.getChallengeProgress(userId, familyId, challengeId)
 
                 if (challenge == null) {
                     _uiState.value = _uiState.value.copy(
@@ -85,7 +85,7 @@ class ChallengeDetailViewModel @Inject constructor(
         }
     }
 
-    fun completeDayToday(userId: String) {
+    fun completeDayToday(userId: String, familyId: String) {
         Log.d("ChallengeDetailVM", "Completing day for user: $userId")
 
         val challenge = _uiState.value.challenge ?: return
@@ -101,7 +101,7 @@ class ChallengeDetailViewModel @Inject constructor(
                     date = today
                 )
 
-                challengeRepository.updateChallengeProgress(updatedProgress)
+                challengeRepository.updateChallengeProgress(updatedProgress, familyId)
 
                 _uiState.value = _uiState.value.copy(
                     progress = updatedProgress,
@@ -123,7 +123,8 @@ class ChallengeDetailViewModel @Inject constructor(
         }
     }
 
-    fun skipDayToday(userId: String) {
+    fun skipDayToday(userId: String, familyId: String) {
+
         Log.d("ChallengeDetailVM", "Skipping day for user: $userId")
 
         val challenge = _uiState.value.challenge ?: return
@@ -139,7 +140,7 @@ class ChallengeDetailViewModel @Inject constructor(
                     date = today
                 )
 
-                challengeRepository.updateChallengeProgress(updatedProgress)
+                challengeRepository.updateChallengeProgress(updatedProgress, familyId)
 
                 _uiState.value = _uiState.value.copy(
                     progress = updatedProgress,

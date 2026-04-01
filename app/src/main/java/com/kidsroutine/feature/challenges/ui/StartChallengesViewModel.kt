@@ -80,13 +80,13 @@ class StartChallengesViewModel @Inject constructor(
         )
     }
 
-    fun startChallenge(userId: String, challengeId: String) {
+    fun startChallenge(userId: String, familyId: String, challengeId: String) {
         Log.d("StartChallengesVM", "Starting challenge: $challengeId for user: $userId")
         _uiState.value = _uiState.value.copy(isStarting = true, error = null)
 
         viewModelScope.launch {
             try {
-                challengeRepository.startChallenge(userId, challengeId)
+                challengeRepository.startChallenge(userId, familyId, challengeId)
                 Log.d("StartChallengesVM", "Challenge started successfully")
 
                 _uiState.value = _uiState.value.copy(

@@ -75,7 +75,7 @@ class TaskSaveRepository @Inject constructor(
             )
 
             // Save to Firestore
-            firestore.collection("taskTemplates")
+            firestore.collection("task_templates")
                 .document(taskModel.id)
                 .set(taskModel)
                 .await()
@@ -115,7 +115,10 @@ class TaskSaveRepository @Inject constructor(
             val instanceId = taskInstance["instanceId"] as String
 
             // Save to Firestore
-            firestore.collection("taskInstances")
+            firestore
+                .collection("families").document(familyId)
+                .collection("users").document(childId)
+                .collection("assignments")
                 .document(instanceId)
                 .set(taskInstance)
                 .await()

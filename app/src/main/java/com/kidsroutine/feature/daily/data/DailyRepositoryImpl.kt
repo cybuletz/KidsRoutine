@@ -410,8 +410,9 @@ class DailyRepositoryImpl @Inject constructor(
     override suspend fun getAssignedTasks(userId: String, familyId: String): List<TaskModel> {
         return try {
             val assignmentsSnapshot = firestore
-                .collection("taskAssignments")
-                .whereEqualTo("childId", userId)
+                .collection("families").document(familyId)
+                .collection("users").document(userId)
+                .collection("assignments")
                 .whereEqualTo("status", "ASSIGNED")
                 .get()
                 .await()
