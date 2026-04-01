@@ -228,6 +228,7 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
+
     override suspend fun getChallengeProgress(
         userId: String,
         familyId: String,

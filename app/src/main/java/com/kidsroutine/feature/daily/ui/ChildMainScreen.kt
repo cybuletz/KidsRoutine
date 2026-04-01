@@ -212,7 +212,7 @@ fun ChildMainScreen(
                 LaunchedEffect(Unit) {
                     if (lootBoxUiState.phase == LootBoxPhase.IDLE) {
                         lootBoxViewModel.presentBox(
-                            box    = LootBox(earnedFor = "All tasks done today!"),
+                            box    = LootBox(earnedFor = "All quests done today!"),
                             userId = currentUser.userId
                         )
                     }

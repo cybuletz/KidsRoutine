@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.ChallengeModel
+import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.TaskCategory
 import com.kidsroutine.core.model.UserModel
 
