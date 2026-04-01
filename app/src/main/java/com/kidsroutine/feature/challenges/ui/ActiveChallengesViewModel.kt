@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kidsroutine.core.model.ChallengeModel
 import com.kidsroutine.core.model.ChallengeProgress
+import com.kidsroutine.core.model.ChallengeStatus
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,41 +28,42 @@ class ActiveChallengesViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ActiveChallengesUiState())
     val uiState: StateFlow<ActiveChallengesUiState> = _uiState.asStateFlow()
 
-    fun loadActiveChallenges(userId: String, familyId: String) {
-        Log.d("ActiveChallengesVM", "Loading active challenges for user: $userId")
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
+    fun loadActiveChallenges(userId: String, familyId: String, isParent: Boolean = false) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val progressList = challengeRepository.getActiveChallenges(userId, familyId)
-                Log.d("ActiveChallengesVM", "Found ${progressList.size} active challenges")
+                val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    .format(java.util.Date())
 
-                // Fetch full challenge details for each progress
-                val challengesWithProgress = progressList.mapNotNull { progress ->
-                    try {
-                        val challenge = challengeRepository.getChallenge(progress.challengeId)
-                        if (challenge != null) {
-                            Pair(challenge, progress)
-                        } else {
-                            Log.w("ActiveChallengesVM", "Challenge not found: ${progress.challengeId}")
-                            null
+                val progressList = if (isParent) {
+                    // Parent: fetch ALL progress, no status filter at all
+                    challengeRepository.getAllChallengeProgress(userId, familyId)
+                        .filter { progress ->
+                            // Only exclude truly dead challenges (FAILED/ARCHIVED)
+                            // and ones whose end date has already passed
+                            progress.status != ChallengeStatus.FAILED &&
+                                    progress.status != ChallengeStatus.ARCHIVED &&
+                                    (progress.endDate.isEmpty() || progress.endDate >= today)
                         }
-                    } catch (e: Exception) {
-                        Log.e("ActiveChallengesVM", "Error fetching challenge: ${progress.challengeId}", e)
-                        null
-                    }
+                } else {
+                    // Child: only ACTIVE status, and hide today's already-done ones
+                    challengeRepository.getActiveChallenges(userId, familyId)
+                        .filter { it.lastCompletedDate != today }
+                }
+
+                val pairs = progressList.mapNotNull { progress ->
+                    val challenge = challengeRepository.getChallenge(progress.challengeId)
+                    if (challenge != null) Pair(challenge, progress) else null
                 }
 
                 _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    activeChallenges = challengesWithProgress,
-                    error = null
+                    isLoading        = false,
+                    activeChallenges = pairs
                 )
             } catch (e: Exception) {
-                Log.e("ActiveChallengesVM", "Error loading challenges", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to load challenges"
+                    error     = e.message
                 )
             }
         }

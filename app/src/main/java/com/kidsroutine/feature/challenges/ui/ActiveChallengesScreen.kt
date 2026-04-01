@@ -26,6 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.ChallengeModel
 import com.kidsroutine.core.model.ChallengeProgress
 import com.kidsroutine.core.model.ChallengeStatus
+import com.kidsroutine.core.model.Role
 import com.kidsroutine.core.model.UserModel
 import kotlinx.coroutines.tasks.await
 
@@ -46,11 +47,15 @@ fun ActiveChallengesScreen(
     showDeleteButton: Boolean = false,
     viewModel: ActiveChallengesViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
     LaunchedEffect(currentUser.userId) {
-        viewModel.loadActiveChallenges(currentUser.userId, currentUser.familyId)
+        viewModel.loadActiveChallenges(
+            userId   = currentUser.userId,
+            familyId = currentUser.familyId,
+            isParent = currentUser.role == Role.PARENT  // ← ADD
+        )
     }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier

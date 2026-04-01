@@ -219,6 +219,28 @@ class ChallengeRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getAllChallengeProgress(userId: String, familyId: String): List<ChallengeProgress> {
+        return try {
+            val snapshot = firestore
+                .collection("families")
+                .document(familyId)
+                .collection("users")
+                .document(userId)
+                .collection("challenge_progress")
+                // ← NO status filter — returns ACTIVE, COMPLETED, everything
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                try { doc.toChallengeProgress() }
+                catch (e: Exception) { null }
+            }
+        } catch (e: Exception) {
+            Log.e("ChallengeRepository", "Error fetching all challenge progress", e)
+            emptyList()
+        }
+    }
+
     override suspend fun getActiveChallenges(userId: String, familyId: String): List<ChallengeProgress> {
         return try {
             Log.d("ChallengeRepository", "Fetching active challenges for user: $userId")

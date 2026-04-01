@@ -16,4 +16,7 @@ interface ChallengeRepository {
     fun observeActiveChallenges(userId: String, familyId: String): Flow<List<ChallengeProgress>>
     suspend fun seedDefaultChallengesIfEmpty()
 
+    suspend fun getAllChallengeProgress(userId: String, familyId: String): List<ChallengeProgress>
+
+
 }
