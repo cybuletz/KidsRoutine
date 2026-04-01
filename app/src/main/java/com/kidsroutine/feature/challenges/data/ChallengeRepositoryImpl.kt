@@ -166,30 +166,52 @@ class ChallengeRepositoryImpl @Inject constructor(
                 lastCompletedDate = ""
             )
 
-            firestore
+            // ✅ NEW: Get all family members
+            val familySnapshot = firestore
                 .collection("families")
                 .document(familyId)
                 .collection("users")
-                .document(userId)
-                .collection("challenge_progress")
-                .document(challengeId)
-                .set(mapOf(
-                    "challengeId" to challengeId,
-                    "userId" to userId,
-                    "currentDay" to progress.currentDay,
-                    "totalDays" to progress.totalDays,
-                    "completedDays" to progress.completedDays,
-                    "currentStreak" to progress.currentStreak,
-                    "successRate" to progress.successRate,
-                    "dailyProgress" to progress.dailyProgress,
-                    "status" to progress.status.name,
-                    "startDate" to progress.startDate,
-                    "endDate" to progress.endDate,
-                    "lastCompletedDate" to progress.lastCompletedDate
-                ))
+                .get()
                 .await()
 
-            Log.d("ChallengeRepository", "Challenge started: $challengeId")
+            Log.d("ChallengeRepository", "Found ${familySnapshot.documents.size} family members to assign challenge to")
+
+            // ✅ NEW: Assign challenge to ALL family members
+            val batch = firestore.batch()
+
+            for (familyMemberDoc in familySnapshot.documents) {
+                val memberId = familyMemberDoc.id
+
+                val memberProgress = progress.copy(userId = memberId)
+
+                val progressRef = firestore
+                    .collection("families")
+                    .document(familyId)
+                    .collection("users")
+                    .document(memberId)
+                    .collection("challenge_progress")
+                    .document(challengeId)
+
+                batch.set(progressRef, mapOf(
+                    "challengeId" to memberProgress.challengeId,
+                    "userId" to memberProgress.userId,
+                    "currentDay" to memberProgress.currentDay,
+                    "totalDays" to memberProgress.totalDays,
+                    "completedDays" to memberProgress.completedDays,
+                    "currentStreak" to memberProgress.currentStreak,
+                    "successRate" to memberProgress.successRate,
+                    "dailyProgress" to memberProgress.dailyProgress,
+                    "status" to memberProgress.status.name,
+                    "startDate" to memberProgress.startDate,
+                    "endDate" to memberProgress.endDate,
+                    "lastCompletedDate" to memberProgress.lastCompletedDate
+                ))
+
+                Log.d("ChallengeRepository", "Assigned challenge $challengeId to family member: $memberId")
+            }
+
+            batch.commit().await()
+            Log.d("ChallengeRepository", "Challenge started for all family members: $challengeId")
             progress
         } catch (e: Exception) {
             Log.e("ChallengeRepository", "Error starting challenge", e)

@@ -146,7 +146,12 @@ fun ChildMainScreen(
                     currentUser           = currentUser,
                     onBackClick           = { innerNavController.navigate("daily") },
                     onStartChallengeClick = { innerNavController.navigate("challenges") },
-                    onChallengeClick      = { }
+                    onChallengeClick      = { challenge ->
+                        parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
+                    },
+                    onViewDetailClick     = { challenge ->
+                        parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
+                    }
                 )
             }
 

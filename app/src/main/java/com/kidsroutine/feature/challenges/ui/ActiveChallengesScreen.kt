@@ -5,9 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +42,8 @@ fun ActiveChallengesScreen(
     onStartChallengeClick: () -> Unit,
     onChallengeClick: (ChallengeModel) -> Unit,
     onViewDetailClick: (ChallengeModel) -> Unit = { onChallengeClick(it) },
+    showHeader: Boolean = true,
+    showDeleteButton: Boolean = false,
     viewModel: ActiveChallengesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -52,6 +57,41 @@ fun ActiveChallengesScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
+        // ── Gradient Header ──────────────────────────────────────────────────
+        if (showHeader) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .background(Brush.linearGradient(listOf(ChallengeAccent, Color(0xFF8B5CF6))))
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text       = "🎯 Challenges",
+                        style      = MaterialTheme.typography.headlineLarge,
+                        color      = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize   = 32.sp,
+                        textAlign  = androidx.compose.ui.text.style.TextAlign.Start
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text       = "Daily habits for the entire family",
+                        style      = MaterialTheme.typography.bodyLarge,
+                        color      = Color.White.copy(alpha = 0.85f),
+                        textAlign  = androidx.compose.ui.text.style.TextAlign.Start
+                    )
+                }
+            }
+        }
+
         // ── Content ───────────────────────────────────────────────────────
         when {
             uiState.isLoading -> {
@@ -118,11 +158,12 @@ fun ActiveChallengesScreen(
                 ) {
                     items(uiState.activeChallenges) { (challenge, progress) ->
                         ChallengeCard(
-                            challenge       = challenge,
-                            progress        = progress,
-                            currentUserId   = currentUser.userId,
-                            onClick         = { onChallengeClick(challenge) },
-                            onViewDetail    = { onViewDetailClick(challenge) }
+                            challenge        = challenge,
+                            progress         = progress,
+                            currentUserId    = currentUser.userId,
+                            showDeleteButton = showDeleteButton,         // ← ADD THIS
+                            onClick          = { onChallengeClick(challenge) },
+                            onViewDetail     = { onViewDetailClick(challenge) }
                         )
                     }
                 }
@@ -136,8 +177,10 @@ private fun ChallengeCard(
     challenge: ChallengeModel,
     progress: ChallengeProgress,
     currentUserId: String = "",
+    showDeleteButton: Boolean = false,               // ← ADD THIS
     onClick: () -> Unit,
-    onViewDetail: () -> Unit = onClick
+    onViewDetail: () -> Unit = onClick,
+    onDelete: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -159,6 +202,7 @@ private fun ChallengeCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top
             ) {
+                // Emoji icon surface
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = ChallengeAccent.copy(alpha = 0.15f),
@@ -168,6 +212,8 @@ private fun ChallengeCard(
                         Text(getCategoryEmoji(challenge.category), fontSize = 24.sp)
                     }
                 }
+
+                // Title + description
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = challenge.title,
@@ -181,6 +227,21 @@ private fun ChallengeCard(
                         color = Color.Gray,
                         maxLines = 2
                     )
+                }
+
+                // ← ADD HERE, after the Column above, still inside this Row
+                if (showDeleteButton) {
+                    IconButton(
+                        onClick  = onDelete,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Challenge",
+                            tint               = Color(0xFFE74C3C),
+                            modifier           = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 

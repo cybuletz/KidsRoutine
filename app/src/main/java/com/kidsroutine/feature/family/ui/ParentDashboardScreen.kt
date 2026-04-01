@@ -603,6 +603,26 @@ private fun ParentTasksTab(
             }
         }
 
+        // ── Info Label (only when Challenges tab is selected) ───────────────────────────────
+        if (selectedSegment == 2) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF6C5CE7).copy(alpha = 0.1f)
+            ) {
+                Text(
+                    "💡 Challenges are for the entire family — set them for everyone to enjoy!",
+                    fontSize = 12.sp,
+                    color = Color(0xFF6C5CE7),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        }
+
         when (selectedSegment) {
             0 -> TaskListScreen(
                 currentUser = currentUser,
@@ -614,7 +634,9 @@ private fun ParentTasksTab(
                 currentUser           = currentUser,
                 onBackClick           = { },
                 onStartChallengeClick = { showStartChallenge = true },
-                onChallengeClick      = { challenge -> selectedChallenge = challenge }
+                onChallengeClick      = { challenge -> selectedChallenge = challenge },
+                showHeader            = false,
+                showDeleteButton      = true                     // ← ADD THIS
             )
         }
     }
