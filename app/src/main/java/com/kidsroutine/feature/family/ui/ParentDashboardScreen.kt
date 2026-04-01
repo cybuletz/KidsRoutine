@@ -51,6 +51,7 @@ import com.kidsroutine.core.model.TaskModel
 import com.kidsroutine.core.model.TaskStatus
 import com.kidsroutine.core.model.TaskType
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
+import com.kidsroutine.feature.challenges.ui.ChallengeDetailScreen
 import com.kidsroutine.feature.community.ui.MarketplaceScreen
 import com.kidsroutine.feature.community.ui.PublishScreen
 import com.kidsroutine.feature.generation.ui.GenerationScreen
@@ -532,7 +533,7 @@ private fun ParentTasksTab(
     var showCreateTask     by remember { mutableStateOf(false) }
     var createdTask        by remember { mutableStateOf<com.kidsroutine.core.model.TaskModel?>(null) }
     var showStartChallenge by remember { mutableStateOf(false) }
-    var selectedChallenge  by remember { mutableStateOf<com.kidsroutine.core.model.ChallengeModel?>(null) }
+    var selectedChallengeId by remember { mutableStateOf<String?>(null) }
 
     when {
         createdTask != null -> {
@@ -634,54 +635,19 @@ private fun ParentTasksTab(
                 currentUser           = currentUser,
                 onBackClick           = { },
                 onStartChallengeClick = { showStartChallenge = true },
-                onChallengeClick      = { challenge -> selectedChallenge = challenge },
+                onChallengeClick      = { challenge -> selectedChallengeId = challenge.challengeId },
+                onViewDetailClick     = { challenge -> selectedChallengeId = challenge.challengeId },
                 showHeader            = false,
-                showDeleteButton      = true                     // ← ADD THIS
+                showDeleteButton      = true
             )
         }
     }
-
-    // Challenge detail sheet
-    selectedChallenge?.let { challenge ->
-        @OptIn(ExperimentalMaterial3Api::class)
-        androidx.compose.material3.ModalBottomSheet(
-            onDismissRequest = { selectedChallenge = null },
-            containerColor   = Color.White,
-            shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 40.dp)
-            ) {
-                Text(challenge.title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Spacer(Modifier.height(8.dp))
-                Text(challenge.description, fontSize = 14.sp, color = Color.Gray)
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFE8F5E9)) {
-                        Text("⭐ +${challenge.dailyXpReward} XP/day", fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                    }
-                    Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFEDE7F6)) {
-                        Text("📅 ${challenge.duration} days", fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold, color = Color(0xFF4527A0),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                    }
-                }
-                Spacer(Modifier.height(24.dp))
-                Button(
-                    onClick   = { selectedChallenge = null },
-                    modifier  = Modifier.fillMaxWidth().height(52.dp),
-                    shape     = RoundedCornerShape(14.dp),
-                    colors    = ButtonDefaults.buttonColors(containerColor = Color(0xFF6C5CE7))
-                ) {
-                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
+    selectedChallengeId?.let { challengeId ->
+        ChallengeDetailScreen(
+            currentUser = currentUser,
+            challengeId = challengeId,
+            onBackClick = { selectedChallengeId = null }
+        )
     }
 }
 
