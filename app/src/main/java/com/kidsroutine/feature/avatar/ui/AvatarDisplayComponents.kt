@@ -1267,25 +1267,25 @@ fun AvatarAccessoryLayer(
                     topLeft = Offset(cx - headR * 0.75f, chainY - headR * 0.5f),
                     size = androidx.compose.ui.geometry.Size(headR * 1.5f, headR * 0.9f),
                     style = Stroke(width = 2.5f))
-                // Star pendant
+                // Star pendant — proper 5-pointed star using outer + inner points
                 val pendantCx = cx
                 val pendantCy = chainY + headR * 0.22f
-                repeat(5) { i ->
-                    val angle = (i * 72f - 90f) * (kotlin.math.PI / 180f).toFloat()
-                    val inner = (i * 72f + 36f - 90f) * (kotlin.math.PI / 180f).toFloat()
-                    val outerR = 8f; val innerR = 3.5f
-                    // outer point
-                    val ox = pendantCx + outerR * cos(angle)
-                    val oy = pendantCy + outerR * sin(angle)
-                    // inner point
-                    val ix = pendantCx + innerR * cos(inner)
-                    val iy = pendantCy + innerR * sin(inner)
-                    if (i == 0) {
-                        // draw just a filled star using drawPath
+                val outerR = 8f
+                val innerR = 3.5f
+                val starPath = Path().apply {
+                    repeat(5) { i ->
+                        val outerAngle = (i * 72f - 90f) * (PI / 180.0)
+                        val innerAngle = (i * 72f + 36f - 90f) * (PI / 180.0)
+                        val ox = pendantCx + outerR * cos(outerAngle).toFloat()
+                        val oy = pendantCy + outerR * sin(outerAngle).toFloat()
+                        val ix = pendantCx + innerR * cos(innerAngle).toFloat()
+                        val iy = pendantCy + innerR * sin(innerAngle).toFloat()
+                        if (i == 0) moveTo(ox, oy) else lineTo(ox, oy)
+                        lineTo(ix, iy)
                     }
-                    drawLine(tint, Offset(ox, oy), Offset(pendantCx, pendantCy), strokeWidth = 3f)
+                    close()
                 }
-                drawCircle(tint, radius = 8f, center = Offset(pendantCx, pendantCy))
+                drawPath(starPath, tint)
                 drawCircle(Color.White.copy(alpha = 0.4f), radius = 3f,
                     center = Offset(pendantCx - 2f, pendantCy - 2f))
             }
