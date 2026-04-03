@@ -63,6 +63,185 @@ object AvatarSeeder {
         )
     )
 
+    // ── Free Shoes ─────────────────────────────────────────────────────────
+    val freeShoes = listOf(
+        AvatarLayerItem(
+            id = "shoes_white_sneaker",
+            name = "White Sneakers",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFFFFFFF,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "shoes_red_sneaker",
+            name = "Red Sneakers",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFE63946,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "shoes_black_boot",
+            name = "Black Boots",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF1A1A1A,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "shoes_blue_velcro",
+            name = "Blue Velcro",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF1565C0,
+            compatibleGenders = setOf(AvatarGender.BOY),
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "shoes_pink_trainer",
+            name = "Pink Trainers",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFFF6B9D,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 5
+        )
+    )
+
+    // ── Free Accessories ───────────────────────────────────────────────────
+    val freeAccessories = listOf(
+        AvatarLayerItem(
+            id = "acc_glasses_round",
+            name = "Round Glasses",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+            tintColor = 0xFF4A3728,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "acc_hair_bow",
+            name = "Hair Bow",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_headband),
+            tintColor = 0xFFFF6B9D,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "acc_star_necklace",
+            name = "Star Necklace",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
+            tintColor = 0xFFFFD700,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "acc_bandana",
+            name = "Bandana",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_headband),
+            tintColor = 0xFFE63946,
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "acc_wristband",
+            name = "Wristband",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
+            tintColor = 0xFF2DC653,
+            sortOrder = 5
+        )
+    )
+
+    // ── Free Eye Styles ────────────────────────────────────────────────────
+    val freeEyeStyles = listOf(
+        AvatarLayerItem(
+            id = "eyes_brown",
+            name = "Warm Brown",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF5D3A1A, 0xFF3D2B1F, "Brown"),
+            tintColor = 0xFF3D2B1F,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "eyes_blue",
+            name = "Sky Blue",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF1565C0, 0xFF42A5F5, "Blue"),
+            tintColor = 0xFF1565C0,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "eyes_green",
+            name = "Forest Green",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF2E7D32, 0xFF66BB6A, "Green"),
+            tintColor = 0xFF2E7D32,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "eyes_grey",
+            name = "Steel Grey",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF546E7A, 0xFF90A4AE, "Grey"),
+            tintColor = 0xFF546E7A,
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "eyes_hazel",
+            name = "Honey Hazel",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF795548, 0xFFA1887F, "Hazel"),
+            tintColor = 0xFF795548,
+            sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "eyes_purple",
+            name = "Mystic Purple",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF6A1B9A, 0xFFAB47BC, "Purple"),
+            tintColor = 0xFF6A1B9A,
+            sortOrder = 6
+        )
+    )
+
+    // ── Free Face Details ──────────────────────────────────────────────────
+    val freeFaceDetails = listOf(
+        AvatarLayerItem(
+            id = "face_freckles",
+            name = "Sun Freckles",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFC68642, 0xFFE0AC69, "Freckles"),
+            tintColor = 0xFFC68642,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "face_star_sticker",
+            name = "Star Sticker",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFFFD700, 0xFFFFF176, "Star"),
+            tintColor = 0xFFFFD700,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "face_extra_blush",
+            name = "Rosy Cheeks",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFFFB3BA, 0xFFFF8FA3, "Blush"),
+            tintColor = 0xFFFFB3BA,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "face_heart_sticker",
+            name = "Heart Sticker",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFE91E63, 0xFFF48FB1, "Heart"),
+            tintColor = 0xFFE91E63,
+            sortOrder = 4
+        )
+    )
+
     // ── Free Hair Options ──────────────────────────────────────────────────
     val freeHair = listOf(
         AvatarLayerItem(
@@ -109,6 +288,42 @@ object AvatarSeeder {
             tintColor = 0xFFC1440E,
             compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL),
             sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "hair_short_spiky_brown",
+            name = "Spiky Brown",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
+            tintColor = 0xFF5C3317,
+            compatibleGenders = setOf(AvatarGender.BOY),
+            sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "hair_long_wavy_brown",
+            name = "Wavy Brown",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
+            tintColor = 0xFF8B5E3C,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "hair_bun_black",
+            name = "High Bun",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
+            tintColor = 0xFF1A1A1A,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 8
+        ),
+        AvatarLayerItem(
+            id = "hair_bob_red",
+            name = "Bob Red",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_curly),
+            tintColor = 0xFFB03A2E,
+            compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL),
+            sortOrder = 9
         )
     )
 
@@ -385,11 +600,148 @@ object AvatarSeeder {
                     coinCost = 150
                 )
             )
+        ),
+
+        AvatarContentPack(
+            id = "pack_magical_princess",
+            name = "Magical Princess",
+            description = "Sparkle and shine! Tiara, enchanted gown, fairy wings & castle background.",
+            coverImageUrl = "https://placehold.co/400x300/FF6B9D/FFF176?text=Magical+Princess",
+            accentColor = 0xFFE91E63,
+            isTrending = true,
+            isNew = true,
+            packPrice = 500,   // Total XP cost
+            billingProductId = "pack_magical_princess_v1",
+            items = listOf(
+                AvatarLayerItem(
+                    id = "princess_outfit_sparkle",
+                    name = "Enchanted Gown",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+                    tintColor = 0xFFE91E63,
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "princess_accessory_tiara",
+                    name = "Princess Tiara",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+                    tintColor = 0xFFFFD700,
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 150
+                ),
+                AvatarLayerItem(
+                    id = "princess_bg_castle",
+                    name = "Enchanted Castle",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFFFF6B9D, 0xFFFFF176, "Castle"),
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 100
+                ),
+                AvatarLayerItem(
+                    id = "princess_fx_sparkle",
+                    name = "Fairy Wings FX",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+                    tintColor = 0xFFFF6B9D,
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 180
+                ),
+                AvatarLayerItem(
+                    id = "princess_hair_golden",
+                    name = "Golden Waves",
+                    layerType = AvatarLayerType.HAIR,
+                    source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
+                    tintColor = 0xFFFFD700,
+                    compatibleGenders = setOf(AvatarGender.GIRL),
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 120
+                ),
+                AvatarLayerItem(
+                    id = "princess_face_sparkle",
+                    name = "Sparkle Cheeks",
+                    layerType = AvatarLayerType.FACE_DETAIL,
+                    source = AvatarAssetSource.GradientBackground(0xFFFFD700, 0xFFFFF9C4, "Sparkle"),
+                    tintColor = 0xFFFFD700,
+                    isPremium = true,
+                    packId = "pack_magical_princess",
+                    coinCost = 80
+                )
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_dino_explorer",
+            name = "Dino Explorer",
+            description = "Roar into adventure! Explorer hat, jungle bg, leather boots & a dino roar FX.",
+            coverImageUrl = "https://placehold.co/400x300/2D6A4F/FFD93D?text=Dino+Explorer",
+            accentColor = 0xFF2D6A4F,
+            isTrending = false,
+            isNew = true,
+            packPrice = 400,   // Total XP cost
+            billingProductId = "pack_dino_explorer_v1",
+            items = listOf(
+                AvatarLayerItem(
+                    id = "dino_outfit_adventure",
+                    name = "Explorer Jacket",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_trainer),
+                    tintColor = 0xFF6D4C41,
+                    isPremium = true,
+                    packId = "pack_dino_explorer",
+                    coinCost = 180
+                ),
+                AvatarLayerItem(
+                    id = "dino_accessory_hat",
+                    name = "Explorer Hat",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+                    tintColor = 0xFF8D6E63,
+                    isPremium = true,
+                    packId = "pack_dino_explorer",
+                    coinCost = 120
+                ),
+                AvatarLayerItem(
+                    id = "dino_shoes_boots",
+                    name = "Leather Boots",
+                    layerType = AvatarLayerType.SHOES,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+                    tintColor = 0xFF4E342E,
+                    isPremium = true,
+                    packId = "pack_dino_explorer",
+                    coinCost = 110
+                ),
+                AvatarLayerItem(
+                    id = "dino_bg_jungle",
+                    name = "Dino Jungle",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF1B5E20, 0xFF4CAF50, "Jungle"),
+                    isPremium = true,
+                    packId = "pack_dino_explorer",
+                    coinCost = 90
+                ),
+                AvatarLayerItem(
+                    id = "dino_fx_roar",
+                    name = "Dino Roar FX",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_fire),
+                    tintColor = 0xFF76FF03,
+                    isPremium = true,
+                    packId = "pack_dino_explorer",
+                    coinCost = 150
+                )
+            )
         )
     )
 
     fun allFreeItems(): List<AvatarLayerItem> =
-        freeBackgrounds + freeHair + freeOutfits
+        freeBackgrounds + freeHair + freeOutfits + freeShoes + freeAccessories + freeEyeStyles + freeFaceDetails
 
     fun allPremiumItems(): List<AvatarLayerItem> =
         premiumPacks.flatMap { it.items }

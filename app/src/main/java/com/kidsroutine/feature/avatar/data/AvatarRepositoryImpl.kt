@@ -153,6 +153,8 @@ class AvatarRepositoryImpl @Inject constructor(
             activeShoes = find(activeShoesId),
             activeAccessory = find(activeAccessoryId),
             activeSpecialFx = find(activeSpecialFxId),
+            activeEyeStyle = find(activeEyeStyleId),
+            activeFaceDetail = find(activeFaceDetailId),
             unlockedItemIds = jsonToStringSet(unlockedItemIdsJson),
             ownedPackIds = jsonToStringSet(ownedPackIdsJson)
         )
@@ -168,6 +170,8 @@ class AvatarRepositoryImpl @Inject constructor(
         activeShoesId = activeShoes?.id,
         activeAccessoryId = activeAccessory?.id,
         activeSpecialFxId = activeSpecialFx?.id,
+        activeEyeStyleId = activeEyeStyle?.id,
+        activeFaceDetailId = activeFaceDetail?.id,
         unlockedItemIdsJson = stringSetToJson(unlockedItemIds),
         ownedPackIdsJson = stringSetToJson(ownedPackIds),
         lastUpdated = System.currentTimeMillis()
@@ -183,6 +187,8 @@ class AvatarRepositoryImpl @Inject constructor(
         "activeShoesId" to activeShoes?.id,
         "activeAccessoryId" to activeAccessory?.id,
         "activeSpecialFxId" to activeSpecialFx?.id,
+        "activeEyeStyleId" to activeEyeStyle?.id,
+        "activeFaceDetailId" to activeFaceDetail?.id,
         "unlockedItemIds" to unlockedItemIds.toList(),
         "ownedPackIds" to ownedPackIds.toList(),
     )

@@ -13,7 +13,9 @@ enum class AvatarLayerType {
     OUTFIT,
     SHOES,
     ACCESSORY,
-    SPECIAL_FX
+    SPECIAL_FX,
+    EYE_STYLE,    // custom eye colour / shape
+    FACE_DETAIL   // freckles, blush patterns, face stickers
 }
 
 // ─── Asset Source ──────────────────────────────────────────────────────────
@@ -70,6 +72,8 @@ data class AvatarState(
     val activeShoes: AvatarLayerItem? = null,
     val activeAccessory: AvatarLayerItem? = null,
     val activeSpecialFx: AvatarLayerItem? = null,
+    val activeEyeStyle: AvatarLayerItem? = null,    // new: custom eye colour
+    val activeFaceDetail: AvatarLayerItem? = null,  // new: freckles / stickers
     val unlockedItemIds: Set<String> = emptySet(),
     val ownedPackIds: Set<String> = emptySet()
 ) {
@@ -79,7 +83,9 @@ data class AvatarState(
         activeOutfit,
         activeShoes,
         activeAccessory,
-        activeSpecialFx
+        activeSpecialFx,
+        activeEyeStyle,
+        activeFaceDetail
     ).sortedBy { it.layerType.ordinal }
 }
 
@@ -87,6 +93,8 @@ data class AvatarState(
 enum class AvatarCustomizationTab(val label: String, val emoji: String) {
     BACKGROUND("Scenes", "🌄"),
     HAIR("Hair", "💇"),
+    EYES("Eyes", "👁️"),
+    FACE("Face", "😊"),
     OUTFIT("Outfit", "👕"),
     SHOES("Shoes", "👟"),
     ACCESSORY("Extras", "🎩"),

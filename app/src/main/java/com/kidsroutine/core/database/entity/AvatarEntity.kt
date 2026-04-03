@@ -18,6 +18,8 @@ data class AvatarEntity(
     val activeShoesId: String? = null,
     val activeAccessoryId: String? = null,
     val activeSpecialFxId: String? = null,
+    val activeEyeStyleId: String? = null,    // new: eye colour / style
+    val activeFaceDetailId: String? = null,  // new: freckles / face stickers
     val unlockedItemIdsJson: String = "[]",
     val ownedPackIdsJson: String = "[]",
     val lastUpdated: Long = System.currentTimeMillis()

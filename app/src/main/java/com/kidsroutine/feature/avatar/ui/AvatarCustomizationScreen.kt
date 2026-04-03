@@ -314,10 +314,24 @@ fun AvatarItemGrid(
     val activeItemId = when (tab) {
         AvatarCustomizationTab.BACKGROUND -> avatarState.activeBackground?.id
         AvatarCustomizationTab.HAIR -> avatarState.activeHair?.id
+        AvatarCustomizationTab.EYES -> avatarState.activeEyeStyle?.id
+        AvatarCustomizationTab.FACE -> avatarState.activeFaceDetail?.id
         AvatarCustomizationTab.OUTFIT -> avatarState.activeOutfit?.id
         AvatarCustomizationTab.SHOES -> avatarState.activeShoes?.id
         AvatarCustomizationTab.ACCESSORY -> avatarState.activeAccessory?.id
         AvatarCustomizationTab.SPECIAL_FX -> avatarState.activeSpecialFx?.id
+    }
+
+    // Map each tab to the correct layer type so the "None" item clears the right slot
+    val noneLayerType = when (tab) {
+        AvatarCustomizationTab.BACKGROUND -> AvatarLayerType.BACKGROUND
+        AvatarCustomizationTab.HAIR -> AvatarLayerType.HAIR
+        AvatarCustomizationTab.EYES -> AvatarLayerType.EYE_STYLE
+        AvatarCustomizationTab.FACE -> AvatarLayerType.FACE_DETAIL
+        AvatarCustomizationTab.OUTFIT -> AvatarLayerType.OUTFIT
+        AvatarCustomizationTab.SHOES -> AvatarLayerType.SHOES
+        AvatarCustomizationTab.ACCESSORY -> AvatarLayerType.ACCESSORY
+        AvatarCustomizationTab.SPECIAL_FX -> AvatarLayerType.SPECIAL_FX
     }
 
     LazyVerticalGrid(
@@ -333,7 +347,7 @@ fun AvatarItemGrid(
                 isSelected = activeItemId == null,
                 onClick = { onItemSelected(
                     AvatarLayerItem("none_${tab.name}", "None",
-                        AvatarLayerType.BACKGROUND, AvatarAssetSource.GradientBackground(
+                        noneLayerType, AvatarAssetSource.GradientBackground(
                             0xFF0D0D1A, 0xFF1A1A2E, "None"))
                 ) }
             )
@@ -478,6 +492,8 @@ fun AvatarItemCard(
                     AvatarLayerType.SHOES -> "👟"
                     AvatarLayerType.ACCESSORY -> "🎩"
                     AvatarLayerType.SPECIAL_FX -> "✨"
+                    AvatarLayerType.EYE_STYLE -> "👁️"
+                    AvatarLayerType.FACE_DETAIL -> "😊"
                     else -> ""
                 }
                 if (emoji.isNotEmpty()) {

@@ -116,6 +116,10 @@ class AvatarCustomizationViewModel @Inject constructor(
                     avatar.copy(activeAccessory = item.takeUnless { it.id.startsWith("none_") })
                 AvatarLayerType.SPECIAL_FX ->
                     avatar.copy(activeSpecialFx = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.EYE_STYLE ->
+                    avatar.copy(activeEyeStyle = item.takeUnless { it.id.startsWith("none_") })
+                AvatarLayerType.FACE_DETAIL ->
+                    avatar.copy(activeFaceDetail = item.takeUnless { it.id.startsWith("none_") })
                 else -> avatar
             }
             state.copy(currentAvatar = updated)
@@ -134,7 +138,8 @@ class AvatarCustomizationViewModel @Inject constructor(
                     activeHair = AvatarSeeder.freeHair.firstOrNull {
                         state.currentAvatar.gender in it.compatibleGenders
                     },
-                    activeOutfit = AvatarSeeder.freeOutfits.first()
+                    activeOutfit = AvatarSeeder.freeOutfits.first(),
+                    activeShoes = AvatarSeeder.freeShoes.firstOrNull()
                 )
             )
         }
@@ -169,9 +174,15 @@ class AvatarCustomizationViewModel @Inject constructor(
             AvatarCustomizationTab.HAIR -> AvatarSeeder.freeHair.filter {
                 gender in it.compatibleGenders
             }
+            AvatarCustomizationTab.EYES -> AvatarSeeder.freeEyeStyles
+            AvatarCustomizationTab.FACE -> AvatarSeeder.freeFaceDetails
             AvatarCustomizationTab.OUTFIT -> AvatarSeeder.freeOutfits
-            AvatarCustomizationTab.SHOES -> emptyList()
-            AvatarCustomizationTab.ACCESSORY -> emptyList()
+            AvatarCustomizationTab.SHOES -> AvatarSeeder.freeShoes.filter {
+                gender in it.compatibleGenders
+            }
+            AvatarCustomizationTab.ACCESSORY -> AvatarSeeder.freeAccessories.filter {
+                gender in it.compatibleGenders
+            }
             AvatarCustomizationTab.SPECIAL_FX -> emptyList()
         }
     }
@@ -181,6 +192,8 @@ class AvatarCustomizationViewModel @Inject constructor(
         val targetLayer = when (tab) {
             AvatarCustomizationTab.BACKGROUND -> AvatarLayerType.BACKGROUND
             AvatarCustomizationTab.HAIR -> AvatarLayerType.HAIR
+            AvatarCustomizationTab.EYES -> AvatarLayerType.EYE_STYLE
+            AvatarCustomizationTab.FACE -> AvatarLayerType.FACE_DETAIL
             AvatarCustomizationTab.OUTFIT -> AvatarLayerType.OUTFIT
             AvatarCustomizationTab.SHOES -> AvatarLayerType.SHOES
             AvatarCustomizationTab.ACCESSORY -> AvatarLayerType.ACCESSORY
