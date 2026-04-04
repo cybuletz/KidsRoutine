@@ -423,13 +423,16 @@ private fun drawRealisticCharacter(
                 }
                 "cat" -> {
                     val outerDrop = eyeRY * 0.35f
-                    moveTo(ex - eyeRX * 1.05f, eyeY + outerDrop * side.coerceIn(0f, 1f))
+                    // Outer corner raised, inner corner normal
+                    val leftEdgeY = if (side < 0f) eyeY - outerDrop * 0.5f else eyeY
+                    val rightEdgeY = if (side > 0f) eyeY - outerDrop * 0.5f else eyeY
+                    moveTo(ex - eyeRX * 1.05f, leftEdgeY)
                     cubicTo(ex - eyeRX * 0.6f, eyeY - eyeRY * 1.0f,
                         ex + eyeRX * 0.6f, eyeY - eyeRY * 1.0f,
-                        ex + eyeRX * 1.05f, eyeY - outerDrop * 0.5f)
+                        ex + eyeRX * 1.05f, rightEdgeY)
                     cubicTo(ex + eyeRX * 0.65f, eyeY + eyeRY * 0.6f,
                         ex - eyeRX * 0.65f, eyeY + eyeRY * 0.6f,
-                        ex - eyeRX * 1.05f, eyeY + outerDrop * side.coerceIn(0f, 1f))
+                        ex - eyeRX * 1.05f, leftEdgeY)
                     close()
                 }
                 "wide" -> {
