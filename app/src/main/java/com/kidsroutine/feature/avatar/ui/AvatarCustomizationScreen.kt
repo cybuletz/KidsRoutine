@@ -155,17 +155,45 @@ fun AvatarCustomizationScreen(
                 onTabSelected = { selectedTab = it }
             )
 
-            // ── Item Grid ─────────────────────────────────────────────────────
-            AvatarItemGrid(
-                tab = selectedTab,
-                avatarState = uiState.currentAvatar,
-                unlockedItems = uiState.unlockedItemIds,
-                freeItems = viewModel.getFreeItemsForTab(selectedTab),
-                premiumItems = viewModel.getPremiumItemsForTab(selectedTab),
-                onItemSelected = { viewModel.equipItem(it) },
-                onLockedItemTapped = { onNavigateToShop() },
-                modifier = Modifier.weight(1f)
-            )
+            // ── Item Grid (with split pickers for Hair and Eyes) ────────────
+            when (selectedTab) {
+                AvatarCustomizationTab.HAIR -> {
+                    HairSplitPicker(
+                        avatarState = uiState.currentAvatar,
+                        unlockedItems = uiState.unlockedItemIds,
+                        freeItems = viewModel.getFreeItemsForTab(selectedTab),
+                        premiumItems = viewModel.getPremiumItemsForTab(selectedTab),
+                        onShapeSelected = { viewModel.equipItem(it) },
+                        onColorSelected = { viewModel.setHairColor(it) },
+                        onLockedItemTapped = { onNavigateToShop() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                AvatarCustomizationTab.EYES -> {
+                    EyesSplitPicker(
+                        avatarState = uiState.currentAvatar,
+                        unlockedItems = uiState.unlockedItemIds,
+                        freeColorItems = viewModel.getFreeItemsForTab(selectedTab),
+                        premiumColorItems = viewModel.getPremiumItemsForTab(selectedTab),
+                        onColorSelected = { viewModel.equipItem(it) },
+                        onShapeSelected = { viewModel.setEyeShape(it) },
+                        onLockedItemTapped = { onNavigateToShop() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                else -> {
+                    AvatarItemGrid(
+                        tab = selectedTab,
+                        avatarState = uiState.currentAvatar,
+                        unlockedItems = uiState.unlockedItemIds,
+                        freeItems = viewModel.getFreeItemsForTab(selectedTab),
+                        premiumItems = viewModel.getPremiumItemsForTab(selectedTab),
+                        onItemSelected = { viewModel.equipItem(it) },
+                        onLockedItemTapped = { onNavigateToShop() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
             // ── Save Button ───────────────────────────────────────────────────
             AvatarSaveButton(
@@ -690,6 +718,289 @@ fun AvatarSaveButton(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Hair Split Picker — Shape grid + Colour row
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun HairSplitPicker(
+    avatarState: AvatarState,
+    unlockedItems: Set<String>,
+    freeItems: List<AvatarLayerItem>,
+    premiumItems: List<AvatarLayerItem>,
+    onShapeSelected: (AvatarLayerItem) -> Unit,
+    onColorSelected: (Long) -> Unit,
+    onLockedItemTapped: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeHairId = avatarState.activeHair?.id
+    val selectedColor = avatarState.resolvedHairColor
+
+    Column(modifier = modifier.padding(horizontal = 12.dp)) {
+        // ── Hair Colour Row ────────────────────────────────────────────────
+        Text(
+            "Colour",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            items(AvatarSeeder.hairColors) { (hex, _) ->
+                val isSelected = selectedColor == hex
+                Box(
+                    modifier = Modifier.size(44.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .border(2.5.dp, Color(0xFF5272F2), CircleShape)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(if (isSelected) 34.dp else 30.dp)
+                            .clip(CircleShape)
+                            .background(Color(hex))
+                            .border(1.5.dp, Color(0xFF000000).copy(alpha = 0.12f), CircleShape)
+                            .clickable { onColorSelected(hex) }
+                    )
+                }
+            }
+        }
+
+        // ── Hair Shape Grid ────────────────────────────────────────────────
+        Text(
+            "Shape",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 12.dp)
+        ) {
+            // "None" option
+            item {
+                NoneItemCard(
+                    isSelected = activeHairId == null,
+                    onClick = {
+                        onShapeSelected(
+                            AvatarLayerItem(
+                                "none_HAIR", "None",
+                                AvatarLayerType.HAIR, AvatarAssetSource.GradientBackground(
+                                    0xFF0D0D1A, 0xFF1A1A2E, "None"
+                                )
+                            )
+                        )
+                    }
+                )
+            }
+
+            items(freeItems) { item ->
+                AvatarItemCard(
+                    item = item,
+                    isSelected = item.id == activeHairId,
+                    isLocked = false,
+                    onClick = { onShapeSelected(item) },
+                    onLockedClick = {}
+                )
+            }
+
+            if (premiumItems.isNotEmpty()) {
+                item(span = { GridItemSpan(3) }) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("⭐", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Premium",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                        Divider(
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFFFFD700).copy(alpha = 0.3f)
+                        )
+                    }
+                }
+                items(premiumItems) { item ->
+                    val isUnlocked = item.id in unlockedItems
+                    AvatarItemCard(
+                        item = item,
+                        isSelected = item.id == activeHairId,
+                        isLocked = !isUnlocked,
+                        onClick = { if (isUnlocked) onShapeSelected(item) else onLockedItemTapped() },
+                        onLockedClick = { onLockedItemTapped() }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Eyes Split Picker — Shape row + Colour grid
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+fun EyesSplitPicker(
+    avatarState: AvatarState,
+    unlockedItems: Set<String>,
+    freeColorItems: List<AvatarLayerItem>,
+    premiumColorItems: List<AvatarLayerItem>,
+    onColorSelected: (AvatarLayerItem) -> Unit,
+    onShapeSelected: (String?) -> Unit,
+    onLockedItemTapped: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeColorId = avatarState.activeEyeStyle?.id
+    val selectedShape = avatarState.eyeShape
+
+    Column(modifier = modifier.padding(horizontal = 12.dp)) {
+        // ── Eye Shape Row ──────────────────────────────────────────────────
+        Text(
+            "Shape",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            // Default shape
+            item {
+                val isSelected = selectedShape == null
+                Surface(
+                    onClick = { onShapeSelected(null) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        "Default",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+
+            items(AvatarSeeder.eyeShapes) { (id, name) ->
+                val isSelected = selectedShape == id
+                Surface(
+                    onClick = { onShapeSelected(id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        name,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+        }
+
+        // ── Eye Colour Grid ────────────────────────────────────────────────
+        Text(
+            "Colour",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 12.dp)
+        ) {
+            // "None" / default eye colour
+            item {
+                NoneItemCard(
+                    isSelected = activeColorId == null,
+                    onClick = {
+                        onColorSelected(
+                            AvatarLayerItem(
+                                "none_EYES", "None",
+                                AvatarLayerType.EYE_STYLE, AvatarAssetSource.GradientBackground(
+                                    0xFF0D0D1A, 0xFF1A1A2E, "None"
+                                )
+                            )
+                        )
+                    }
+                )
+            }
+
+            items(freeColorItems) { item ->
+                AvatarItemCard(
+                    item = item,
+                    isSelected = item.id == activeColorId,
+                    isLocked = false,
+                    onClick = { onColorSelected(item) },
+                    onLockedClick = {}
+                )
+            }
+
+            if (premiumColorItems.isNotEmpty()) {
+                item(span = { GridItemSpan(3) }) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("⭐", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Premium",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                        Divider(
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFFFFD700).copy(alpha = 0.3f)
+                        )
+                    }
+                }
+                items(premiumColorItems) { item ->
+                    val isUnlocked = item.id in unlockedItems
+                    AvatarItemCard(
+                        item = item,
+                        isSelected = item.id == activeColorId,
+                        isLocked = !isUnlocked,
+                        onClick = { if (isUnlocked) onColorSelected(item) else onLockedItemTapped() },
+                        onLockedClick = { onLockedItemTapped() }
+                    )
+                }
             }
         }
     }
