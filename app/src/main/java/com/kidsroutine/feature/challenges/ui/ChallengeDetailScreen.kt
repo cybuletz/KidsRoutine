@@ -36,16 +36,16 @@ private val ErrorRed = Color(0xFFF44336)
 
 private fun getCategoryEmoji(category: com.kidsroutine.core.model.TaskCategory): String {
     return when (category) {
-        com.kidsroutine.core.model.TaskCategory.MORNING_ROUTINE -> "🌅"
-        com.kidsroutine.core.model.TaskCategory.LEARNING -> "📚"
-        com.kidsroutine.core.model.TaskCategory.CHORES -> "🧹"
-        com.kidsroutine.core.model.TaskCategory.HEALTH -> "🏃"
-        com.kidsroutine.core.model.TaskCategory.CREATIVITY -> "🎨"
-        com.kidsroutine.core.model.TaskCategory.SOCIAL -> "👥"
-        com.kidsroutine.core.model.TaskCategory.FAMILY -> "👨‍👩‍👧"
-        com.kidsroutine.core.model.TaskCategory.OUTDOOR -> "🌳"
-        com.kidsroutine.core.model.TaskCategory.SLEEP -> "😴"
-        com.kidsroutine.core.model.TaskCategory.SCREEN_TIME -> "📱"
+        com.kidsroutine.core.model.TaskCategory.MORNING_ROUTINE -> "\uD83C\uDF05"
+        com.kidsroutine.core.model.TaskCategory.LEARNING -> "\uD83D\uDCDA"
+        com.kidsroutine.core.model.TaskCategory.CHORES -> "\uD83E\uDDF9"
+        com.kidsroutine.core.model.TaskCategory.HEALTH -> "\uD83C\uDFC3"
+        com.kidsroutine.core.model.TaskCategory.CREATIVITY -> "\uD83C\uDFA8"
+        com.kidsroutine.core.model.TaskCategory.SOCIAL -> "\uD83D\uDC65"
+        com.kidsroutine.core.model.TaskCategory.FAMILY -> "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67"
+        com.kidsroutine.core.model.TaskCategory.OUTDOOR -> "\uD83C\uDF33"
+        com.kidsroutine.core.model.TaskCategory.SLEEP -> "\uD83D\uDE34"
+        com.kidsroutine.core.model.TaskCategory.SCREEN_TIME -> "\uD83D\uDCF1"
     }
 }
 
@@ -74,7 +74,7 @@ fun ChallengeDetailScreen(
             .fillMaxSize()
             .background(BgLight)
     ) {
-        // Gradient background
+        // Gradient background header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -87,11 +87,12 @@ fun ChallengeDetailScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Top bar
+            // ── FIX 1: statusBarsPadding() pushes header below the status bar ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .statusBarsPadding()
+                    .padding(start = 4.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -105,7 +106,7 @@ fun ChallengeDetailScreen(
                 }
                 Text(
                     text = "Challenge Details",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     modifier = Modifier.weight(1f)
@@ -113,7 +114,7 @@ fun ChallengeDetailScreen(
                 Spacer(Modifier.width(40.dp))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             if (uiState.isLoading) {
                 Box(
@@ -131,10 +132,8 @@ fun ChallengeDetailScreen(
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("⚠️", fontSize = 40.sp)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("\u26A0\uFE0F", fontSize = 40.sp)
                         Spacer(Modifier.height(16.dp))
                         Text(
                             uiState.error!!,
@@ -153,7 +152,8 @@ fun ChallengeDetailScreen(
                         .padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // Challenge header
+
+                    // ── Challenge header card ──────────────────────────────────────
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -196,22 +196,21 @@ fun ChallengeDetailScreen(
                                 }
                             }
 
-                            // Status badge
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = when (progress.status) {
-                                    ChallengeStatus.ACTIVE -> Color(0xFFE3F2FD)
+                                    ChallengeStatus.ACTIVE    -> Color(0xFFE3F2FD)
                                     ChallengeStatus.COMPLETED -> Color(0xFFE8F5E9)
-                                    ChallengeStatus.FAILED -> Color(0xFFFFEBEE)
-                                    else -> Color(0xFFF3E5F5)
+                                    ChallengeStatus.FAILED    -> Color(0xFFFFEBEE)
+                                    else                      -> Color(0xFFF3E5F5)
                                 }
                             ) {
                                 Text(
                                     text = when (progress.status) {
-                                        ChallengeStatus.ACTIVE -> "🔥 Active"
-                                        ChallengeStatus.COMPLETED -> "🎉 Completed"
-                                        ChallengeStatus.FAILED -> "⚠️ Failed"
-                                        else -> "⏸️ ${progress.status.name}"
+                                        ChallengeStatus.ACTIVE    -> "\uD83D\uDD25 Active"
+                                        ChallengeStatus.COMPLETED -> "\uD83C\uDF89 Completed"
+                                        ChallengeStatus.FAILED    -> "\u26A0\uFE0F Failed"
+                                        else -> "\u23F8\uFE0F ${progress.status.name}"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
@@ -221,7 +220,7 @@ fun ChallengeDetailScreen(
                         }
                     }
 
-                    // Progress section
+                    // ── Progress card ─────────────────────────────────────────────
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -241,69 +240,68 @@ fun ChallengeDetailScreen(
                                 color = TextDark
                             )
 
-                            // Streak
+                            // ── FIX 2: No fixed height — cards grow to fit content ──
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Streak
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = Color(0xFFFFCDD2),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(80.dp)
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Column(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(12.dp),
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp, horizontal = 12.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("🔥", fontSize = 32.sp)
-                                        Spacer(Modifier.height(4.dp))
+                                        Text("\uD83D\uDD25", fontSize = 28.sp)
+                                        Spacer(Modifier.height(6.dp))
                                         Text(
                                             text = progress.currentStreak.toString(),
-                                            style = MaterialTheme.typography.headlineSmall,
+                                            style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFFC62828)
                                         )
                                         Text(
                                             text = "Day Streak",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFFC62828)
+                                            color = Color(0xFFC62828),
+                                            textAlign = TextAlign.Center
                                         )
                                     }
                                 }
 
+                                // Completed days
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = Color(0xFFE8F5E9),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(80.dp)
+                                    modifier = Modifier.weight(1f)
                                 ) {
                                     Column(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(12.dp),
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp, horizontal = 12.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("✅", fontSize = 32.sp)
-                                        Spacer(Modifier.height(4.dp))
+                                        Text("\u2705", fontSize = 28.sp)
+                                        Spacer(Modifier.height(6.dp))
                                         Text(
                                             text = progress.completedDays.toString(),
-                                            style = MaterialTheme.typography.headlineSmall,
+                                            style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF2E7D32)
                                         )
                                         Text(
                                             text = "Completed",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF2E7D32)
+                                            color = Color(0xFF2E7D32),
+                                            textAlign = TextAlign.Center
                                         )
                                     }
                                 }
@@ -318,7 +316,8 @@ fun ChallengeDetailScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Day ${progress.currentDay}/${progress.totalDays}",
+                                        // ── FIX 4: show completedDays/totalDays, not currentDay ──
+                                        text = "Day ${progress.completedDays}/${progress.totalDays}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = TextDark
@@ -332,7 +331,8 @@ fun ChallengeDetailScreen(
                                 }
 
                                 LinearProgressIndicator(
-                                    progress = { (progress.currentDay.toFloat() / progress.totalDays).coerceIn(0f, 1f) },
+                                    // ── FIX 4: use completedDays not currentDay ──
+                                    progress = { (progress.completedDays.toFloat() / progress.totalDays).coerceIn(0f, 1f) },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(8.dp)
@@ -342,7 +342,6 @@ fun ChallengeDetailScreen(
                                 )
                             }
 
-                            // Success rate
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFFF3E5F5)
@@ -358,7 +357,7 @@ fun ChallengeDetailScreen(
                         }
                     }
 
-                    // Rewards section
+                    // ── Rewards card ──────────────────────────────────────────────
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -391,7 +390,7 @@ fun ChallengeDetailScreen(
                                         modifier = Modifier.padding(12.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Text("⭐", fontSize = 20.sp)
+                                        Text("\u2B50", fontSize = 20.sp)
                                         Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = "${challenge.dailyXpReward}/day",
@@ -410,7 +409,7 @@ fun ChallengeDetailScreen(
                                         modifier = Modifier.padding(12.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Text("🎁", fontSize = 20.sp)
+                                        Text("\uD83C\uDF81", fontSize = 20.sp)
                                         Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = "+${challenge.completionBonusXp}",
@@ -429,7 +428,7 @@ fun ChallengeDetailScreen(
                                         modifier = Modifier.padding(12.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Text("🔥", fontSize = 20.sp)
+                                        Text("\uD83D\uDD25", fontSize = 20.sp)
                                         Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = "+${challenge.streakBonusXp}/day",
@@ -442,7 +441,7 @@ fun ChallengeDetailScreen(
                         }
                     }
 
-                    // Daily progress - last 7 days
+                    // ── FIX 3: Last 7 Days — only highlight dates within challenge range ──
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -466,14 +465,28 @@ fun ChallengeDetailScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
+                                val today = DateUtils.todayString()
                                 repeat(7) { i ->
-                                    val date = DateUtils.addDays(DateUtils.todayString(), -6 + i)
-                                    val completed = progress.dailyProgress[date] ?: false
-                                    val dayOfWeek = DateUtils.parseDate(date).run { this }
+                                    val date = DateUtils.addDays(today, -6 + i)
+
+                                    // Only treat a date as part of this challenge if it
+                                    // falls within startDate..endDate
+                                    val withinRange = progress.startDate.isNotEmpty() &&
+                                            date >= progress.startDate &&
+                                            (progress.endDate.isEmpty() || date <= progress.endDate)
+
+                                    val completed    = withinRange && progress.dailyProgress[date] == true
+                                    val isFuture     = withinRange && date > today
+                                    val isBeforeStart = date < progress.startDate.ifEmpty { today }
 
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = if (completed) GradientStart else Color(0xFFEEEEEE),
+                                        color = when {
+                                            completed     -> GradientStart         // filled purple
+                                            isFuture      -> Color(0xFFD1C4E9)    // light purple (upcoming)
+                                            isBeforeStart -> Color(0xFFF5F5F5)    // blank (outside range)
+                                            else          -> Color(0xFFEEEEEE)    // grey circle (in range, not done)
+                                        },
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(50.dp)
@@ -483,10 +496,19 @@ fun ChallengeDetailScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (completed) "✓" else "○",
+                                                text = when {
+                                                    completed     -> "\u2713"
+                                                    isFuture      -> "\u00B7"
+                                                    isBeforeStart -> ""
+                                                    else          -> "\u25CB"
+                                                },
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (completed) Color.White else Color.Gray
+                                                color = when {
+                                                    completed -> Color.White
+                                                    isFuture  -> Color(0xFF7E57C2)
+                                                    else      -> Color.Gray
+                                                }
                                             )
                                         }
                                     }
@@ -495,7 +517,7 @@ fun ChallengeDetailScreen(
                         }
                     }
 
-                    // Action buttons
+                    // ── Action buttons (only shown when ACTIVE) ───────────────────
                     if (progress.status == ChallengeStatus.ACTIVE) {
                         Row(
                             modifier = Modifier
@@ -517,7 +539,7 @@ fun ChallengeDetailScreen(
                                 enabled = !uiState.completedToday
                             ) {
                                 Text(
-                                    if (uiState.completedToday) "✓ Done Today" else "Complete Today",
+                                    if (uiState.completedToday) "\u2713 Done Today" else "Complete Today",
                                     fontWeight = FontWeight.Bold,
                                     color = if (uiState.completedToday) Color.Gray else Color.White
                                 )
@@ -548,7 +570,7 @@ fun ChallengeDetailScreen(
                 }
             }
 
-            // Success message
+            // Success/completion message banner
             AnimatedVisibility(visible = uiState.successMessage != null) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
