@@ -126,6 +126,20 @@ class AvatarCustomizationViewModel @Inject constructor(
         }
     }
 
+    // ── Hair Colour ───────────────────────────────────────────────────────────
+    fun setHairColor(color: Long) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(hairColor = color))
+        }
+    }
+
+    // ── Eye Shape ─────────────────────────────────────────────────────────────
+    fun setEyeShape(shapeId: String?) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(eyeShape = shapeId))
+        }
+    }
+
     // ── Reset ─────────────────────────────────────────────────────────────────
     fun resetToDefault() {
         _uiState.update { state ->
@@ -183,7 +197,7 @@ class AvatarCustomizationViewModel @Inject constructor(
             AvatarCustomizationTab.ACCESSORY -> AvatarSeeder.freeAccessories.filter {
                 gender in it.compatibleGenders
             }
-            AvatarCustomizationTab.SPECIAL_FX -> emptyList()
+            AvatarCustomizationTab.SPECIAL_FX -> AvatarSeeder.freeSpecialFx
         }
     }
 

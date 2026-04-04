@@ -106,6 +106,46 @@ object AvatarSeeder {
             tintColor = 0xFFFF6B9D,
             compatibleGenders = setOf(AvatarGender.GIRL),
             sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "shoes_green_hightop",
+            name = "Green High-Tops",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF2DC653,
+            sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "shoes_brown_sandal",
+            name = "Brown Sandals",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF8D6E63,
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "shoes_purple_sneaker",
+            name = "Purple Sneakers",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF7B1FA2,
+            sortOrder = 8
+        ),
+        AvatarLayerItem(
+            id = "shoes_yellow_canvas",
+            name = "Yellow Canvas",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFFDD835,
+            sortOrder = 9
+        ),
+        AvatarLayerItem(
+            id = "shoes_navy_loafer",
+            name = "Navy Loafers",
+            layerType = AvatarLayerType.SHOES,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF1B3A5C,
+            sortOrder = 10
         )
     )
 
@@ -154,7 +194,7 @@ object AvatarSeeder {
         )
     )
 
-    // ── Free Eye Styles ────────────────────────────────────────────────────
+    // ── Free Eye Styles (colour only — shape is separate) ──────────────────
     val freeEyeStyles = listOf(
         AvatarLayerItem(
             id = "eyes_brown",
@@ -203,26 +243,45 @@ object AvatarSeeder {
             source = AvatarAssetSource.GradientBackground(0xFF6A1B9A, 0xFFAB47BC, "Purple"),
             tintColor = 0xFF6A1B9A,
             sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "eyes_amber",
+            name = "Amber Gold",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFFFF8F00, 0xFFFFCA28, "Amber"),
+            tintColor = 0xFFFF8F00,
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "eyes_teal",
+            name = "Ocean Teal",
+            layerType = AvatarLayerType.EYE_STYLE,
+            source = AvatarAssetSource.GradientBackground(0xFF00897B, 0xFF4DB6AC, "Teal"),
+            tintColor = 0xFF00897B,
+            sortOrder = 8
         )
     )
 
-    // ── Free Face Details ──────────────────────────────────────────────────
+    // ── Eye Shapes (identifiers used by drawing code) ──────────────────────
+    /** List of (id, displayName) pairs for eye shape picker */
+    val eyeShapes = listOf(
+        "almond" to "Almond",
+        "round" to "Round",
+        "cat" to "Cat Eye",
+        "wide" to "Wide",
+        "narrow" to "Narrow",
+        "downturned" to "Downturned"
+    )
+
+    // ── Free Face Details (real face variations, not stickers) ──────────────
     val freeFaceDetails = listOf(
         AvatarLayerItem(
             id = "face_freckles",
-            name = "Sun Freckles",
+            name = "Freckles",
             layerType = AvatarLayerType.FACE_DETAIL,
             source = AvatarAssetSource.GradientBackground(0xFFC68642, 0xFFE0AC69, "Freckles"),
             tintColor = 0xFFC68642,
             sortOrder = 1
-        ),
-        AvatarLayerItem(
-            id = "face_star_sticker",
-            name = "Star Sticker",
-            layerType = AvatarLayerType.FACE_DETAIL,
-            source = AvatarAssetSource.GradientBackground(0xFFFFD700, 0xFFFFF176, "Star"),
-            tintColor = 0xFFFFD700,
-            sortOrder = 2
         ),
         AvatarLayerItem(
             id = "face_extra_blush",
@@ -230,101 +289,157 @@ object AvatarSeeder {
             layerType = AvatarLayerType.FACE_DETAIL,
             source = AvatarAssetSource.GradientBackground(0xFFFFB3BA, 0xFFFF8FA3, "Blush"),
             tintColor = 0xFFFFB3BA,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "face_dimples",
+            name = "Dimples",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFD4A67A, 0xFFC88F60, "Dimples"),
+            tintColor = 0xFFD4A67A,
             sortOrder = 3
         ),
         AvatarLayerItem(
-            id = "face_heart_sticker",
-            name = "Heart Sticker",
+            id = "face_beauty_mark",
+            name = "Beauty Mark",
             layerType = AvatarLayerType.FACE_DETAIL,
-            source = AvatarAssetSource.GradientBackground(0xFFE91E63, 0xFFF48FB1, "Heart"),
-            tintColor = 0xFFE91E63,
+            source = AvatarAssetSource.GradientBackground(0xFF4E342E, 0xFF3E2723, "Mole"),
+            tintColor = 0xFF4E342E,
             sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "face_laugh_lines",
+            name = "Smile Lines",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFBCAAA4, 0xFFA1887F, "Lines"),
+            tintColor = 0xFFBCAAA4,
+            sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "face_chin_cleft",
+            name = "Chin Cleft",
+            layerType = AvatarLayerType.FACE_DETAIL,
+            source = AvatarAssetSource.GradientBackground(0xFFBCAAA4, 0xFFA1887F, "Cleft"),
+            tintColor = 0xFFBCAAA4,
+            sortOrder = 6
         )
     )
 
-    // ── Free Hair Options ──────────────────────────────────────────────────
+    // ── Free Hair (shapes — colour picked separately) ──────────────────────
     val freeHair = listOf(
         AvatarLayerItem(
-            id = "hair_short_brown",
-            name = "Short Brown",
+            id = "hair_short",
+            name = "Short",
             layerType = AvatarLayerType.HAIR,
             source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
-            tintColor = 0xFF5C3317,
+            tintColor = 0xFF3D2B1F,
             compatibleGenders = setOf(AvatarGender.BOY),
             sortOrder = 1
         ),
         AvatarLayerItem(
-            id = "hair_short_black",
-            name = "Short Black",
+            id = "hair_buzz",
+            name = "Buzz Cut",
             layerType = AvatarLayerType.HAIR,
             source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
-            tintColor = 0xFF1A1A1A,
+            tintColor = 0xFF3D2B1F,
             compatibleGenders = setOf(AvatarGender.BOY),
             sortOrder = 2
         ),
         AvatarLayerItem(
-            id = "hair_long_brown",
-            name = "Long Brown",
+            id = "hair_sidepart",
+            name = "Side Part",
             layerType = AvatarLayerType.HAIR,
-            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
-            tintColor = 0xFF5C3317,
-            compatibleGenders = setOf(AvatarGender.GIRL),
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.BOY),
             sortOrder = 3
         ),
         AvatarLayerItem(
-            id = "hair_ponytail_black",
-            name = "Ponytail Black",
+            id = "hair_mohawk",
+            name = "Mohawk",
             layerType = AvatarLayerType.HAIR,
-            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
-            tintColor = 0xFF1A1A1A,
-            compatibleGenders = setOf(AvatarGender.GIRL),
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.BOY),
             sortOrder = 4
         ),
         AvatarLayerItem(
-            id = "hair_curly_auburn",
-            name = "Curly Auburn",
+            id = "hair_curly",
+            name = "Curly",
             layerType = AvatarLayerType.HAIR,
             source = AvatarAssetSource.VectorRes(R.drawable.hair_curly),
-            tintColor = 0xFFC1440E,
+            tintColor = 0xFF1A1A1A,
             compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL),
             sortOrder = 5
         ),
         AvatarLayerItem(
-            id = "hair_short_spiky_brown",
-            name = "Spiky Brown",
+            id = "hair_long",
+            name = "Long Straight",
             layerType = AvatarLayerType.HAIR,
-            source = AvatarAssetSource.VectorRes(R.drawable.hair_short_boy),
-            tintColor = 0xFF5C3317,
-            compatibleGenders = setOf(AvatarGender.BOY),
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.GIRL),
             sortOrder = 6
         ),
         AvatarLayerItem(
-            id = "hair_long_wavy_brown",
-            name = "Wavy Brown",
+            id = "hair_ponytail",
+            name = "Ponytail",
             layerType = AvatarLayerType.HAIR,
-            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
-            tintColor = 0xFF8B5E3C,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
+            tintColor = 0xFF3D2B1F,
             compatibleGenders = setOf(AvatarGender.GIRL),
             sortOrder = 7
         ),
         AvatarLayerItem(
-            id = "hair_bun_black",
-            name = "High Bun",
+            id = "hair_wavy",
+            name = "Wavy",
             layerType = AvatarLayerType.HAIR,
-            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
-            tintColor = 0xFF1A1A1A,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_long_girl),
+            tintColor = 0xFF3D2B1F,
             compatibleGenders = setOf(AvatarGender.GIRL),
             sortOrder = 8
         ),
         AvatarLayerItem(
-            id = "hair_bob_red",
-            name = "Bob Red",
+            id = "hair_bun",
+            name = "High Bun",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 9
+        ),
+        AvatarLayerItem(
+            id = "hair_bob",
+            name = "Bob",
             layerType = AvatarLayerType.HAIR,
             source = AvatarAssetSource.VectorRes(R.drawable.hair_curly),
-            tintColor = 0xFFB03A2E,
-            compatibleGenders = setOf(AvatarGender.BOY, AvatarGender.GIRL),
-            sortOrder = 9
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 10
+        ),
+        AvatarLayerItem(
+            id = "hair_pigtails",
+            name = "Pigtails",
+            layerType = AvatarLayerType.HAIR,
+            source = AvatarAssetSource.VectorRes(R.drawable.hair_ponytail),
+            tintColor = 0xFF3D2B1F,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 11
         )
+    )
+
+    /** Hair colour palette: (hex, displayName) */
+    val hairColors = listOf(
+        0xFF1A1A1A to "Black",
+        0xFF3D2B1F to "Dark Brown",
+        0xFF5C3317 to "Brown",
+        0xFF8B5E3C to "Light Brown",
+        0xFFC1440E to "Auburn",
+        0xFFB03A2E to "Red",
+        0xFFD4A017 to "Blonde",
+        0xFFE8D5B7 to "Platinum",
+        0xFF546E7A to "Ash Grey",
+        0xFF4A148C to "Fantasy Purple"
     )
 
     // ── Free Outfits ───────────────────────────────────────────────────────
@@ -359,6 +474,75 @@ object AvatarSeeder {
             layerType = AvatarLayerType.OUTFIT,
             source = AvatarAssetSource.VectorRes(R.drawable.outfit_sport),
             tintColor = 0xFF2DC653,
+            sortOrder = 4
+        ),
+        AvatarLayerItem(
+            id = "outfit_hoodie",
+            name = "Hoodie",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF37474F,
+            sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "outfit_polo",
+            name = "Polo Shirt",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF1B5E20,
+            sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "outfit_dress",
+            name = "Summer Dress",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFE91E63,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "outfit_denim_jacket",
+            name = "Denim Jacket",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF4A6FA5,
+            sortOrder = 8
+        )
+    )
+
+    // ── Free Special FX ────────────────────────────────────────────────────
+    val freeSpecialFx = listOf(
+        AvatarLayerItem(
+            id = "fx_sparkle",
+            name = "Sparkle",
+            layerType = AvatarLayerType.SPECIAL_FX,
+            source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+            tintColor = 0xFFFFD700,
+            sortOrder = 1
+        ),
+        AvatarLayerItem(
+            id = "fx_glow",
+            name = "Soft Glow",
+            layerType = AvatarLayerType.SPECIAL_FX,
+            source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+            tintColor = 0xFF90CAF9,
+            sortOrder = 2
+        ),
+        AvatarLayerItem(
+            id = "fx_bubbles",
+            name = "Bubbles",
+            layerType = AvatarLayerType.SPECIAL_FX,
+            source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+            tintColor = 0xFF80DEEA,
+            sortOrder = 3
+        ),
+        AvatarLayerItem(
+            id = "fx_confetti",
+            name = "Confetti",
+            layerType = AvatarLayerType.SPECIAL_FX,
+            source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+            tintColor = 0xFFFF6B9D,
             sortOrder = 4
         )
     )
@@ -741,7 +925,8 @@ object AvatarSeeder {
     )
 
     fun allFreeItems(): List<AvatarLayerItem> =
-        freeBackgrounds + freeHair + freeOutfits + freeShoes + freeAccessories + freeEyeStyles + freeFaceDetails
+        freeBackgrounds + freeHair + freeOutfits + freeShoes + freeAccessories +
+                freeEyeStyles + freeFaceDetails + freeSpecialFx
 
     fun allPremiumItems(): List<AvatarLayerItem> =
         premiumPacks.flatMap { it.items }

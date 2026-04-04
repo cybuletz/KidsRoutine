@@ -18,8 +18,10 @@ data class AvatarEntity(
     val activeShoesId: String? = null,
     val activeAccessoryId: String? = null,
     val activeSpecialFxId: String? = null,
-    val activeEyeStyleId: String? = null,    // new: eye colour / style
-    val activeFaceDetailId: String? = null,  // new: freckles / face stickers
+    val activeEyeStyleId: String? = null,    // eye colour
+    val eyeShapeId: String? = null,          // eye shape (almond, round, cat, wide, narrow)
+    val activeFaceDetailId: String? = null,  // face variations (dimples, freckles, beauty mark)
+    val hairColorOverride: Long? = null,     // separate hair colour override
     val unlockedItemIdsJson: String = "[]",
     val ownedPackIdsJson: String = "[]",
     val lastUpdated: Long = System.currentTimeMillis()
