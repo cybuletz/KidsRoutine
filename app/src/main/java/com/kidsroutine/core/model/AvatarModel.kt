@@ -68,12 +68,14 @@ data class AvatarState(
     val skinTone: Long = 0xFFFFDBAD,     // hex ARGB
     val activeBackground: AvatarLayerItem? = null,
     val activeHair: AvatarLayerItem? = null,
+    val hairColor: Long? = null,          // override hair tint (separate colour picker)
     val activeOutfit: AvatarLayerItem? = null,
     val activeShoes: AvatarLayerItem? = null,
     val activeAccessory: AvatarLayerItem? = null,
     val activeSpecialFx: AvatarLayerItem? = null,
-    val activeEyeStyle: AvatarLayerItem? = null,    // new: custom eye colour
-    val activeFaceDetail: AvatarLayerItem? = null,  // new: freckles / stickers
+    val activeEyeStyle: AvatarLayerItem? = null,    // eye colour
+    val eyeShape: String? = null,                   // eye shape id (almond, round, cat, wide, narrow)
+    val activeFaceDetail: AvatarLayerItem? = null,  // face variations (dimples, freckles, beauty mark)
     val unlockedItemIds: Set<String> = emptySet(),
     val ownedPackIds: Set<String> = emptySet()
 ) {
@@ -87,6 +89,9 @@ data class AvatarState(
         activeEyeStyle,
         activeFaceDetail
     ).sortedBy { it.layerType.ordinal }
+
+    /** Resolved hair colour: explicit override → item tint → default brown */
+    val resolvedHairColor: Long get() = hairColor ?: activeHair?.tintColor ?: 0xFF3D2B1F
 }
 
 // ─── UI tab for the customization screen ────────────────────────────────────
