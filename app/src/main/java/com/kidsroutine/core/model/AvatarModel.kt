@@ -5,6 +5,9 @@ import androidx.compose.ui.graphics.Color
 // ─── Gender ────────────────────────────────────────────────────────────────
 enum class AvatarGender { BOY, GIRL }
 
+/** Default warm-brown hair colour used when no override or item tint is set */
+const val DEFAULT_HAIR_COLOR: Long = 0xFF3D2B1F
+
 // ─── Layer Types ───────────────────────────────────────────────────────────
 enum class AvatarLayerType {
     BACKGROUND,
@@ -91,7 +94,7 @@ data class AvatarState(
     ).sortedBy { it.layerType.ordinal }
 
     /** Resolved hair colour: explicit override → item tint → default brown */
-    val resolvedHairColor: Long get() = hairColor ?: activeHair?.tintColor ?: 0xFF3D2B1F
+    val resolvedHairColor: Long get() = hairColor ?: activeHair?.tintColor ?: DEFAULT_HAIR_COLOR
 }
 
 // ─── UI tab for the customization screen ────────────────────────────────────

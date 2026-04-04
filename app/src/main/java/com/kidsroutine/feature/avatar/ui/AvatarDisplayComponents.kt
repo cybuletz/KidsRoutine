@@ -981,7 +981,7 @@ fun AvatarShoesLayer(
                     // Toe box pattern — stitching arc
                     val toePatX = if (side < 0f) lx - offX + shoeW * 0.08f else lx - offX + shoeW * 0.5f
                     drawArc(shoeColor.darken(0.10f),
-                        startAngle = if (side < 0f) 270f else 270f,
+                        startAngle = 270f,
                         sweepAngle = 180f, useCenter = false,
                         topLeft = Offset(toePatX, shoeY + shoeH * 0.1f),
                         size = androidx.compose.ui.geometry.Size(shoeW * 0.38f, shoeH * 0.5f),
@@ -1301,7 +1301,7 @@ fun AvatarHairLayer(
     hairColorOverride: Long? = null,
     modifier: Modifier = Modifier
 ) {
-    val hairColor = hairColorOverride?.let { Color(it) } ?: (hair.tintColor?.let { Color(it) } ?: Color(0xFF3D2B1F))
+    val hairColor = hairColorOverride?.let { Color(it) } ?: (hair.tintColor?.let { Color(it) } ?: Color(DEFAULT_HAIR_COLOR))
     val highlightColor = Color.White.copy(alpha = 0.28f)
     Canvas(modifier = modifier) {
         val w = size.width
