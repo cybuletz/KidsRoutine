@@ -65,7 +65,7 @@ fun AvatarPreviewCard(
             AvatarOutfitLayer(outfit, avatarState.gender,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .fillMaxHeight(0.65f)
+                    .fillMaxHeight(0.85f)
                     .fillMaxWidth(0.75f)
             )
         }
@@ -155,7 +155,7 @@ fun AvatarBackgroundLayer(bg: AvatarLayerItem?) {
     val (topColor, bottomColor) = when (val src = bg?.source) {
         is AvatarAssetSource.GradientBackground ->
             Color(src.topColor) to Color(src.bottomColor)
-        else -> Color(0xFF1A1A2E) to Color(0xFF16213E) // default deep blue
+        else -> Color(0xFF87CEEB) to Color(0xFFE0F7FA) // default light sky blue
     }
 
     // Gradient sky
@@ -318,18 +318,29 @@ private fun drawRealisticCharacter(
             size = androidx.compose.ui.geometry.Size(earW * 0.5f, earH * 0.55f))
     }
 
-    // ── HEAD SHAPE (cubic bezier — oval top, gently pointed chin) ────────────
+    // ── HEAD SHAPE (cubic bezier — oval top, gender-specific jaw) ────────────
     val headPath = Path().apply {
         moveTo(cx, headTop)
         cubicTo(cx - headW * 0.15f, headTop,
             cx - headW / 2f, headCy - headH * 0.30f,
             cx - headW / 2f, headCy)
-        cubicTo(cx - headW / 2f, headCy + headH * 0.30f,
-            cx - headW * 0.26f, headBot,
-            cx, headBot)
-        cubicTo(cx + headW * 0.26f, headBot,
-            cx + headW / 2f, headCy + headH * 0.30f,
-            cx + headW / 2f, headCy)
+        if (gender == AvatarGender.BOY) {
+            // Slightly squarer, wider jaw for boy
+            cubicTo(cx - headW / 2f, headCy + headH * 0.28f,
+                cx - headW * 0.34f, headBot,
+                cx, headBot)
+            cubicTo(cx + headW * 0.34f, headBot,
+                cx + headW / 2f, headCy + headH * 0.28f,
+                cx + headW / 2f, headCy)
+        } else {
+            // Softer, more oval chin for girl
+            cubicTo(cx - headW / 2f, headCy + headH * 0.33f,
+                cx - headW * 0.20f, headBot,
+                cx, headBot)
+            cubicTo(cx + headW * 0.20f, headBot,
+                cx + headW / 2f, headCy + headH * 0.33f,
+                cx + headW / 2f, headCy)
+        }
         cubicTo(cx + headW / 2f, headCy - headH * 0.30f,
             cx + headW * 0.15f, headTop,
             cx, headTop)
@@ -338,7 +349,7 @@ private fun drawRealisticCharacter(
     drawPath(headPath, skinTone)
 
     // ── NECK ─────────────────────────────────────────────────────────────────
-    val neckW   = w * 0.115f
+    val neckW   = if (gender == AvatarGender.BOY) w * 0.130f else w * 0.098f
     val neckTop = headBot - headH * 0.10f
     val neckBot = headBot + headH * 0.17f
     drawRoundRect(skinTone,
@@ -354,21 +365,28 @@ private fun drawRealisticCharacter(
     // ── EYEBROWS ──────────────────────────────────────────────────────────────
     val eyeY    = headCy - headH * 0.07f
     val eyeOffX = headW * 0.275f
-    val eyeRX   = headW * 0.135f
-    val eyeRY   = headH * 0.103f
+    val eyeRX   = headW * (if (gender == AvatarGender.GIRL) 0.148f else 0.128f)
+    val eyeRY   = headH * (if (gender == AvatarGender.GIRL) 0.115f else 0.096f)
     val browY   = eyeY - eyeRY * 1.9f
     val browColor = skinTone.darken(0.52f)
-    val browThick = if (gender == AvatarGender.BOY) 5.5f else 4.2f
     listOf(-1f, 1f).forEach { side ->
         val bx = cx + side * eyeOffX
-        drawLine(browColor,
-            Offset(bx - eyeRX * 1.05f, browY + eyeRY * 0.38f),
-            Offset(bx - eyeRX * 0.05f, browY - eyeRY * 0.32f),
-            strokeWidth = browThick, cap = StrokeCap.Round)
-        drawLine(browColor,
-            Offset(bx - eyeRX * 0.05f, browY - eyeRY * 0.32f),
-            Offset(bx + eyeRX * 1.05f, browY + eyeRY * 0.38f),
-            strokeWidth = browThick, cap = StrokeCap.Round)
+        if (gender == AvatarGender.BOY) {
+            // Thick, nearly horizontal brow for boy
+            drawLine(browColor,
+                Offset(bx - eyeRX * 1.05f, browY + eyeRY * 0.12f),
+                Offset(bx + eyeRX * 1.05f, browY + eyeRY * 0.28f),
+                strokeWidth = 6.5f, cap = StrokeCap.Round)
+        } else {
+            // Thin, arched brow for girl
+            val browPath = Path().apply {
+                moveTo(bx - eyeRX * 1.05f, browY + eyeRY * 0.42f)
+                quadraticBezierTo(bx, browY - eyeRY * 0.52f,
+                    bx + eyeRX * 1.05f, browY + eyeRY * 0.18f)
+            }
+            drawPath(browPath, browColor, style = Stroke(width = 3.5f,
+                cap = StrokeCap.Round))
+        }
     }
 
     // ── EYES (large cartoon almond shape with sparkly irises) ─────────────────
@@ -446,22 +464,23 @@ private fun drawRealisticCharacter(
 
     // ── NOSE (cute button-style) ───────────────────────────────────────────────
     val noseY = eyeY + eyeRY * 3.65f
+    val noseScale = if (gender == AvatarGender.BOY) 1.25f else 1.0f
     // Bridge line
     drawLine(skinTone.darken(0.1f),
         Offset(cx - eyeRX * 0.18f, eyeY + eyeRY * 1.6f),
         Offset(cx - eyeRX * 0.18f, noseY - eyeRY * 0.1f),
-        strokeWidth = 2.2f, cap = StrokeCap.Round)
+        strokeWidth = 2.2f * noseScale, cap = StrokeCap.Round)
     // Left nostril arc
     drawArc(skinTone.darken(0.13f),
         startAngle = 180f, sweepAngle = -175f, useCenter = false,
-        topLeft = Offset(cx - eyeRX * 0.56f, noseY - eyeRY * 0.36f),
-        size = androidx.compose.ui.geometry.Size(eyeRX * 0.4f, eyeRY * 0.4f),
+        topLeft = Offset(cx - eyeRX * 0.56f * noseScale, noseY - eyeRY * 0.36f),
+        size = androidx.compose.ui.geometry.Size(eyeRX * 0.4f * noseScale, eyeRY * 0.4f * noseScale),
         style = Stroke(width = 2.5f))
     // Right nostril arc
     drawArc(skinTone.darken(0.13f),
         startAngle = 0f, sweepAngle = 175f, useCenter = false,
-        topLeft = Offset(cx + eyeRX * 0.16f, noseY - eyeRY * 0.36f),
-        size = androidx.compose.ui.geometry.Size(eyeRX * 0.4f, eyeRY * 0.4f),
+        topLeft = Offset(cx + eyeRX * 0.16f * noseScale, noseY - eyeRY * 0.36f),
+        size = androidx.compose.ui.geometry.Size(eyeRX * 0.4f * noseScale, eyeRY * 0.4f * noseScale),
         style = Stroke(width = 2.5f))
 
     // ── MOUTH (warm smile) ────────────────────────────────────────────────────
@@ -530,9 +549,9 @@ private fun drawRealisticCharacter(
     val shoulderY = neckBot
     val waistY    = h * 0.575f
     val hipY      = h * 0.635f
-    val shoulderW = if (gender == AvatarGender.BOY) w * 0.56f else w * 0.50f
-    val waistW    = if (gender == AvatarGender.BOY) w * 0.44f else w * 0.40f
-    val hipW      = if (gender == AvatarGender.BOY) w * 0.46f else w * 0.50f
+    val shoulderW = if (gender == AvatarGender.BOY) w * 0.60f else w * 0.47f
+    val waistW    = if (gender == AvatarGender.BOY) w * 0.46f else w * 0.38f
+    val hipW      = if (gender == AvatarGender.BOY) w * 0.46f else w * 0.54f
 
     val torsoPath = Path().apply {
         moveTo(cx - shoulderW / 2f, shoulderY)
@@ -745,12 +764,12 @@ fun AvatarOutfitLayer(
         val w = size.width
         val h = size.height
         val cx = w / 2f
-        val shoulderW = if (gender == AvatarGender.BOY) w * 0.52f else w * 0.46f
-        val hipW      = if (gender == AvatarGender.BOY) w * 0.44f else w * 0.50f
-        val waistW    = if (gender == AvatarGender.BOY) w * 0.40f else w * 0.36f
-        val shoulderY = h * 0.385f
-        val waistY    = h * 0.62f
-        val hipY      = h * 0.72f
+        val shoulderW = if (gender == AvatarGender.BOY) w * 0.60f else w * 0.47f
+        val hipW      = if (gender == AvatarGender.BOY) w * 0.46f else w * 0.54f
+        val waistW    = if (gender == AvatarGender.BOY) w * 0.46f else w * 0.38f
+        val shoulderY = h * 0.32f
+        val waistY    = h * 0.575f
+        val hipY      = h * 0.635f
 
         // ── Torso clothing — curved sides ────────────────────────────────
         val torsoPath = Path().apply {
@@ -903,17 +922,21 @@ fun AvatarHairLayer(
 
         when {
             hair.id.contains("spiky") -> {
-                // Spiky hair — multiple upward triangular spikes
+                // Spiky hair — cap + upward spikes, hairline above eyebrows
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.1f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.3f,
-                        cx, headCy - headR * 1.1f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.3f,
-                        cx + headR * 1.05f, headCy + headR * 0.1f)
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
+                        cx, headCy - headR * 1.15f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
-                // Spikes
+                // Spikes pointing upward from the crown
                 listOf(-0.55f, -0.15f, 0.25f, 0.65f).forEach { xOff ->
                     val spikeBase = cx + xOff * headR * 1.4f
                     drawLine(hairColor,
@@ -921,46 +944,47 @@ fun AvatarHairLayer(
                         Offset(spikeBase + headR * 0.18f, headCy - headR * 1.72f),
                         strokeWidth = w * 0.06f, cap = StrokeCap.Round)
                 }
-                // Side-cuts
+                // Side-cuts at ear level — kept short (0.45f) to stay within the cap area above the eyeline
                 listOf(-1f, 1f).forEach { side ->
                     drawRoundRect(hairColor,
                         topLeft = Offset(cx + side * headR * 0.72f, headCy - headR * 0.08f),
-                        size = androidx.compose.ui.geometry.Size(headR * 0.3f, headR * 0.65f),
+                        size = androidx.compose.ui.geometry.Size(headR * 0.30f, headR * 0.45f),
                         cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f))
                 }
             }
             hair.id.contains("short") -> {
-                // Short hair cap with side detail
+                // Short hair cap — stops at hairline, sideburns at ear level
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.38f,
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
                         cx, headCy - headR * 1.15f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.38f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
-                // Side parting line
+                // Side parting line — endpoint raised to headCy - headR * 0.70f to stay within the cap above the hairline
                 drawLine(hairColor.darken(0.18f),
                     Offset(cx - headR * 0.05f, headCy - headR * 1.12f),
-                    Offset(cx - headR * 0.3f, headCy - headR * 0.4f),
+                    Offset(cx - headR * 0.30f, headCy - headR * 0.70f),
                     strokeWidth = 4f, cap = StrokeCap.Round)
-                // Side burns
-                listOf(-1f, 1f).forEach { side ->
-                    drawRoundRect(hairColor,
-                        topLeft = Offset(cx + side * headR * 0.73f, headCy - headR * 0.12f),
-                        size = androidx.compose.ui.geometry.Size(headR * 0.29f, headR * 0.68f),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f))
-                }
             }
             hair.id.contains("bun") -> {
-                // High bun: base cap + top bun shape
+                // High bun: cap stops at hairline + bun circle on top
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.3f,
-                        cx, headCy - headR * 1.1f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.3f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
+                        cx, headCy - headR * 1.15f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
@@ -978,97 +1002,125 @@ fun AvatarHairLayer(
                     center = Offset(cx, headCy - headR * 1.06f))
             }
             hair.id.contains("bob") -> {
-                // Bob cut — full cap with flat bottom at jaw level
-                val bobPath = Path().apply {
-                    moveTo(cx - headR * 1.12f, headCy + headR * 0.55f)
-                    quadraticBezierTo(cx - headR * 1.1f, headCy - headR * 1.4f,
-                        cx, headCy - headR * 1.18f)
-                    quadraticBezierTo(cx + headR * 1.1f, headCy - headR * 1.4f,
-                        cx + headR * 1.12f, headCy + headR * 0.55f)
-                    // Flat-ish bottom
-                    quadraticBezierTo(cx, headCy + headR * 0.72f,
-                        cx - headR * 1.12f, headCy + headR * 0.55f)
-                    close()
-                }
-                drawPath(bobPath, hairColor)
-                // Subtle inner parting
-                drawLine(hairColor.darken(0.15f),
-                    Offset(cx, headCy - headR * 1.15f),
-                    Offset(cx - headR * 0.2f, headCy - headR * 0.3f),
-                    strokeWidth = 3.5f, cap = StrokeCap.Round)
-            }
-            hair.id.contains("wavy") -> {
-                // Wavy long hair
+                // Bob cut — cap on top + side panels to jaw, face stays clear
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.38f,
-                        cx, headCy - headR * 1.15f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.38f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
+                        cx, headCy - headR * 1.18f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
-                // Wavy side strands
+                // Bob side panels — from ear level down to jaw, outside the face
+                listOf(-1f, 1f).forEach { side ->
+                    val bobSide = Path().apply {
+                        moveTo(cx + side * headR * 0.88f, headCy + headR * 0.22f)
+                        cubicTo(cx + side * headR * 1.15f, headCy + headR * 0.55f,
+                            cx + side * headR * 1.10f, headCy + headR * 1.00f,
+                            cx + side * headR * 1.02f, headCy + headR * 1.22f)
+                        lineTo(cx + side * headR * 0.72f, headCy + headR * 1.22f)
+                        cubicTo(cx + side * headR * 0.72f, headCy + headR * 1.00f,
+                            cx + side * headR * 0.72f, headCy + headR * 0.55f,
+                            cx + side * headR * 0.85f, headCy + headR * 0.22f)
+                        close()
+                    }
+                    drawPath(bobSide, hairColor)
+                }
+                // Subtle inner parting
+                drawLine(hairColor.darken(0.15f),
+                    Offset(cx, headCy - headR * 1.15f),
+                    Offset(cx - headR * 0.2f, headCy - headR * 0.72f),
+                    strokeWidth = 3.5f, cap = StrokeCap.Round)
+            }
+            hair.id.contains("wavy") -> {
+                // Wavy long hair — cap + wavy side strands from ear level
+                val capPath = Path().apply {
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
+                        cx, headCy - headR * 1.15f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
+                    close()
+                }
+                drawPath(capPath, hairColor)
+                // Wavy side strands starting from ear level
                 listOf(-1f, 1f).forEach { side ->
                     val strandPath = Path().apply {
-                        moveTo(cx + side * headR * 0.88f, headCy + headR * 0.3f)
-                        cubicTo(cx + side * headR * 1.28f, headCy + headR * 0.9f,
-                            cx + side * headR * 0.95f, headCy + headR * 1.6f,
-                            cx + side * headR * 1.15f, headCy + headR * 2.3f)
-                        cubicTo(cx + side * headR * 1.3f,  headCy + headR * 3.0f,
-                            cx + side * headR * 0.9f,  headCy + headR * 3.4f,
-                            cx + side * headR * 0.85f, headCy + headR * 3.6f)
-                        cubicTo(cx + side * headR * 0.72f, headCy + headR * 2.5f,
-                            cx + side * headR * 0.82f, headCy + headR * 1.5f,
-                            cx + side * headR * 0.72f, headCy + headR * 0.4f)
+                        moveTo(cx + side * headR * 0.90f, headCy + headR * 0.22f)
+                        cubicTo(cx + side * headR * 1.28f, headCy + headR * 0.90f,
+                            cx + side * headR * 0.95f, headCy + headR * 1.60f,
+                            cx + side * headR * 1.18f, headCy + headR * 2.35f)
+                        cubicTo(cx + side * headR * 1.32f, headCy + headR * 3.05f,
+                            cx + side * headR * 0.90f, headCy + headR * 3.40f,
+                            cx + side * headR * 0.88f, headCy + headR * 3.60f)
+                        cubicTo(cx + side * headR * 0.72f, headCy + headR * 2.50f,
+                            cx + side * headR * 0.82f, headCy + headR * 1.50f,
+                            cx + side * headR * 0.72f, headCy + headR * 0.30f)
                         close()
                     }
                     drawPath(strandPath, hairColor)
                     // Wave crest highlight
                     drawLine(hairColor.copy(alpha = 0.35f),
                         Offset(cx + side * headR * 0.92f, headCy + headR * 1.0f),
-                        Offset(cx + side * headR * 1.1f, headCy + headR * 1.8f),
+                        Offset(cx + side * headR * 1.12f, headCy + headR * 1.8f),
                         strokeWidth = 4f, cap = StrokeCap.Round)
                 }
             }
             hair.id.contains("long") -> {
-                // Long straight hair
+                // Long straight hair — cap + straight side strands from ear level
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.38f,
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
                         cx, headCy - headR * 1.15f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.38f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
-                // Long straight side strands
+                // Long straight side strands from ear level
                 listOf(-1f, 1f).forEach { side ->
                     val strandPath = Path().apply {
-                        moveTo(cx + side * headR * 0.90f, headCy + headR * 0.35f)
-                        quadraticBezierTo(cx + side * headR * 1.2f, headCy + headR * 1.8f,
-                            cx + side * headR * 0.95f, headCy + headR * 3.3f)
-                        quadraticBezierTo(cx + side * headR * 1.1f, headCy + headR * 3.55f,
+                        moveTo(cx + side * headR * 0.90f, headCy + headR * 0.22f)
+                        quadraticBezierTo(cx + side * headR * 1.22f, headCy + headR * 1.80f,
+                            cx + side * headR * 0.96f, headCy + headR * 3.30f)
+                        quadraticBezierTo(cx + side * headR * 1.10f, headCy + headR * 3.55f,
                             cx + side * headR * 0.85f, headCy + headR * 3.65f)
-                        quadraticBezierTo(cx + side * headR * 0.68f, headCy + headR * 2.6f,
-                            cx + side * headR * 0.74f, headCy + headR * 0.48f)
+                        quadraticBezierTo(cx + side * headR * 0.68f, headCy + headR * 2.60f,
+                            cx + side * headR * 0.74f, headCy + headR * 0.38f)
                         close()
                     }
                     drawPath(strandPath, hairColor)
                 }
             }
             hair.id.contains("ponytail") -> {
-                // Base cap
+                // Ponytail — cap + ponytail extending from the back/side
                 val capPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.38f,
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
                         cx, headCy - headR * 1.15f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.38f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(capPath, hairColor)
-                // Ponytail
+                // Ponytail extending from the right side/back
                 val ponytailPath = Path().apply {
                     moveTo(cx + headR * 0.30f, headCy - headR * 0.82f)
                     quadraticBezierTo(cx + headR * 1.62f, headCy,
@@ -1092,15 +1144,15 @@ fun AvatarHairLayer(
                     center = Offset(cx + headR * 0.88f, headCy - headR * 0.50f))
             }
             hair.id.contains("curly") -> {
-                // Curly puff — cluster of overlapping circles
+                // Curly puff — cluster of circles above and beside the head, face stays clear
                 val curlPositions = listOf(
-                    Offset(cx,            headCy - headR * 1.38f) to headR * 0.58f,
-                    Offset(cx - headR * 0.60f, headCy - headR * 1.22f) to headR * 0.48f,
-                    Offset(cx + headR * 0.60f, headCy - headR * 1.22f) to headR * 0.48f,
-                    Offset(cx - headR * 0.98f, headCy - headR * 0.70f) to headR * 0.43f,
-                    Offset(cx + headR * 0.98f, headCy - headR * 0.70f) to headR * 0.43f,
-                    Offset(cx - headR * 1.02f, headCy - headR * 0.10f) to headR * 0.38f,
-                    Offset(cx + headR * 1.02f, headCy - headR * 0.10f) to headR * 0.38f
+                    Offset(cx,                 headCy - headR * 1.42f) to headR * 0.55f,
+                    Offset(cx - headR * 0.65f, headCy - headR * 1.28f) to headR * 0.48f,
+                    Offset(cx + headR * 0.65f, headCy - headR * 1.28f) to headR * 0.48f,
+                    Offset(cx - headR * 1.05f, headCy - headR * 0.82f) to headR * 0.44f,
+                    Offset(cx + headR * 1.05f, headCy - headR * 0.82f) to headR * 0.44f,
+                    Offset(cx - headR * 1.12f, headCy - headR * 0.28f) to headR * 0.40f,
+                    Offset(cx + headR * 1.12f, headCy - headR * 0.28f) to headR * 0.40f
                 )
                 curlPositions.forEach { (pos, r) ->
                     drawCircle(hairColor, radius = r, center = pos)
@@ -1110,23 +1162,27 @@ fun AvatarHairLayer(
                 }
             }
             else -> {
-                // Fallback: clean short cap
+                // Fallback: clean cap stopping at hairline
                 val fallbackPath = Path().apply {
-                    moveTo(cx - headR * 1.05f, headCy + headR * 0.08f)
-                    quadraticBezierTo(cx - headR * 0.9f, headCy - headR * 1.3f,
-                        cx, headCy - headR * 1.1f)
-                    quadraticBezierTo(cx + headR * 0.9f, headCy - headR * 1.3f,
-                        cx + headR * 1.05f, headCy + headR * 0.08f)
+                    moveTo(cx - headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx - headR * 0.90f, headCy - headR * 1.40f,
+                        cx, headCy - headR * 1.15f)
+                    quadraticBezierTo(cx + headR * 0.90f, headCy - headR * 1.40f,
+                        cx + headR * 1.05f, headCy + headR * 0.22f)
+                    quadraticBezierTo(cx + headR * 0.55f, headCy - headR * 0.72f,
+                        cx, headCy - headR * 0.78f)
+                    quadraticBezierTo(cx - headR * 0.55f, headCy - headR * 0.72f,
+                        cx - headR * 1.05f, headCy + headR * 0.22f)
                     close()
                 }
                 drawPath(fallbackPath, hairColor)
             }
         }
 
-        // Highlight streak on all hair types
+        // Highlight streak on all hair types (stays within cap area)
         drawLine(Color.White.copy(alpha = 0.28f),
             Offset(cx - headR * 0.18f, headCy - headR * 1.08f),
-            Offset(cx + headR * 0.22f, headCy - headR * 0.32f),
+            Offset(cx + headR * 0.22f, headCy - headR * 0.55f),
             strokeWidth = 5f, cap = StrokeCap.Round)
     }
 }
