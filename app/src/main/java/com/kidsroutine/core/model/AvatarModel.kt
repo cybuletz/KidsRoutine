@@ -106,7 +106,6 @@ enum class AvatarCustomizationTab(val label: String, val emoji: String) {
     EYES("Eyes", "👁️"),
     FACE("Face", "😊"),
     OUTFIT("Outfit", "👕"),
-    SHOES("Shoes", "👟"),
     ACCESSORY("Extras", "🎩"),
     SPECIAL_FX("FX", "✨")
 }

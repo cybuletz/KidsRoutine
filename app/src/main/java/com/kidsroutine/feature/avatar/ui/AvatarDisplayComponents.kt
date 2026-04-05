@@ -73,8 +73,7 @@ fun AvatarPreviewCard(
                 hairItem = avatarState.activeHair,
                 hairColor = Color(avatarState.resolvedHairColor),
                 outfitItem = avatarState.activeOutfit,
-                accessoryItem = avatarState.activeAccessory,
-                shoesItem = avatarState.activeShoes
+                accessoryItem = avatarState.activeAccessory
             )
         }
 
@@ -292,8 +291,7 @@ private fun DrawScope.drawPortraitCharacter(
     hairItem: AvatarLayerItem?,
     hairColor: Color,
     outfitItem: AvatarLayerItem?,
-    accessoryItem: AvatarLayerItem?,
-    shoesItem: AvatarLayerItem?
+    accessoryItem: AvatarLayerItem?
 ) {
     val w = size.width
     val h = size.height
@@ -557,12 +555,12 @@ private fun DrawScope.drawSingleEye(
 
     // Eye dimensions vary by shape
     val (eyeW, eyeH) = when (shape) {
-        "round" -> headRX * 0.32f to headRY * 0.30f
-        "cat" -> headRX * 0.30f to headRY * 0.24f
-        "wide" -> headRX * 0.35f to headRY * 0.33f
-        "narrow" -> headRX * 0.30f to headRY * 0.20f
-        "downturned" -> headRX * 0.30f to headRY * 0.26f
-        else -> headRX * 0.28f to headRY * 0.26f // almond
+        "round" -> headRX * 0.24f to headRY * 0.22f
+        "cat" -> headRX * 0.23f to headRY * 0.18f
+        "wide" -> headRX * 0.26f to headRY * 0.24f
+        "narrow" -> headRX * 0.23f to headRY * 0.15f
+        "downturned" -> headRX * 0.23f to headRY * 0.19f
+        else -> headRX * 0.21f to headRY * 0.19f // almond
     }
 
     // White sclera path (shape-dependent)
@@ -1221,26 +1219,32 @@ private fun DrawScope.drawNeckAndShoulders(
     shoulderY: Float, shoulderW: Float, canvasH: Float,
     skin: Color, gender: AvatarGender
 ) {
+    // Gender-differentiated proportions
+    val genderShoulderW = if (gender == AvatarGender.GIRL) shoulderW * 0.88f else shoulderW
+    val genderNeckW = if (gender == AvatarGender.GIRL) neckW * 0.90f else neckW
+    val shoulderRound = if (gender == AvatarGender.GIRL) 0.90f else 0.95f
+    val shoulderCurve = if (gender == AvatarGender.GIRL) 0.50f else 0.60f
+
     // Shoulder roundness
     val shoulderPath = Path().apply {
-        moveTo(cx - neckW, neckTopY)
+        moveTo(cx - genderNeckW, neckTopY)
         // Left shoulder curve
         cubicTo(
-            cx - neckW, shoulderY * 0.95f,
-            cx - shoulderW * 0.6f, shoulderY * 0.92f,
-            cx - shoulderW, shoulderY
+            cx - genderNeckW, shoulderY * shoulderRound,
+            cx - genderShoulderW * shoulderCurve, shoulderY * 0.92f,
+            cx - genderShoulderW, shoulderY
         )
         // Left body
-        lineTo(cx - shoulderW * 1.05f, canvasH)
+        lineTo(cx - genderShoulderW * 1.05f, canvasH)
         // Bottom
-        lineTo(cx + shoulderW * 1.05f, canvasH)
+        lineTo(cx + genderShoulderW * 1.05f, canvasH)
         // Right body
-        lineTo(cx + shoulderW, shoulderY)
+        lineTo(cx + genderShoulderW, shoulderY)
         // Right shoulder curve
         cubicTo(
-            cx + shoulderW * 0.6f, shoulderY * 0.92f,
-            cx + neckW, shoulderY * 0.95f,
-            cx + neckW, neckTopY
+            cx + genderShoulderW * shoulderCurve, shoulderY * 0.92f,
+            cx + genderNeckW, shoulderY * shoulderRound,
+            cx + genderNeckW, neckTopY
         )
         close()
     }
@@ -1263,10 +1267,10 @@ private fun DrawScope.drawNeckAndShoulders(
         brush = Brush.radialGradient(
             colors = listOf(skin.darken(0.15f), Color.Transparent),
             center = Offset(cx, neckTopY),
-            radius = neckW * 1.5f
+            radius = genderNeckW * 1.5f
         ),
-        topLeft = Offset(cx - neckW * 1.2f, neckTopY - neckW * 0.3f),
-        size = Size(neckW * 2.4f, neckW * 1.2f)
+        topLeft = Offset(cx - genderNeckW * 1.2f, neckTopY - genderNeckW * 0.3f),
+        size = Size(genderNeckW * 2.4f, genderNeckW * 1.2f)
     )
 
     // Shoulder highlights
@@ -1274,15 +1278,15 @@ private fun DrawScope.drawNeckAndShoulders(
         brush = Brush.radialGradient(
             colors = listOf(skin.lighten(0.06f), Color.Transparent)
         ),
-        radius = shoulderW * 0.25f,
-        center = Offset(cx - shoulderW * 0.5f, shoulderY + shoulderW * 0.1f)
+        radius = genderShoulderW * 0.25f,
+        center = Offset(cx - genderShoulderW * 0.5f, shoulderY + genderShoulderW * 0.1f)
     )
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(skin.lighten(0.06f), Color.Transparent)
         ),
-        radius = shoulderW * 0.25f,
-        center = Offset(cx + shoulderW * 0.5f, shoulderY + shoulderW * 0.1f)
+        radius = genderShoulderW * 0.25f,
+        center = Offset(cx + genderShoulderW * 0.5f, shoulderY + genderShoulderW * 0.1f)
     )
 }
 
@@ -1308,11 +1312,11 @@ private fun DrawScope.drawHairBack(
                 cubicTo(
                     cx + rx * 0.5f, cy - ry * 0.2f,
                     cx + rx * 0.7f, cy + ry * 0.3f,
-                    cx + rx * 0.4f, cy + ry * 1.1f
+                    cx + rx * 0.4f, cy + ry * 0.85f
                 )
                 cubicTo(
-                    cx + rx * 0.2f, cy + ry * 1.3f,
-                    cx - rx * 0.1f, cy + ry * 1.2f,
+                    cx + rx * 0.2f, cy + ry * 1.0f,
+                    cx - rx * 0.1f, cy + ry * 0.95f,
                     cx - rx * 0.05f, cy + ry * 0.8f
                 )
                 cubicTo(
@@ -1329,7 +1333,7 @@ private fun DrawScope.drawHairBack(
                 cubicTo(
                     cx + rx * 0.45f, cy + ry * 0.2f,
                     cx + rx * 0.35f, cy + ry * 0.7f,
-                    cx + rx * 0.2f, cy + ry * 1.0f
+                    cx + rx * 0.2f, cy + ry * 0.85f
                 )
             }
             drawPath(highlightPath, hairColor.lighten(0.15f).copy(alpha = 0.3f),
@@ -1343,9 +1347,9 @@ private fun DrawScope.drawHairBack(
                 cubicTo(
                     cx - rx * 1.0f, cy + ry * 0.4f,
                     cx - rx * 0.9f, cy + ry * 1.0f,
-                    cx - rx * 0.6f, cy + ry * 1.3f
+                    cx - rx * 0.6f, cy + ry * 1.0f
                 )
-                lineTo(cx + rx * 0.6f, cy + ry * 1.3f)
+                lineTo(cx + rx * 0.6f, cy + ry * 1.0f)
                 cubicTo(
                     cx + rx * 0.9f, cy + ry * 1.0f,
                     cx + rx * 1.0f, cy + ry * 0.4f,
@@ -1360,7 +1364,7 @@ private fun DrawScope.drawHairBack(
                 drawLine(
                     color = hairColor.lighten(0.12f).copy(alpha = 0.2f),
                     start = Offset(sx, cy),
-                    end = Offset(sx + rx * 0.05f, cy + ry * 1.1f),
+                    end = Offset(sx + rx * 0.05f, cy + ry * 0.85f),
                     strokeWidth = rx * 0.04f,
                     cap = StrokeCap.Round
                 )
@@ -1376,10 +1380,10 @@ private fun DrawScope.drawHairBack(
                     cubicTo(
                         pigX - rx * 0.2f * side, cy + ry * 0.3f,
                         pigX + rx * 0.1f * side, cy + ry * 0.8f,
-                        pigX + rx * 0.05f * side, cy + ry * 1.1f
+                        pigX + rx * 0.05f * side, cy + ry * 0.85f
                     )
                     cubicTo(
-                        pigX + rx * 0.15f * side, cy + ry * 1.15f,
+                        pigX + rx * 0.15f * side, cy + ry * 0.9f,
                         pigX + rx * 0.25f, cy + ry * 1.0f,
                         pigX + rx * 0.15f, cy + ry * 0.5f
                     )
@@ -1416,9 +1420,9 @@ private fun DrawScope.drawHairBack(
                 cubicTo(
                     cx - rx * 0.95f, cy + ry * 0.3f,
                     cx - rx * 0.7f, cy + ry * 0.7f,
-                    cx - rx * 0.8f, cy + ry * 1.1f
+                    cx - rx * 0.8f, cy + ry * 0.85f
                 )
-                lineTo(cx + rx * 0.8f, cy + ry * 1.1f)
+                lineTo(cx + rx * 0.8f, cy + ry * 0.85f)
                 cubicTo(
                     cx + rx * 0.7f, cy + ry * 0.7f,
                     cx + rx * 0.95f, cy + ry * 0.3f,
@@ -1705,21 +1709,21 @@ private fun DrawScope.drawCurlyHair(
 ) {
     // Voluminous curly hair — lots of circular puffs
     val mainPath = Path().apply {
-        moveTo(cx - rx * 1.0f, cy + ry * 0.1f)
+        moveTo(cx - rx * 0.92f, cy + ry * 0.1f)
         cubicTo(
-            cx - rx * 1.1f, cy - ry * 0.5f,
+            cx - rx * 1.0f, cy - ry * 0.5f,
             cx - rx * 0.75f, cy - ry * 1.15f,
             cx, cy - ry * 1.2f
         )
         cubicTo(
             cx + rx * 0.75f, cy - ry * 1.15f,
-            cx + rx * 1.1f, cy - ry * 0.5f,
-            cx + rx * 1.0f, cy + ry * 0.1f
+            cx + rx * 1.0f, cy - ry * 0.5f,
+            cx + rx * 0.92f, cy + ry * 0.1f
         )
         // Lower edge with curl bumps
         cubicTo(cx + rx * 0.85f, cy - ry * 0.05f, cx + rx * 0.6f, cy - ry * 0.15f, cx + rx * 0.35f, cy - ry * 0.12f)
         cubicTo(cx + rx * 0.15f, cy - ry * 0.18f, cx - rx * 0.15f, cy - ry * 0.12f, cx - rx * 0.35f, cy - ry * 0.15f)
-        cubicTo(cx - rx * 0.6f, cy - ry * 0.12f, cx - rx * 0.85f, cy - ry * 0.05f, cx - rx * 1.0f, cy + ry * 0.1f)
+        cubicTo(cx - rx * 0.6f, cy - ry * 0.12f, cx - rx * 0.85f, cy - ry * 0.05f, cx - rx * 0.92f, cy + ry * 0.1f)
         close()
     }
     drawPath(mainPath, hairColor)
@@ -1879,9 +1883,9 @@ private fun DrawScope.drawLongHairFront(
             cubicTo(
                 cx + side * rx * 0.95f, cy + ry * 0.2f,
                 cx + side * rx * 0.85f, cy + ry * 0.5f,
-                cx + side * rx * 0.75f, cy + ry * 0.8f
+                cx + side * rx * 0.75f, cy + ry * 0.6f
             )
-            lineTo(cx + side * rx * 0.6f, cy + ry * 0.75f)
+            lineTo(cx + side * rx * 0.6f, cy + ry * 0.55f)
             cubicTo(
                 cx + side * rx * 0.7f, cy + ry * 0.45f,
                 cx + side * rx * 0.8f, cy + ry * 0.15f,
@@ -1972,8 +1976,8 @@ private fun DrawScope.drawBobHair(
         cubicTo(cx - rx * 1.0f, cy - ry * 0.4f, cx - rx * 0.7f, cy - ry * 1.05f, cx, cy - ry * 1.1f)
         cubicTo(cx + rx * 0.7f, cy - ry * 1.05f, cx + rx * 1.0f, cy - ry * 0.4f, cx + rx * 0.95f, cy + ry * 0.35f)
         // Curved bottom
-        cubicTo(cx + rx * 0.8f, cy + ry * 0.45f, cx + rx * 0.5f, cy + ry * 0.42f, cx, cy + ry * 0.38f)
-        cubicTo(cx - rx * 0.5f, cy + ry * 0.42f, cx - rx * 0.8f, cy + ry * 0.45f, cx - rx * 0.95f, cy + ry * 0.35f)
+        cubicTo(cx + rx * 0.8f, cy + ry * 0.35f, cx + rx * 0.5f, cy + ry * 0.42f, cx, cy + ry * 0.38f)
+        cubicTo(cx - rx * 0.5f, cy + ry * 0.42f, cx - rx * 0.8f, cy + ry * 0.35f, cx - rx * 0.95f, cy + ry * 0.35f)
         close()
     }
     drawPath(mainPath, hairColor)
@@ -2036,7 +2040,10 @@ private fun DrawScope.drawOutfitUpper(
     val outfitColor = outfitItem.tintColor?.let { Color(it) } ?: Color(0xFF4A90D9)
     val darkOutfit = outfitColor.darken(0.15f)
     val lightOutfit = outfitColor.lighten(0.12f)
-    val neckW = shoulderW * 0.28f
+    // Match gender-differentiated shoulder proportions
+    val genderShoulderW = if (gender == AvatarGender.GIRL) shoulderW * 0.88f else shoulderW
+    val genderNeckW = if (gender == AvatarGender.GIRL) (shoulderW * 0.28f) * 0.90f else shoulderW * 0.28f
+    val neckW = genderNeckW
     val outfitId = outfitItem.id
 
     // Base clothing shape covering shoulders and chest
@@ -2045,18 +2052,18 @@ private fun DrawScope.drawOutfitUpper(
         // Left collar to shoulder
         cubicTo(
             cx - neckW * 1.2f, shoulderY * 0.96f,
-            cx - shoulderW * 0.5f, shoulderY * 0.94f,
-            cx - shoulderW, shoulderY
+            cx - genderShoulderW * 0.5f, shoulderY * 0.94f,
+            cx - genderShoulderW, shoulderY
         )
         // Left body
-        lineTo(cx - shoulderW * 1.05f, canvasH)
+        lineTo(cx - genderShoulderW * 1.05f, canvasH)
         // Bottom
-        lineTo(cx + shoulderW * 1.05f, canvasH)
+        lineTo(cx + genderShoulderW * 1.05f, canvasH)
         // Right body
-        lineTo(cx + shoulderW, shoulderY)
+        lineTo(cx + genderShoulderW, shoulderY)
         // Right collar to shoulder
         cubicTo(
-            cx + shoulderW * 0.5f, shoulderY * 0.94f,
+            cx + genderShoulderW * 0.5f, shoulderY * 0.94f,
             cx + neckW * 1.2f, shoulderY * 0.96f,
             cx + neckW * 0.85f, neckTopY + neckW * 0.3f
         )
@@ -2081,8 +2088,8 @@ private fun DrawScope.drawOutfitUpper(
         clothingPath,
         Brush.horizontalGradient(
             colors = listOf(darkOutfit.copy(alpha = 0.2f), Color.Transparent, Color.Transparent, darkOutfit.copy(alpha = 0.2f)),
-            startX = cx - shoulderW * 1.05f,
-            endX = cx + shoulderW * 1.05f
+            startX = cx - genderShoulderW * 1.05f,
+            endX = cx + genderShoulderW * 1.05f
         )
     )
 
@@ -2124,7 +2131,7 @@ private fun DrawScope.drawOutfitUpper(
 
             // Kangaroo pocket
             val pocketY = shoulderY + (canvasH - shoulderY) * 0.45f
-            val pocketW = shoulderW * 0.65f
+            val pocketW = genderShoulderW * 0.65f
             drawRoundRect(
                 color = darkOutfit.copy(alpha = 0.3f),
                 topLeft = Offset(cx - pocketW, pocketY),
@@ -2184,8 +2191,8 @@ private fun DrawScope.drawOutfitUpper(
                     startY = shoulderY + (canvasH - shoulderY) * 0.3f,
                     endY = canvasH
                 ),
-                topLeft = Offset(cx - shoulderW * 1.05f, shoulderY),
-                size = Size(shoulderW * 2.1f, canvasH - shoulderY)
+                topLeft = Offset(cx - genderShoulderW * 1.05f, shoulderY),
+                size = Size(genderShoulderW * 2.1f, canvasH - shoulderY)
             )
         }
 
@@ -2224,8 +2231,8 @@ private fun DrawScope.drawOutfitUpper(
             for (side in listOf(-1f, 1f)) {
                 drawLine(
                     color = outfitColor.lighten(0.15f).copy(alpha = 0.3f),
-                    start = Offset(cx + side * shoulderW * 0.45f, shoulderY),
-                    end = Offset(cx + side * shoulderW * 0.45f, canvasH),
+                    start = Offset(cx + side * genderShoulderW * 0.45f, shoulderY),
+                    end = Offset(cx + side * genderShoulderW * 0.45f, canvasH),
                     strokeWidth = neckW * 0.012f,
                     val dashLen = neckW * 0.06f
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashLen, dashLen))
@@ -2237,11 +2244,11 @@ private fun DrawScope.drawOutfitUpper(
             // Sport stripe on shoulders
             for (side in listOf(-1f, 1f)) {
                 val stripePath = Path().apply {
-                    moveTo(cx + side * shoulderW * 0.6f, shoulderY * 0.97f)
+                    moveTo(cx + side * genderShoulderW * 0.6f, shoulderY * 0.97f)
                     cubicTo(
-                        cx + side * shoulderW * 0.7f, shoulderY,
-                        cx + side * shoulderW * 0.85f, shoulderY * 1.01f,
-                        cx + side * shoulderW * 0.95f, shoulderY * 1.02f
+                        cx + side * genderShoulderW * 0.7f, shoulderY,
+                        cx + side * genderShoulderW * 0.85f, shoulderY * 1.01f,
+                        cx + side * genderShoulderW * 0.95f, shoulderY * 1.02f
                     )
                 }
                 drawPath(stripePath, Color.White.copy(alpha = 0.5f),
@@ -2296,8 +2303,8 @@ private fun DrawScope.drawOutfitUpper(
             val beltY = shoulderY + (canvasH - shoulderY) * 0.35f
             drawLine(
                 color = Color(0xFF2A1A0A),
-                start = Offset(cx - shoulderW * 0.8f, beltY),
-                end = Offset(cx + shoulderW * 0.8f, beltY),
+                start = Offset(cx - genderShoulderW * 0.8f, beltY),
+                end = Offset(cx + genderShoulderW * 0.8f, beltY),
                 strokeWidth = neckW * 0.08f
             )
         }
@@ -2316,8 +2323,8 @@ private fun DrawScope.drawOutfitUpper(
             val beltY = shoulderY + (canvasH - shoulderY) * 0.2f
             drawLine(
                 color = Color(0xFF808080),
-                start = Offset(cx - shoulderW * 0.7f, beltY),
-                end = Offset(cx + shoulderW * 0.7f, beltY),
+                start = Offset(cx - genderShoulderW * 0.7f, beltY),
+                end = Offset(cx + genderShoulderW * 0.7f, beltY),
                 strokeWidth = neckW * 0.06f
             )
 
@@ -2326,7 +2333,124 @@ private fun DrawScope.drawOutfitUpper(
                 drawCircle(
                     color = Color(0xFFFFD700).copy(alpha = 0.5f),
                     radius = neckW * 0.12f,
-                    center = Offset(cx + side * shoulderW * 0.6f, shoulderY + shoulderW * 0.05f)
+                    center = Offset(cx + side * genderShoulderW * 0.6f, shoulderY + genderShoulderW * 0.05f)
+                )
+            }
+        }
+
+        outfitId.contains("striped", true) || outfitId.contains("tee", true) -> {
+            // Horizontal stripes
+            val stripeSpacing = (canvasH - shoulderY) * 0.12f
+            for (i in 0..5) {
+                val stripeY = shoulderY + i * stripeSpacing + stripeSpacing * 0.5f
+                drawLine(
+                    color = Color.White.copy(alpha = 0.25f),
+                    start = Offset(cx - genderShoulderW * 0.9f, stripeY),
+                    end = Offset(cx + genderShoulderW * 0.9f, stripeY),
+                    strokeWidth = stripeSpacing * 0.35f,
+                    cap = StrokeCap.Round
+                )
+            }
+            // Simple crew neckline
+            drawArc(
+                color = darkOutfit.copy(alpha = 0.4f),
+                startAngle = 0f, sweepAngle = 180f,
+                useCenter = false,
+                topLeft = Offset(cx - neckW * 0.55f, neckTopY + neckW * 0.15f),
+                size = Size(neckW * 1.1f, neckW * 0.45f),
+                style = Stroke(width = neckW * 0.04f, cap = StrokeCap.Round)
+            )
+        }
+
+        outfitId.contains("turtleneck", true) -> {
+            // High collar
+            val collarPath = Path().apply {
+                moveTo(cx - neckW * 0.75f, neckTopY + neckW * 0.15f)
+                lineTo(cx - neckW * 0.8f, neckTopY - neckW * 0.25f)
+                cubicTo(cx - neckW * 0.5f, neckTopY - neckW * 0.4f, cx + neckW * 0.5f, neckTopY - neckW * 0.4f, cx + neckW * 0.8f, neckTopY - neckW * 0.25f)
+                lineTo(cx + neckW * 0.75f, neckTopY + neckW * 0.15f)
+                close()
+            }
+            drawPath(collarPath, outfitColor.darken(0.08f))
+            // Ribbing texture lines
+            for (i in 0..3) {
+                val ribY = neckTopY - neckW * 0.2f + i * neckW * 0.08f
+                drawLine(
+                    color = darkOutfit.copy(alpha = 0.15f),
+                    start = Offset(cx - neckW * 0.6f, ribY),
+                    end = Offset(cx + neckW * 0.6f, ribY),
+                    strokeWidth = neckW * 0.01f
+                )
+            }
+        }
+
+        outfitId.contains("overalls", true) -> {
+            // Bib front
+            val bibPath = Path().apply {
+                moveTo(cx - genderShoulderW * 0.35f, shoulderY + (canvasH - shoulderY) * 0.05f)
+                lineTo(cx - genderShoulderW * 0.35f, canvasH)
+                lineTo(cx + genderShoulderW * 0.35f, canvasH)
+                lineTo(cx + genderShoulderW * 0.35f, shoulderY + (canvasH - shoulderY) * 0.05f)
+                cubicTo(cx + genderShoulderW * 0.2f, shoulderY - (canvasH - shoulderY) * 0.02f, cx - genderShoulderW * 0.2f, shoulderY - (canvasH - shoulderY) * 0.02f, cx - genderShoulderW * 0.35f, shoulderY + (canvasH - shoulderY) * 0.05f)
+                close()
+            }
+            drawPath(bibPath, darkOutfit.copy(alpha = 0.3f))
+            // Straps
+            for (side in listOf(-1f, 1f)) {
+                drawLine(
+                    color = darkOutfit,
+                    start = Offset(cx + side * genderShoulderW * 0.25f, shoulderY + (canvasH - shoulderY) * 0.05f),
+                    end = Offset(cx + side * genderShoulderW * 0.55f, shoulderY * 0.98f),
+                    strokeWidth = neckW * 0.1f,
+                    cap = StrokeCap.Round
+                )
+                // Button
+                drawCircle(
+                    color = Color(0xFFC0C0C0),
+                    radius = neckW * 0.05f,
+                    center = Offset(cx + side * genderShoulderW * 0.25f, shoulderY + (canvasH - shoulderY) * 0.07f)
+                )
+            }
+            // Pocket
+            val pocketY = shoulderY + (canvasH - shoulderY) * 0.4f
+            drawRoundRect(
+                color = darkOutfit.copy(alpha = 0.2f),
+                topLeft = Offset(cx - genderShoulderW * 0.18f, pocketY),
+                size = Size(genderShoulderW * 0.36f, (canvasH - shoulderY) * 0.18f),
+                cornerRadius = CornerRadius(neckW * 0.05f)
+            )
+        }
+
+        outfitId.contains("raincoat", true) -> {
+            // Center zipper
+            drawLine(
+                color = darkOutfit.copy(alpha = 0.5f),
+                start = Offset(cx, neckTopY + neckW * 0.3f),
+                end = Offset(cx, canvasH),
+                strokeWidth = neckW * 0.03f
+            )
+            // Hood collar
+            val hoodPath = Path().apply {
+                moveTo(cx - neckW * 1.3f, neckTopY + neckW * 0.1f)
+                cubicTo(
+                    cx - neckW * 1.6f, neckTopY - neckW * 0.4f,
+                    cx - neckW * 1.0f, neckTopY - neckW * 0.7f,
+                    cx, neckTopY - neckW * 0.45f
+                )
+                cubicTo(
+                    cx + neckW * 1.0f, neckTopY - neckW * 0.7f,
+                    cx + neckW * 1.6f, neckTopY - neckW * 0.4f,
+                    cx + neckW * 1.3f, neckTopY + neckW * 0.1f
+                )
+            }
+            drawPath(hoodPath, darkOutfit, style = Stroke(width = neckW * 0.2f, cap = StrokeCap.Round))
+            // Snap buttons
+            for (i in 0..3) {
+                val by = shoulderY + i * (canvasH - shoulderY) * 0.2f
+                drawCircle(
+                    color = Color(0xFF808080).copy(alpha = 0.5f),
+                    radius = neckW * 0.04f,
+                    center = Offset(cx + neckW * 0.08f, by)
                 )
             }
         }
@@ -2347,7 +2471,7 @@ private fun DrawScope.drawOutfitUpper(
                 drawLine(
                     color = darkOutfit.copy(alpha = 0.15f),
                     start = Offset(cx + side * neckW * 0.9f, neckTopY + neckW * 0.4f),
-                    end = Offset(cx + side * shoulderW * 0.85f, shoulderY * 1.01f),
+                    end = Offset(cx + side * genderShoulderW * 0.85f, shoulderY * 1.01f),
                     strokeWidth = neckW * 0.015f
                 )
             }
@@ -2371,7 +2495,7 @@ private fun DrawScope.drawAccessory(
     when {
         accId.contains("glasses", true) -> {
             val glassY = cy + ry * 0.02f
-            val glassR = rx * 0.20f
+            val glassR = rx * 0.16f
             val bridgeW = rx * 0.10f
 
             // Left lens
@@ -2434,7 +2558,7 @@ private fun DrawScope.drawAccessory(
 
         accId.contains("bow", true) -> {
             val bowX = cx + rx * 0.55f
-            val bowY = cy - ry * 0.65f
+            val bowY = cy - ry * 0.75f
             val bowSize = rx * 0.18f
             val bowColor = accColor
 
@@ -2458,7 +2582,7 @@ private fun DrawScope.drawAccessory(
         }
 
         accId.contains("necklace", true) -> {
-            val neckY = cy + ry * 0.85f
+            val neckY = cy + ry * 0.92f
             // Chain arc
             drawArc(
                 color = Color(0xFFDAA520),
@@ -2483,7 +2607,7 @@ private fun DrawScope.drawAccessory(
         }
 
         accId.contains("bandana", true) -> {
-            val bandY = cy - ry * 0.35f
+            val bandY = cy - ry * 0.40f
             val bandH = ry * 0.12f
             // Headband
             val bandPath = Path().apply {
@@ -2631,7 +2755,7 @@ private fun DrawScope.drawAccessory(
         }
 
         accId.contains("cap", true) || accId.contains("hat", true) -> {
-            val capY = cy - ry * 0.55f
+            val capY = cy - ry * 0.60f
             val capW = rx * 0.95f
             val capH = ry * 0.45f
 
@@ -2960,7 +3084,9 @@ fun SkinTonePicker(
         0xFFE8B88A to "Medium",
         0xFFD4956B to "Tan",
         0xFFA56B42 to "Brown",
-        0xFF6B3A20 to "Deep"
+        0xFF6B3A20 to "Deep",
+        0xFF4A2912 to "Dark Brown",
+        0xFF2C1A0E to "Black"
     )
 
     Row(
