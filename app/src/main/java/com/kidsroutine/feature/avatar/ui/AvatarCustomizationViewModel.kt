@@ -154,6 +154,13 @@ class AvatarCustomizationViewModel @Inject constructor(
         }
     }
 
+    // ── Face Shape ────────────────────────────────────────────────────────────
+    fun setFaceShape(shapeId: String?) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(faceShape = shapeId))
+        }
+    }
+
     // ── Reset ─────────────────────────────────────────────────────────────────
     fun resetToDefault() {
         _uiState.update { state ->

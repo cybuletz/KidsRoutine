@@ -22,6 +22,7 @@ data class AvatarEntity(
     val eyeShapeId: String? = null,          // eye shape (almond, round, cat, wide, narrow)
     val mouthShapeId: String? = null,        // mouth shape (smile, grin, open, smirk, pout, laugh)
     val eyebrowStyleId: String? = null,      // eyebrow style (natural, arched, thick, thin, flat, curved)
+    val faceShapeId: String? = null,         // face shape (round, oval, heart, square, diamond)
     val activeFaceDetailId: String? = null,  // face variations (dimples, freckles, beauty mark)
     val hairColorOverride: Long? = null,     // separate hair colour override
     val unlockedItemIdsJson: String = "[]",
