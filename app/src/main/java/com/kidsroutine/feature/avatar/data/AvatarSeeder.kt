@@ -60,6 +60,42 @@ object AvatarSeeder {
                 topColor = 0xFF6A040F, bottomColor = 0xFFFFBA08, label = "Volcano"
             ),
             sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "bg_rainbow",
+            name = "Rainbow Sky",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFFE040FB, bottomColor = 0xFF40C4FF, label = "Rainbow"
+            ),
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "bg_night_sky",
+            name = "Starry Night",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF0D1B2A, bottomColor = 0xFF1B3A5C, label = "Night"
+            ),
+            sortOrder = 8
+        ),
+        AvatarLayerItem(
+            id = "bg_garden",
+            name = "Flower Garden",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFF81C784, bottomColor = 0xFFFFF9C4, label = "Garden"
+            ),
+            sortOrder = 9
+        ),
+        AvatarLayerItem(
+            id = "bg_arctic",
+            name = "Arctic Frost",
+            layerType = AvatarLayerType.BACKGROUND,
+            source = AvatarAssetSource.GradientBackground(
+                topColor = 0xFFB3E5FC, bottomColor = 0xFFE1F5FE, label = "Arctic"
+            ),
+            sortOrder = 10
         )
     )
 
@@ -191,6 +227,32 @@ object AvatarSeeder {
             source = AvatarAssetSource.VectorRes(R.drawable.accessory_belt),
             tintColor = 0xFF2DC653,
             sortOrder = 5
+        ),
+        AvatarLayerItem(
+            id = "acc_sunglasses",
+            name = "Sunglasses",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+            tintColor = 0xFF1A1A1A,
+            sortOrder = 6
+        ),
+        AvatarLayerItem(
+            id = "acc_flower_crown",
+            name = "Flower Crown",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_headband),
+            tintColor = 0xFFFF8A80,
+            compatibleGenders = setOf(AvatarGender.GIRL),
+            sortOrder = 7
+        ),
+        AvatarLayerItem(
+            id = "acc_sports_cap",
+            name = "Sports Cap",
+            layerType = AvatarLayerType.ACCESSORY,
+            source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+            tintColor = 0xFF1565C0,
+            compatibleGenders = setOf(AvatarGender.BOY),
+            sortOrder = 8
         )
     )
 
@@ -271,6 +333,28 @@ object AvatarSeeder {
         "wide" to "Wide",
         "narrow" to "Narrow",
         "downturned" to "Downturned"
+    )
+
+    // ── Mouth Shapes ──────────────────────────────────────────────────────
+    /** List of (id, displayName) pairs for mouth shape picker */
+    val mouthShapes = listOf(
+        "smile" to "Smile",
+        "grin" to "Big Grin",
+        "open" to "Open Smile",
+        "smirk" to "Smirk",
+        "pout" to "Pout",
+        "laugh" to "Laugh"
+    )
+
+    // ── Eyebrow Styles ────────────────────────────────────────────────────
+    /** List of (id, displayName) pairs for eyebrow style picker */
+    val eyebrowStyles = listOf(
+        "natural" to "Natural",
+        "arched" to "Arched",
+        "thick" to "Thick",
+        "thin" to "Thin",
+        "flat" to "Flat",
+        "curved" to "Curved"
     )
 
     // ── Free Face Details (real face variations, not stickers) ──────────────
@@ -439,7 +523,11 @@ object AvatarSeeder {
         0xFFD4A017 to "Blonde",
         0xFFE8D5B7 to "Platinum",
         0xFF546E7A to "Ash Grey",
-        0xFF4A148C to "Fantasy Purple"
+        0xFF4A148C to "Fantasy Purple",
+        0xFFD47A5B to "Strawberry Blonde",
+        0xFF0277BD to "Ocean Blue",
+        0xFFE57373 to "Rose Pink",
+        0xFFFF8A65 to "Ginger"
     )
 
     // ── Free Outfits ───────────────────────────────────────────────────────
@@ -508,6 +596,38 @@ object AvatarSeeder {
             source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
             tintColor = 0xFF4A6FA5,
             sortOrder = 8
+        ),
+        AvatarLayerItem(
+            id = "outfit_striped_tee",
+            name = "Striped T-Shirt",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF00897B,
+            sortOrder = 9
+        ),
+        AvatarLayerItem(
+            id = "outfit_turtleneck",
+            name = "Turtleneck",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF5D4037,
+            sortOrder = 10
+        ),
+        AvatarLayerItem(
+            id = "outfit_overalls",
+            name = "Overalls",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFF3949AB,
+            sortOrder = 11
+        ),
+        AvatarLayerItem(
+            id = "outfit_raincoat",
+            name = "Raincoat",
+            layerType = AvatarLayerType.OUTFIT,
+            source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+            tintColor = 0xFFFDD835,
+            sortOrder = 12
         )
     )
 
@@ -919,6 +1039,150 @@ object AvatarSeeder {
                     isPremium = true,
                     packId = "pack_dino_explorer",
                     coinCost = 150
+                )
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_pirate_adventure",
+            name = "Pirate Adventure",
+            description = "Ahoy, matey! Set sail with pirate outfits, treasure maps & ocean storms!",
+            coverImageUrl = "https://placehold.co/400x300/4E342E/FFD700?text=Pirate+Adventure",
+            accentColor = 0xFF4E342E,
+            isTrending = true,
+            isNew = true,
+            packPrice = 350,
+            billingProductId = "pack_pirate_adventure_v1",
+            items = listOf(
+                AvatarLayerItem(
+                    id = "pirate_outfit_captain",
+                    name = "Captain's Coat",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_casual),
+                    tintColor = 0xFF4E342E,
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 150
+                ),
+                AvatarLayerItem(
+                    id = "pirate_accessory_hat",
+                    name = "Pirate Hat",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_cap),
+                    tintColor = 0xFF1A1A1A,
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 100
+                ),
+                AvatarLayerItem(
+                    id = "pirate_accessory_eyepatch",
+                    name = "Eye Patch",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_mask),
+                    tintColor = 0xFF1A1A1A,
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 60
+                ),
+                AvatarLayerItem(
+                    id = "pirate_bg_treasure",
+                    name = "Treasure Island",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF00695C, 0xFFFFD54F, "Treasure"),
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 80
+                ),
+                AvatarLayerItem(
+                    id = "pirate_bg_storm",
+                    name = "Ocean Storm",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF1A237E, 0xFF37474F, "Storm"),
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 80
+                ),
+                AvatarLayerItem(
+                    id = "pirate_fx_waves",
+                    name = "Ocean Waves FX",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+                    tintColor = 0xFF0277BD,
+                    isPremium = true,
+                    packId = "pack_pirate_adventure",
+                    coinCost = 100
+                )
+            )
+        ),
+
+        AvatarContentPack(
+            id = "pack_robot_builder",
+            name = "Robot Builder",
+            description = "Build amazing robots! Futuristic suits, neon FX & cyber backgrounds.",
+            coverImageUrl = "https://placehold.co/400x300/263238/00E676?text=Robot+Builder",
+            accentColor = 0xFF00E676,
+            isTrending = false,
+            isNew = true,
+            packPrice = 450,
+            billingProductId = "pack_robot_builder_v1",
+            items = listOf(
+                AvatarLayerItem(
+                    id = "robot_outfit_mech",
+                    name = "Mech Suit",
+                    layerType = AvatarLayerType.OUTFIT,
+                    source = AvatarAssetSource.VectorRes(R.drawable.outfit_astronaut),
+                    tintColor = 0xFF455A64,
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 200
+                ),
+                AvatarLayerItem(
+                    id = "robot_accessory_visor",
+                    name = "Tech Visor",
+                    layerType = AvatarLayerType.ACCESSORY,
+                    source = AvatarAssetSource.VectorRes(R.drawable.accessory_mask),
+                    tintColor = 0xFF00E676,
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 120
+                ),
+                AvatarLayerItem(
+                    id = "robot_bg_cyber",
+                    name = "Cyber City",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF0D1117, 0xFF00E676, "Cyber"),
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 100
+                ),
+                AvatarLayerItem(
+                    id = "robot_bg_lab",
+                    name = "Robot Lab",
+                    layerType = AvatarLayerType.BACKGROUND,
+                    source = AvatarAssetSource.GradientBackground(0xFF263238, 0xFF546E7A, "Lab"),
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 80
+                ),
+                AvatarLayerItem(
+                    id = "robot_fx_neon",
+                    name = "Neon Glow FX",
+                    layerType = AvatarLayerType.SPECIAL_FX,
+                    source = AvatarAssetSource.VectorRes(R.drawable.fx_stars),
+                    tintColor = 0xFF00E676,
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 130
+                ),
+                AvatarLayerItem(
+                    id = "robot_face_circuit",
+                    name = "Circuit Marks",
+                    layerType = AvatarLayerType.FACE_DETAIL,
+                    source = AvatarAssetSource.GradientBackground(0xFF00E676, 0xFF69F0AE, "Circuit"),
+                    tintColor = 0xFF00E676,
+                    isPremium = true,
+                    packId = "pack_robot_builder",
+                    coinCost = 70
                 )
             )
         )

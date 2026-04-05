@@ -181,6 +181,19 @@ fun AvatarCustomizationScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                AvatarCustomizationTab.FACE -> {
+                    FaceSplitPicker(
+                        avatarState = uiState.currentAvatar,
+                        unlockedItems = uiState.unlockedItemIds,
+                        freeItems = viewModel.getFreeItemsForTab(selectedTab),
+                        premiumItems = viewModel.getPremiumItemsForTab(selectedTab),
+                        onItemSelected = { viewModel.equipItem(it) },
+                        onMouthShapeSelected = { viewModel.setMouthShape(it) },
+                        onEyebrowStyleSelected = { viewModel.setEyebrowStyle(it) },
+                        onLockedItemTapped = { onNavigateToShop() },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 else -> {
                     AvatarItemGrid(
                         tab = selectedTab,
@@ -998,6 +1011,213 @@ fun EyesSplitPicker(
                         isSelected = item.id == activeColorId,
                         isLocked = !isUnlocked,
                         onClick = { if (isUnlocked) onColorSelected(item) else onLockedItemTapped() },
+                        onLockedClick = { onLockedItemTapped() }
+                    )
+                }
+            }
+        }
+    }
+}
+// ── Face Split Picker (mouth shape, eyebrow style, face details) ─────────────
+
+@Composable
+fun FaceSplitPicker(
+    avatarState: AvatarState,
+    unlockedItems: Set<String>,
+    freeItems: List<AvatarLayerItem>,
+    premiumItems: List<AvatarLayerItem>,
+    onItemSelected: (AvatarLayerItem) -> Unit,
+    onMouthShapeSelected: (String?) -> Unit,
+    onEyebrowStyleSelected: (String?) -> Unit,
+    onLockedItemTapped: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val selectedMouth = avatarState.mouthShape
+    val selectedEyebrow = avatarState.eyebrowStyle
+    val activeFaceDetailId = avatarState.activeFaceDetail?.id
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp)
+    ) {
+        // ── Mouth Shape Row ──────────────────────────────────────────────
+        Text(
+            "Mouth",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            item {
+                val isSelected = selectedMouth == null
+                Surface(
+                    onClick = { onMouthShapeSelected(null) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        "Default",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+            items(AvatarSeeder.mouthShapes) { (id, name) ->
+                val isSelected = selectedMouth == id
+                Surface(
+                    onClick = { onMouthShapeSelected(id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        name,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+        }
+
+        // ── Eyebrow Style Row ────────────────────────────────────────────
+        Text(
+            "Eyebrows",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            item {
+                val isSelected = selectedEyebrow == null
+                Surface(
+                    onClick = { onEyebrowStyleSelected(null) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        "Default",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+            items(AvatarSeeder.eyebrowStyles) { (id, name) ->
+                val isSelected = selectedEyebrow == id
+                Surface(
+                    onClick = { onEyebrowStyleSelected(id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFF5272F2).copy(alpha = 0.2f) else Color(0xFFE2DEFF),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF5272F2).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        name,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFF5272F2) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+        }
+
+        // ── Face Details Grid ────────────────────────────────────────────
+        Text(
+            "Face Details",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 12.dp),
+            modifier = Modifier.heightIn(max = 500.dp)
+        ) {
+            item {
+                NoneItemCard(
+                    isSelected = activeFaceDetailId == null,
+                    onClick = {
+                        onItemSelected(
+                            AvatarLayerItem(
+                                "none_FACE", "None",
+                                AvatarLayerType.FACE_DETAIL, AvatarAssetSource.GradientBackground(
+                                    0xFF0D0D1A, 0xFF1A1A2E, "None"
+                                )
+                            )
+                        )
+                    }
+                )
+            }
+
+            items(freeItems) { item ->
+                AvatarItemCard(
+                    item = item,
+                    isSelected = item.id == activeFaceDetailId,
+                    isLocked = false,
+                    onClick = { onItemSelected(item) },
+                    onLockedClick = {}
+                )
+            }
+
+            if (premiumItems.isNotEmpty()) {
+                item(span = { GridItemSpan(3) }) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("⭐", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Premium",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFFD700)
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFFFFD700).copy(alpha = 0.3f)
+                        )
+                    }
+                }
+                items(premiumItems) { item ->
+                    val isUnlocked = item.id in unlockedItems
+                    AvatarItemCard(
+                        item = item,
+                        isSelected = item.id == activeFaceDetailId,
+                        isLocked = !isUnlocked,
+                        onClick = { if (isUnlocked) onItemSelected(item) else onLockedItemTapped() },
                         onLockedClick = { onLockedItemTapped() }
                     )
                 }

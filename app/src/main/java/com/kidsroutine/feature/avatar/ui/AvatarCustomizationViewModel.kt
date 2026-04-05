@@ -140,6 +140,20 @@ class AvatarCustomizationViewModel @Inject constructor(
         }
     }
 
+    // ── Mouth Shape ──────────────────────────────────────────────────────────
+    fun setMouthShape(shapeId: String?) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(mouthShape = shapeId))
+        }
+    }
+
+    // ── Eyebrow Style ────────────────────────────────────────────────────────
+    fun setEyebrowStyle(styleId: String?) {
+        _uiState.update { state ->
+            state.copy(currentAvatar = state.currentAvatar.copy(eyebrowStyle = styleId))
+        }
+    }
+
     // ── Reset ─────────────────────────────────────────────────────────────────
     fun resetToDefault() {
         _uiState.update { state ->

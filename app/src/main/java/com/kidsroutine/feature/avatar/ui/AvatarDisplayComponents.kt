@@ -68,6 +68,8 @@ fun AvatarPreviewCard(
                 eyeStyleItem = avatarState.activeEyeStyle,
                 faceDetailItem = avatarState.activeFaceDetail,
                 eyeShape = avatarState.eyeShape,
+                mouthShape = avatarState.mouthShape,
+                eyebrowStyle = avatarState.eyebrowStyle,
                 hairItem = avatarState.activeHair,
                 hairColor = Color(avatarState.resolvedHairColor),
                 outfitItem = avatarState.activeOutfit,
@@ -285,6 +287,8 @@ private fun DrawScope.drawPortraitCharacter(
     eyeStyleItem: AvatarLayerItem?,
     faceDetailItem: AvatarLayerItem?,
     eyeShape: String?,
+    mouthShape: String?,
+    eyebrowStyle: String?,
     hairItem: AvatarLayerItem?,
     hairColor: Color,
     outfitItem: AvatarLayerItem?,
@@ -326,13 +330,13 @@ private fun DrawScope.drawPortraitCharacter(
     drawEyes(headCX, headCY, headRX, headRY, eyeColor, eyeShape, gender)
 
     // ── 7. Draw eyebrows ─────────────────────────────────────────────────
-    drawEyebrows(headCX, headCY, headRX, headRY, hairColor, gender)
+    drawEyebrows(headCX, headCY, headRX, headRY, hairColor, gender, eyebrowStyle)
 
     // ── 8. Draw nose ─────────────────────────────────────────────────────
     drawNose(headCX, headCY, headRY, skinTone, gender)
 
     // ── 9. Draw mouth ────────────────────────────────────────────────────
-    drawMouth(headCX, headCY, headRY, skinTone, gender)
+    drawMouth(headCX, headCY, headRY, skinTone, gender, mouthShape)
 
     // ── 10. Draw face details (freckles, blush, dimples, etc.) ───────────
     drawFaceDetails(faceDetailItem, headCX, headCY, headRX, headRY, skinTone)
@@ -818,21 +822,34 @@ private fun DrawScope.drawBoyLashes(
 
 private fun DrawScope.drawEyebrows(
     cx: Float, cy: Float, rx: Float, ry: Float,
-    hairColor: Color, gender: AvatarGender
+    hairColor: Color, gender: AvatarGender, eyebrowStyle: String?
 ) {
     val browColor = hairColor.darken(0.15f)
     val browY = cy - ry * 0.22f
     val browW = rx * 0.28f
-    val browThick = if (gender == AvatarGender.BOY) ry * 0.045f else ry * 0.032f
-    val browSpacing = rx * 0.33f
+    val style = eyebrowStyle ?: "natural"
+
+    // Style-dependent thickness and arch
+    val browThick = when (style) {
+        "thick" -> if (gender == AvatarGender.BOY) ry * 0.06f else ry * 0.048f
+        "thin" -> ry * 0.022f
+        else -> if (gender == AvatarGender.BOY) ry * 0.045f else ry * 0.032f
+    }
+
+    val archHeight = when (style) {
+        "arched" -> ry * 0.10f
+        "flat" -> ry * 0.02f
+        "curved" -> ry * 0.08f
+        else -> ry * 0.06f // natural
+    }
 
     // Left eyebrow
     val leftBrowPath = Path().apply {
-        moveTo(cx - browSpacing - browW * 0.6f, browY + ry * 0.04f)
+        moveTo(cx - rx * 0.33f - browW * 0.6f, browY + ry * 0.04f)
         cubicTo(
-            cx - browSpacing - browW * 0.2f, browY - ry * 0.06f,
-            cx - browSpacing + browW * 0.3f, browY - ry * 0.06f,
-            cx - browSpacing + browW * 0.7f, browY + ry * 0.02f
+            cx - rx * 0.33f - browW * 0.2f, browY - archHeight,
+            cx - rx * 0.33f + browW * 0.3f, browY - archHeight,
+            cx - rx * 0.33f + browW * 0.7f, browY + ry * 0.02f
         )
     }
     drawPath(
@@ -843,11 +860,11 @@ private fun DrawScope.drawEyebrows(
 
     // Right eyebrow (mirrored)
     val rightBrowPath = Path().apply {
-        moveTo(cx + browSpacing + browW * 0.6f, browY + ry * 0.04f)
+        moveTo(cx + rx * 0.33f + browW * 0.6f, browY + ry * 0.04f)
         cubicTo(
-            cx + browSpacing + browW * 0.2f, browY - ry * 0.06f,
-            cx + browSpacing - browW * 0.3f, browY - ry * 0.06f,
-            cx + browSpacing - browW * 0.7f, browY + ry * 0.02f
+            cx + rx * 0.33f + browW * 0.2f, browY - archHeight,
+            cx + rx * 0.33f - browW * 0.3f, browY - archHeight,
+            cx + rx * 0.33f - browW * 0.7f, browY + ry * 0.02f
         )
     }
     drawPath(
@@ -908,8 +925,9 @@ private fun DrawScope.drawNose(
 
 private fun DrawScope.drawMouth(
     cx: Float, cy: Float, ry: Float,
-    skin: Color, gender: AvatarGender
+    skin: Color, gender: AvatarGender, mouthShape: String?
 ) {
+    val shape = mouthShape ?: "smile"
     val mouthY = cy + ry * 0.52f
     val mouthW = ry * 0.18f
     val mouthH = ry * 0.10f
@@ -923,74 +941,118 @@ private fun DrawScope.drawMouth(
         )
     }
 
-    // Smile curve — open mouth showing teeth
-    val smilePath = Path().apply {
-        moveTo(cx - mouthW, mouthY - mouthH * 0.1f)
-        cubicTo(
-            cx - mouthW * 0.5f, mouthY - mouthH * 0.4f,
-            cx + mouthW * 0.5f, mouthY - mouthH * 0.4f,
-            cx + mouthW, mouthY - mouthH * 0.1f
-        )
-        cubicTo(
-            cx + mouthW * 0.6f, mouthY + mouthH * 0.8f,
-            cx - mouthW * 0.6f, mouthY + mouthH * 0.8f,
-            cx - mouthW, mouthY - mouthH * 0.1f
-        )
-        close()
+    when (shape) {
+        "grin" -> {
+            // Big wide grin showing teeth
+            val grinW = mouthW * 1.3f
+            val grinH = mouthH * 1.3f
+            val grinPath = Path().apply {
+                moveTo(cx - grinW, mouthY - grinH * 0.1f)
+                cubicTo(cx - grinW * 0.4f, mouthY - grinH * 0.5f, cx + grinW * 0.4f, mouthY - grinH * 0.5f, cx + grinW, mouthY - grinH * 0.1f)
+                cubicTo(cx + grinW * 0.5f, mouthY + grinH, cx - grinW * 0.5f, mouthY + grinH, cx - grinW, mouthY - grinH * 0.1f)
+                close()
+            }
+            drawPath(grinPath, Color(0xFF6B2A3A))
+            clipPath(grinPath) {
+                drawRect(Color(0xFFFAFAFA), Offset(cx - grinW * 0.6f, mouthY - grinH * 0.3f), Size(grinW * 1.2f, grinH * 0.4f))
+            }
+            drawPath(grinPath, lipColor, style = Stroke(width = ry * 0.015f))
+        }
+        "open" -> {
+            // Open mouth, more circular
+            val openPath = Path().apply {
+                addOval(androidx.compose.ui.geometry.Rect(cx - mouthW * 0.6f, mouthY - mouthH * 0.5f, cx + mouthW * 0.6f, mouthY + mouthH * 0.7f))
+            }
+            drawPath(openPath, Color(0xFF6B2A3A))
+            clipPath(openPath) {
+                drawRect(Color(0xFFFAFAFA), Offset(cx - mouthW * 0.4f, mouthY - mouthH * 0.3f), Size(mouthW * 0.8f, mouthH * 0.35f))
+                // Tongue hint
+                drawOval(Color(0xFFE57373), Offset(cx - mouthW * 0.25f, mouthY + mouthH * 0.1f), Size(mouthW * 0.5f, mouthH * 0.4f))
+            }
+        }
+        "smirk" -> {
+            // Asymmetric smile
+            val smirkPath = Path().apply {
+                moveTo(cx - mouthW * 0.8f, mouthY)
+                cubicTo(cx - mouthW * 0.3f, mouthY - mouthH * 0.1f, cx + mouthW * 0.3f, mouthY - mouthH * 0.4f, cx + mouthW, mouthY - mouthH * 0.3f)
+            }
+            drawPath(smirkPath, lipColor, style = Stroke(width = ry * 0.02f, cap = StrokeCap.Round))
+        }
+        "pout" -> {
+            // Pouty lips
+            // Upper lip
+            val upperLip = Path().apply {
+                moveTo(cx - mouthW * 0.6f, mouthY)
+                cubicTo(cx - mouthW * 0.3f, mouthY - mouthH * 0.5f, cx + mouthW * 0.3f, mouthY - mouthH * 0.5f, cx + mouthW * 0.6f, mouthY)
+            }
+            // Lower lip
+            val lowerLip = Path().apply {
+                moveTo(cx - mouthW * 0.6f, mouthY)
+                cubicTo(cx - mouthW * 0.3f, mouthY + mouthH * 0.7f, cx + mouthW * 0.3f, mouthY + mouthH * 0.7f, cx + mouthW * 0.6f, mouthY)
+            }
+            drawPath(upperLip, lipColor, style = Stroke(width = ry * 0.02f, cap = StrokeCap.Round))
+            drawPath(lowerLip, lipColor.darken(0.08f), style = Stroke(width = ry * 0.025f, cap = StrokeCap.Round))
+        }
+        "laugh" -> {
+            // Big laughing mouth, wide open
+            val laughW = mouthW * 1.4f
+            val laughH = mouthH * 1.5f
+            val laughPath = Path().apply {
+                moveTo(cx - laughW, mouthY)
+                cubicTo(cx - laughW * 0.3f, mouthY - laughH * 0.3f, cx + laughW * 0.3f, mouthY - laughH * 0.3f, cx + laughW, mouthY)
+                cubicTo(cx + laughW * 0.5f, mouthY + laughH, cx - laughW * 0.5f, mouthY + laughH, cx - laughW, mouthY)
+                close()
+            }
+            drawPath(laughPath, Color(0xFF6B2A3A))
+            clipPath(laughPath) {
+                drawRect(Color(0xFFFAFAFA), Offset(cx - laughW * 0.55f, mouthY - laughH * 0.15f), Size(laughW * 1.1f, laughH * 0.35f))
+                drawOval(Color(0xFFE57373), Offset(cx - laughW * 0.3f, mouthY + laughH * 0.2f), Size(laughW * 0.6f, laughH * 0.5f))
+            }
+            drawPath(laughPath, lipColor, style = Stroke(width = ry * 0.012f))
+        }
+        else -> {
+            // Default smile
+            val smilePath = Path().apply {
+                moveTo(cx - mouthW, mouthY - mouthH * 0.1f)
+                cubicTo(cx - mouthW * 0.5f, mouthY - mouthH * 0.4f, cx + mouthW * 0.5f, mouthY - mouthH * 0.4f, cx + mouthW, mouthY - mouthH * 0.1f)
+                cubicTo(cx + mouthW * 0.6f, mouthY + mouthH * 0.8f, cx - mouthW * 0.6f, mouthY + mouthH * 0.8f, cx - mouthW, mouthY - mouthH * 0.1f)
+                close()
+            }
+            drawPath(smilePath, Color(0xFF6B2A3A))
+            clipPath(smilePath) {
+                drawPath(Path().apply {
+                    moveTo(cx - mouthW * 0.5f, mouthY - mouthH * 0.15f)
+                    lineTo(cx + mouthW * 0.5f, mouthY - mouthH * 0.15f)
+                    lineTo(cx + mouthW * 0.45f, mouthY + mouthH * 0.15f)
+                    lineTo(cx - mouthW * 0.45f, mouthY + mouthH * 0.15f)
+                    close()
+                }, Color(0xFFFAFAFA))
+                drawLine(Color(0x20000000), Offset(cx, mouthY - mouthH * 0.15f), Offset(cx, mouthY + mouthH * 0.15f), strokeWidth = 0.8f)
+            }
+            val upperLipPath = Path().apply {
+                moveTo(cx - mouthW, mouthY - mouthH * 0.1f)
+                cubicTo(cx - mouthW * 0.5f, mouthY - mouthH * 0.4f, cx + mouthW * 0.5f, mouthY - mouthH * 0.4f, cx + mouthW, mouthY - mouthH * 0.1f)
+            }
+            drawPath(upperLipPath, color = lipColor, style = Stroke(width = ry * 0.018f, cap = StrokeCap.Round))
+        }
     }
 
-    // Mouth interior (dark)
-    drawPath(smilePath, Color(0xFF6B2A3A))
-
-    // Teeth area — small white rectangle inside upper mouth
-    val teethPath = Path().apply {
-        moveTo(cx - mouthW * 0.5f, mouthY - mouthH * 0.15f)
-        lineTo(cx + mouthW * 0.5f, mouthY - mouthH * 0.15f)
-        lineTo(cx + mouthW * 0.45f, mouthY + mouthH * 0.15f)
-        lineTo(cx - mouthW * 0.45f, mouthY + mouthH * 0.15f)
-        close()
-    }
-    // Clip teeth to mouth shape
-    clipPath(smilePath) {
-        drawPath(teethPath, Color(0xFFFAFAFA))
-        // Tooth divider line
-        drawLine(
-            color = Color(0x20000000),
-            start = Offset(cx, mouthY - mouthH * 0.15f),
-            end = Offset(cx, mouthY + mouthH * 0.15f),
-            strokeWidth = 0.8f
+    // Lower lip highlight (for all shapes except smirk)
+    if (shape != "smirk") {
+        drawArc(
+            brush = Brush.radialGradient(
+                colors = listOf(lipColor.copy(alpha = 0.4f), Color.Transparent),
+                center = Offset(cx, mouthY + mouthH * 0.4f),
+                radius = mouthW * 0.6f
+            ),
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(cx - mouthW * 0.5f, mouthY + mouthH * 0.1f),
+            size = Size(mouthW, mouthH * 0.6f),
+            style = Stroke(width = ry * 0.02f, cap = StrokeCap.Round)
         )
     }
-
-    // Upper lip line
-    val upperLipPath = Path().apply {
-        moveTo(cx - mouthW, mouthY - mouthH * 0.1f)
-        cubicTo(
-            cx - mouthW * 0.5f, mouthY - mouthH * 0.4f,
-            cx + mouthW * 0.5f, mouthY - mouthH * 0.4f,
-            cx + mouthW, mouthY - mouthH * 0.1f
-        )
-    }
-    drawPath(
-        upperLipPath,
-        color = lipColor,
-        style = Stroke(width = ry * 0.018f, cap = StrokeCap.Round)
-    )
-
-    // Lower lip highlight
-    drawArc(
-        brush = Brush.radialGradient(
-            colors = listOf(lipColor.copy(alpha = 0.4f), Color.Transparent),
-            center = Offset(cx, mouthY + mouthH * 0.4f),
-            radius = mouthW * 0.6f
-        ),
-        startAngle = 0f,
-        sweepAngle = 180f,
-        useCenter = false,
-        topLeft = Offset(cx - mouthW * 0.5f, mouthY + mouthH * 0.1f),
-        size = Size(mouthW, mouthH * 0.6f),
-        style = Stroke(width = ry * 0.02f, cap = StrokeCap.Round)
-    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
