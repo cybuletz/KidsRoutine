@@ -186,6 +186,8 @@ object AvatarSeeder {
     )
 
     // ── Free Accessories ───────────────────────────────────────────────────
+    // Note: VectorRes drawables are placeholder references; actual rendering is
+    // done programmatically via Canvas in AvatarDisplayComponents based on item ID.
     val freeAccessories = listOf(
         AvatarLayerItem(
             id = "acc_glasses_round",

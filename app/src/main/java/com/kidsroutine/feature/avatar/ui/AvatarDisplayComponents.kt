@@ -750,7 +750,7 @@ private fun buildUpperEyelidPath(
             val outerTilt = -eyeH * 0.25f
             val innerX = if (isLeft) ex + eyeW else ex - eyeW
             val outerX = if (isLeft) ex - eyeW else ex + eyeW
-            moveTo(innerX, ey * 0.998f)
+            moveTo(innerX, ey - eyeH * 0.002f)
             cubicTo(innerX, ey - eyeH * 0.8f, outerX, ey - eyeH * 0.8f + outerTilt, outerX, ey + outerTilt * 0.3f)
         }
         "downturned" -> {
@@ -2227,7 +2227,8 @@ private fun DrawScope.drawOutfitUpper(
                     start = Offset(cx + side * shoulderW * 0.45f, shoulderY),
                     end = Offset(cx + side * shoulderW * 0.45f, canvasH),
                     strokeWidth = neckW * 0.012f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(neckW * 0.06f, neckW * 0.06f))
+                    val dashLen = neckW * 0.06f
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashLen, dashLen))
                 )
             }
         }

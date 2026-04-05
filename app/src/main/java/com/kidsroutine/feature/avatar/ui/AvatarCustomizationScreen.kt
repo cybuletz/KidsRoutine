@@ -1205,7 +1205,7 @@ fun FaceSplitPicker(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFFD700)
                         )
-                        HorizontalDivider(
+                        Divider(
                             modifier = Modifier.weight(1f),
                             color = Color(0xFFFFD700).copy(alpha = 0.3f)
                         )
