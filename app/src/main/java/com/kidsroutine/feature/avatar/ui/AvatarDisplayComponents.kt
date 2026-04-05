@@ -1389,67 +1389,76 @@ private fun DrawScope.drawHairBack(
 
     when {
         hairId.contains("ponytail", true) -> {
-            // Ponytail flowing behind
+            // Ponytail flowing behind — thicker, more volume
             val ponytailPath = Path().apply {
-                moveTo(cx + rx * 0.05f, cy - ry * 0.4f)
+                moveTo(cx + rx * 0.02f, cy - ry * 0.35f)
                 cubicTo(
-                    cx + rx * 0.5f, cy - ry * 0.2f,
-                    cx + rx * 0.7f, cy + ry * 0.3f,
-                    cx + rx * 0.4f, cy + ry * 0.85f
+                    cx + rx * 0.55f, cy - ry * 0.15f,
+                    cx + rx * 0.75f, cy + ry * 0.35f,
+                    cx + rx * 0.45f, cy + ry * 0.90f
                 )
                 cubicTo(
-                    cx + rx * 0.2f, cy + ry * 1.0f,
-                    cx - rx * 0.1f, cy + ry * 0.95f,
-                    cx - rx * 0.05f, cy + ry * 0.8f
+                    cx + rx * 0.25f, cy + ry * 1.05f,
+                    cx - rx * 0.15f, cy + ry * 0.98f,
+                    cx - rx * 0.10f, cy + ry * 0.82f
                 )
                 cubicTo(
-                    cx, cy + ry * 0.5f,
-                    cx + rx * 0.3f, cy + ry * 0.1f,
-                    cx + rx * 0.05f, cy - ry * 0.4f
+                    cx - rx * 0.05f, cy + ry * 0.5f,
+                    cx + rx * 0.32f, cy + ry * 0.15f,
+                    cx + rx * 0.02f, cy - ry * 0.35f
                 )
                 close()
             }
             drawPath(ponytailPath, darkHair)
-            // Highlight streak
-            val highlightPath = Path().apply {
-                moveTo(cx + rx * 0.15f, cy - ry * 0.1f)
-                cubicTo(
-                    cx + rx * 0.45f, cy + ry * 0.2f,
-                    cx + rx * 0.35f, cy + ry * 0.7f,
-                    cx + rx * 0.2f, cy + ry * 0.85f
-                )
+            // Multiple highlight streaks for natural look
+            for (i in 0..2) {
+                val highlightPath = Path().apply {
+                    val offset = i * rx * 0.06f
+                    moveTo(cx + rx * 0.12f + offset, cy - ry * 0.05f)
+                    cubicTo(
+                        cx + rx * 0.42f + offset, cy + ry * 0.2f,
+                        cx + rx * 0.35f + offset, cy + ry * 0.65f,
+                        cx + rx * 0.22f + offset, cy + ry * 0.88f
+                    )
+                }
+                drawPath(highlightPath, hairColor.lighten(0.15f).copy(alpha = 0.2f - i * 0.05f),
+                    style = Stroke(width = rx * 0.05f, cap = StrokeCap.Round))
             }
-            drawPath(highlightPath, hairColor.lighten(0.15f).copy(alpha = 0.3f),
-                style = Stroke(width = rx * 0.06f, cap = StrokeCap.Round))
         }
 
         hairId.contains("long", true) -> {
-            // Long hair flowing behind shoulders
+            // Long hair flowing behind shoulders — fuller, more natural
             val longPath = Path().apply {
-                moveTo(cx - rx * 0.85f, cy - ry * 0.2f)
+                moveTo(cx - rx * 0.88f, cy - ry * 0.15f)
                 cubicTo(
-                    cx - rx * 1.0f, cy + ry * 0.4f,
-                    cx - rx * 0.9f, cy + ry * 1.0f,
-                    cx - rx * 0.6f, cy + ry * 1.0f
+                    cx - rx * 1.05f, cy + ry * 0.35f,
+                    cx - rx * 0.95f, cy + ry * 1.0f,
+                    cx - rx * 0.65f, cy + ry * 1.05f
                 )
-                lineTo(cx + rx * 0.6f, cy + ry * 1.0f)
+                lineTo(cx + rx * 0.65f, cy + ry * 1.05f)
                 cubicTo(
-                    cx + rx * 0.9f, cy + ry * 1.0f,
-                    cx + rx * 1.0f, cy + ry * 0.4f,
-                    cx + rx * 0.85f, cy - ry * 0.2f
+                    cx + rx * 0.95f, cy + ry * 1.0f,
+                    cx + rx * 1.05f, cy + ry * 0.35f,
+                    cx + rx * 0.88f, cy - ry * 0.15f
                 )
                 close()
             }
             drawPath(longPath, darkHair)
-            // Highlight streaks
-            for (i in -2..2) {
-                val sx = cx + i * rx * 0.18f
-                drawLine(
-                    color = hairColor.lighten(0.12f).copy(alpha = 0.2f),
-                    start = Offset(sx, cy),
-                    end = Offset(sx + rx * 0.05f, cy + ry * 0.85f),
-                    strokeWidth = rx * 0.04f,
-                    cap = StrokeCap.Round
+            // Natural strand highlights
+            for (i in -3..3) {
+                val sx = cx + i * rx * 0.15f
+                val strandPath = Path().apply {
+                    moveTo(sx, cy + ry * 0.05f)
+                    cubicTo(
+                        sx + rx * 0.03f, cy + ry * 0.35f,
+                        sx - rx * 0.02f, cy + ry * 0.65f,
+                        sx + rx * 0.04f, cy + ry * 0.92f
+                    )
+                }
+                drawPath(
+                    strandPath,
+                    hairColor.lighten(0.12f).copy(alpha = 0.18f),
+                    style = Stroke(width = rx * 0.035f, cap = StrokeCap.Round)
                 )
             }
         }
@@ -1550,33 +1559,43 @@ private fun DrawScope.drawHairFront(
 private fun DrawScope.drawBuzzCut(
     cx: Float, cy: Float, rx: Float, ry: Float, hairColor: Color
 ) {
-    // Thin stubble cap over head — very short hair
+    // Thin stubble cap over head — very short hair with natural hairline
     val capPath = Path().apply {
-        moveTo(cx - rx * 0.85f, cy - ry * 0.1f)
+        moveTo(cx - rx * 0.88f, cy - ry * 0.05f)
         cubicTo(
-            cx - rx * 0.9f, cy - ry * 0.5f,
-            cx - rx * 0.7f, cy - ry * 0.95f,
-            cx, cy - ry * 1.02f
+            cx - rx * 0.92f, cy - ry * 0.48f,
+            cx - rx * 0.72f, cy - ry * 0.98f,
+            cx, cy - ry * 1.04f
         )
         cubicTo(
-            cx + rx * 0.7f, cy - ry * 0.95f,
-            cx + rx * 0.9f, cy - ry * 0.5f,
-            cx + rx * 0.85f, cy - ry * 0.1f
+            cx + rx * 0.72f, cy - ry * 0.98f,
+            cx + rx * 0.92f, cy - ry * 0.48f,
+            cx + rx * 0.88f, cy - ry * 0.05f
         )
-        // Lower edge following head shape
+        // Natural hairline
         cubicTo(
-            cx + rx * 0.75f, cy - ry * 0.15f,
-            cx + rx * 0.5f, cy - ry * 0.22f,
+            cx + rx * 0.78f, cy - ry * 0.12f,
+            cx + rx * 0.52f, cy - ry * 0.22f,
             cx, cy - ry * 0.25f
         )
         cubicTo(
-            cx - rx * 0.5f, cy - ry * 0.22f,
-            cx - rx * 0.75f, cy - ry * 0.15f,
-            cx - rx * 0.85f, cy - ry * 0.1f
+            cx - rx * 0.52f, cy - ry * 0.22f,
+            cx - rx * 0.78f, cy - ry * 0.12f,
+            cx - rx * 0.88f, cy - ry * 0.05f
         )
         close()
     }
-    drawPath(capPath, hairColor.copy(alpha = 0.55f))
+    drawPath(capPath, hairColor.copy(alpha = 0.50f))
+
+    // Gradient for 3D roundness
+    drawPath(
+        capPath,
+        Brush.radialGradient(
+            colors = listOf(hairColor.lighten(0.08f).copy(alpha = 0.2f), Color.Transparent),
+            center = Offset(cx + rx * 0.05f, cy - ry * 0.6f),
+            radius = rx * 0.6f
+        )
+    )
 
     // Stubble texture dots
     val random = listOf(
@@ -2090,58 +2109,89 @@ private fun DrawScope.drawWavyHairFront(
     cx: Float, cy: Float, rx: Float, ry: Float,
     hairColor: Color, highlight: Color
 ) {
-    // Wavy front bangs
+    // Wavy front hair — flowing, natural waves
     val frontPath = Path().apply {
-        moveTo(cx - rx * 0.9f, cy + ry * 0.05f)
-        cubicTo(cx - rx * 0.95f, cy - ry * 0.5f, cx - rx * 0.7f, cy - ry * 1.05f, cx, cy - ry * 1.1f)
-        cubicTo(cx + rx * 0.7f, cy - ry * 1.05f, cx + rx * 0.95f, cy - ry * 0.5f, cx + rx * 0.9f, cy + ry * 0.05f)
-        // Wavy bangs edge
-        cubicTo(cx + rx * 0.7f, cy - ry * 0.1f, cx + rx * 0.4f, cy - ry * 0.25f, cx + rx * 0.2f, cy - ry * 0.18f)
-        cubicTo(cx, cy - ry * 0.28f, cx - rx * 0.2f, cy - ry * 0.15f, cx - rx * 0.4f, cy - ry * 0.22f)
-        cubicTo(cx - rx * 0.6f, cy - ry * 0.12f, cx - rx * 0.8f, cy - ry * 0.02f, cx - rx * 0.9f, cy + ry * 0.05f)
+        moveTo(cx - rx * 0.94f, cy + ry * 0.08f)
+        cubicTo(cx - rx * 0.98f, cy - ry * 0.45f, cx - rx * 0.72f, cy - ry * 1.06f, cx, cy - ry * 1.12f)
+        cubicTo(cx + rx * 0.72f, cy - ry * 1.06f, cx + rx * 0.98f, cy - ry * 0.45f, cx + rx * 0.94f, cy + ry * 0.08f)
+        // Wavy bangs edge — more pronounced waves
+        cubicTo(cx + rx * 0.72f, cy - ry * 0.06f, cx + rx * 0.42f, cy - ry * 0.22f, cx + rx * 0.18f, cy - ry * 0.14f)
+        cubicTo(cx, cy - ry * 0.26f, cx - rx * 0.22f, cy - ry * 0.12f, cx - rx * 0.42f, cy - ry * 0.20f)
+        cubicTo(cx - rx * 0.62f, cy - ry * 0.08f, cx - rx * 0.82f, cy + ry * 0.02f, cx - rx * 0.94f, cy + ry * 0.08f)
         close()
     }
     drawPath(frontPath, hairColor)
 
-    // Wave texture highlights
+    // Wave texture highlights — more defined S-curves
     for (i in -2..2) {
         val waveX = cx + i * rx * 0.2f
         val wavePath = Path().apply {
-            moveTo(waveX, cy - ry * 0.9f)
+            moveTo(waveX, cy - ry * 0.92f)
             cubicTo(
-                waveX + rx * 0.08f, cy - ry * 0.7f,
-                waveX - rx * 0.08f, cy - ry * 0.5f,
-                waveX + rx * 0.05f, cy - ry * 0.3f
+                waveX + rx * 0.1f, cy - ry * 0.72f,
+                waveX - rx * 0.1f, cy - ry * 0.52f,
+                waveX + rx * 0.06f, cy - ry * 0.28f
             )
         }
-        drawPath(wavePath, highlight.copy(alpha = 0.15f),
-            style = Stroke(width = rx * 0.035f, cap = StrokeCap.Round))
+        drawPath(wavePath, highlight.copy(alpha = 0.18f),
+            style = Stroke(width = rx * 0.04f, cap = StrokeCap.Round))
     }
+
+    // Dome highlight
+    drawPath(
+        frontPath,
+        Brush.radialGradient(
+            colors = listOf(highlight.copy(alpha = 0.14f), Color.Transparent),
+            center = Offset(cx + rx * 0.05f, cy - ry * 0.6f),
+            radius = rx * 0.6f
+        )
+    )
 }
 
 private fun DrawScope.drawBunHairFront(
     cx: Float, cy: Float, rx: Float, ry: Float,
     hairColor: Color, highlight: Color
 ) {
-    // Smooth pulled-back hair
+    // Smooth pulled-back hair with visible scalp parting
     val frontPath = Path().apply {
-        moveTo(cx - rx * 0.88f, cy - ry * 0.02f)
-        cubicTo(cx - rx * 0.92f, cy - ry * 0.5f, cx - rx * 0.65f, cy - ry * 1.0f, cx, cy - ry * 1.05f)
-        cubicTo(cx + rx * 0.65f, cy - ry * 1.0f, cx + rx * 0.92f, cy - ry * 0.5f, cx + rx * 0.88f, cy - ry * 0.02f)
-        cubicTo(cx + rx * 0.65f, cy - ry * 0.12f, cx + rx * 0.3f, cy - ry * 0.25f, cx, cy - ry * 0.28f)
-        cubicTo(cx - rx * 0.3f, cy - ry * 0.25f, cx - rx * 0.65f, cy - ry * 0.12f, cx - rx * 0.88f, cy - ry * 0.02f)
+        moveTo(cx - rx * 0.92f, cy + ry * 0.02f)
+        cubicTo(cx - rx * 0.96f, cy - ry * 0.45f, cx - rx * 0.68f, cy - ry * 1.02f, cx, cy - ry * 1.08f)
+        cubicTo(cx + rx * 0.68f, cy - ry * 1.02f, cx + rx * 0.96f, cy - ry * 0.45f, cx + rx * 0.92f, cy + ry * 0.02f)
+        // Clean pulled-back hairline
+        cubicTo(cx + rx * 0.68f, cy - ry * 0.08f, cx + rx * 0.32f, cy - ry * 0.24f, cx, cy - ry * 0.28f)
+        cubicTo(cx - rx * 0.32f, cy - ry * 0.24f, cx - rx * 0.68f, cy - ry * 0.08f, cx - rx * 0.92f, cy + ry * 0.02f)
         close()
     }
     drawPath(frontPath, hairColor)
 
-    // Smooth gradient
+    // Smooth gradient — sleek pulled-back shine
     drawPath(
         frontPath,
         Brush.radialGradient(
-            colors = listOf(highlight.copy(alpha = 0.12f), Color.Transparent),
-            center = Offset(cx, cy - ry * 0.65f),
-            radius = rx * 0.6f
+            colors = listOf(highlight.copy(alpha = 0.16f), Color.Transparent),
+            center = Offset(cx + rx * 0.05f, cy - ry * 0.68f),
+            radius = rx * 0.55f
         )
+    )
+
+    // Strand direction lines (pulled to bun)
+    for (i in -2..2) {
+        val sx = cx + i * rx * 0.18f
+        val strandPath = Path().apply {
+            moveTo(sx, cy - ry * 0.22f)
+            cubicTo(sx + rx * 0.01f, cy - ry * 0.5f, sx - rx * 0.02f, cy - ry * 0.75f, sx + rx * 0.01f, cy - ry * 0.98f)
+        }
+        drawPath(strandPath, hairColor.darken(0.06f).copy(alpha = 0.25f),
+            style = Stroke(width = rx * 0.01f, cap = StrokeCap.Round))
+    }
+
+    // Part line
+    drawLine(
+        color = hairColor.darken(0.16f),
+        start = Offset(cx, cy - ry * 1.05f),
+        end = Offset(cx, cy - ry * 0.28f),
+        strokeWidth = rx * 0.012f,
+        cap = StrokeCap.Round
     )
 }
 
