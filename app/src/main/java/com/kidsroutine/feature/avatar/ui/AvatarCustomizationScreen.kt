@@ -190,6 +190,7 @@ fun AvatarCustomizationScreen(
                         onItemSelected = { viewModel.equipItem(it) },
                         onMouthShapeSelected = { viewModel.setMouthShape(it) },
                         onEyebrowStyleSelected = { viewModel.setEyebrowStyle(it) },
+                        onFaceShapeSelected = { viewModel.setFaceShape(it) },
                         onLockedItemTapped = { onNavigateToShop() },
                         modifier = Modifier.weight(1f)
                     )
@@ -1016,7 +1017,7 @@ fun EyesSplitPicker(
         }
     }
 }
-// ── Face Split Picker (mouth shape, eyebrow style, face details) ─────────────
+// ── Face Split Picker (face shape, mouth shape, eyebrow style, face details) ─────────────
 
 @Composable
 fun FaceSplitPicker(
@@ -1027,11 +1028,13 @@ fun FaceSplitPicker(
     onItemSelected: (AvatarLayerItem) -> Unit,
     onMouthShapeSelected: (String?) -> Unit,
     onEyebrowStyleSelected: (String?) -> Unit,
+    onFaceShapeSelected: (String?) -> Unit,
     onLockedItemTapped: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val selectedMouth = avatarState.mouthShape
     val selectedEyebrow = avatarState.eyebrowStyle
+    val selectedFaceShape = avatarState.faceShape
     val activeFaceDetailId = avatarState.activeFaceDetail?.id
 
     Column(
@@ -1040,6 +1043,69 @@ fun FaceSplitPicker(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 12.dp)
     ) {
+        // ── Face Shape Row ────────────────────────────────────────────────
+        Text(
+            "Face Shape",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF3D3A5C),
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(bottom = 10.dp)
+        ) {
+            item {
+                val isSelected = selectedFaceShape == null
+                Surface(
+                    onClick = { onFaceShapeSelected(null) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFFFF8A65).copy(alpha = 0.2f) else Color(0xFFFFE0D0),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFFFF8A65) else Color(0xFFFF8A65).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        "Default",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFFFF8A65) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+            items(AvatarSeeder.faceShapes) { (id, name) ->
+                val isSelected = selectedFaceShape == id
+                val emoji = when (id) {
+                    "round" -> "🟠"
+                    "oval" -> "🥚"
+                    "heart" -> "💖"
+                    "square" -> "🟧"
+                    "diamond" -> "💎"
+                    "petite" -> "🌸"
+                    else -> "😊"
+                }
+                Surface(
+                    onClick = { onFaceShapeSelected(id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Color(0xFFFF8A65).copy(alpha = 0.2f) else Color(0xFFFFE0D0),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) Color(0xFFFF8A65) else Color(0xFFFF8A65).copy(alpha = 0.25f)
+                    )
+                ) {
+                    Text(
+                        "$emoji $name",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color(0xFFFF8A65) else Color(0xFF3D3A5C)
+                    )
+                }
+            }
+        }
+
         // ── Mouth Shape Row ──────────────────────────────────────────────
         Text(
             "Mouth",
