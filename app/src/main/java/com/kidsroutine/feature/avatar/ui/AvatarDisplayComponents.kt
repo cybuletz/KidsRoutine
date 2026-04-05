@@ -73,8 +73,7 @@ fun AvatarPreviewCard(
                 hairItem = avatarState.activeHair,
                 hairColor = Color(avatarState.resolvedHairColor),
                 outfitItem = avatarState.activeOutfit,
-                accessoryItem = avatarState.activeAccessory,
-                shoesItem = avatarState.activeShoes
+                accessoryItem = avatarState.activeAccessory
             )
         }
 
@@ -292,8 +291,7 @@ private fun DrawScope.drawPortraitCharacter(
     hairItem: AvatarLayerItem?,
     hairColor: Color,
     outfitItem: AvatarLayerItem?,
-    accessoryItem: AvatarLayerItem?,
-    shoesItem: AvatarLayerItem?
+    accessoryItem: AvatarLayerItem?
 ) {
     val w = size.width
     val h = size.height
@@ -2960,7 +2958,9 @@ fun SkinTonePicker(
         0xFFE8B88A to "Medium",
         0xFFD4956B to "Tan",
         0xFFA56B42 to "Brown",
-        0xFF6B3A20 to "Deep"
+        0xFF6B3A20 to "Deep",
+        0xFF4A2912 to "Dark Brown",
+        0xFF2C1A0E to "Black"
     )
 
     Row(

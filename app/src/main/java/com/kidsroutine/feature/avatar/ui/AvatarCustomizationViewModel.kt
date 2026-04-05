@@ -166,8 +166,7 @@ class AvatarCustomizationViewModel @Inject constructor(
                     activeHair = AvatarSeeder.freeHair.firstOrNull {
                         state.currentAvatar.gender in it.compatibleGenders
                     },
-                    activeOutfit = AvatarSeeder.freeOutfits.first(),
-                    activeShoes = AvatarSeeder.freeShoes.firstOrNull()
+                    activeOutfit = AvatarSeeder.freeOutfits.first()
                 )
             )
         }
@@ -205,9 +204,6 @@ class AvatarCustomizationViewModel @Inject constructor(
             AvatarCustomizationTab.EYES -> AvatarSeeder.freeEyeStyles
             AvatarCustomizationTab.FACE -> AvatarSeeder.freeFaceDetails
             AvatarCustomizationTab.OUTFIT -> AvatarSeeder.freeOutfits
-            AvatarCustomizationTab.SHOES -> AvatarSeeder.freeShoes.filter {
-                gender in it.compatibleGenders
-            }
             AvatarCustomizationTab.ACCESSORY -> AvatarSeeder.freeAccessories.filter {
                 gender in it.compatibleGenders
             }
@@ -223,7 +219,6 @@ class AvatarCustomizationViewModel @Inject constructor(
             AvatarCustomizationTab.EYES -> AvatarLayerType.EYE_STYLE
             AvatarCustomizationTab.FACE -> AvatarLayerType.FACE_DETAIL
             AvatarCustomizationTab.OUTFIT -> AvatarLayerType.OUTFIT
-            AvatarCustomizationTab.SHOES -> AvatarLayerType.SHOES
             AvatarCustomizationTab.ACCESSORY -> AvatarLayerType.ACCESSORY
             AvatarCustomizationTab.SPECIAL_FX -> AvatarLayerType.SPECIAL_FX
         }

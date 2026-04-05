@@ -358,7 +358,6 @@ fun AvatarItemGrid(
         AvatarCustomizationTab.EYES -> avatarState.activeEyeStyle?.id
         AvatarCustomizationTab.FACE -> avatarState.activeFaceDetail?.id
         AvatarCustomizationTab.OUTFIT -> avatarState.activeOutfit?.id
-        AvatarCustomizationTab.SHOES -> avatarState.activeShoes?.id
         AvatarCustomizationTab.ACCESSORY -> avatarState.activeAccessory?.id
         AvatarCustomizationTab.SPECIAL_FX -> avatarState.activeSpecialFx?.id
     }
@@ -370,7 +369,6 @@ fun AvatarItemGrid(
         AvatarCustomizationTab.EYES -> AvatarLayerType.EYE_STYLE
         AvatarCustomizationTab.FACE -> AvatarLayerType.FACE_DETAIL
         AvatarCustomizationTab.OUTFIT -> AvatarLayerType.OUTFIT
-        AvatarCustomizationTab.SHOES -> AvatarLayerType.SHOES
         AvatarCustomizationTab.ACCESSORY -> AvatarLayerType.ACCESSORY
         AvatarCustomizationTab.SPECIAL_FX -> AvatarLayerType.SPECIAL_FX
     }
