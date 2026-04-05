@@ -78,6 +78,8 @@ data class AvatarState(
     val activeSpecialFx: AvatarLayerItem? = null,
     val activeEyeStyle: AvatarLayerItem? = null,    // eye colour
     val eyeShape: String? = null,                   // eye shape id (almond, round, cat, wide, narrow)
+    val mouthShape: String? = null,                 // mouth shape id (smile, grin, open, smirk, pout, laugh)
+    val eyebrowStyle: String? = null,               // eyebrow style id (natural, arched, thick, thin, flat, curved)
     val activeFaceDetail: AvatarLayerItem? = null,  // face variations (dimples, freckles, beauty mark)
     val unlockedItemIds: Set<String> = emptySet(),
     val ownedPackIds: Set<String> = emptySet()

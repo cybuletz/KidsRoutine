@@ -97,6 +97,14 @@ val MIGRATION_8_TO_9 = object : Migration(8, 9) {
     }
 }
 
+val MIGRATION_9_TO_10 = object : Migration(9, 10) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        // Add mouth shape and eyebrow style columns to avatar table
+        database.execSQL("ALTER TABLE `avatar` ADD COLUMN `mouthShapeId` TEXT")
+        database.execSQL("ALTER TABLE `avatar` ADD COLUMN `eyebrowStyleId` TEXT")
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
@@ -104,7 +112,7 @@ val MIGRATION_8_TO_9 = object : Migration(8, 9) {
         UserEntity::class,
         AvatarEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 
@@ -132,7 +140,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_5_TO_6,
                         MIGRATION_6_TO_7,
                         MIGRATION_7_TO_8,
-                        MIGRATION_8_TO_9
+                        MIGRATION_8_TO_9,
+                        MIGRATION_9_TO_10
                     )
                     .build()
                     .also { instance = it }
