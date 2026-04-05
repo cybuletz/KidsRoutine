@@ -158,6 +158,7 @@ class AvatarRepositoryImpl @Inject constructor(
             eyeShape = eyeShapeId,
             mouthShape = mouthShapeId,
             eyebrowStyle = eyebrowStyleId,
+            faceShape = faceShapeId,
             activeFaceDetail = find(activeFaceDetailId),
             unlockedItemIds = jsonToStringSet(unlockedItemIdsJson),
             ownedPackIds = jsonToStringSet(ownedPackIdsJson)
@@ -178,6 +179,7 @@ class AvatarRepositoryImpl @Inject constructor(
         eyeShapeId = eyeShape,
         mouthShapeId = mouthShape,
         eyebrowStyleId = eyebrowStyle,
+        faceShapeId = faceShape,
         activeFaceDetailId = activeFaceDetail?.id,
         hairColorOverride = hairColor,
         unlockedItemIdsJson = stringSetToJson(unlockedItemIds),
@@ -200,6 +202,7 @@ class AvatarRepositoryImpl @Inject constructor(
         "eyeShape" to eyeShape,
         "mouthShape" to mouthShape,
         "eyebrowStyle" to eyebrowStyle,
+        "faceShape" to faceShape,
         "activeFaceDetailId" to activeFaceDetail?.id,
         "unlockedItemIds" to unlockedItemIds.toList(),
         "ownedPackIds" to ownedPackIds.toList(),

@@ -359,6 +359,16 @@ object AvatarSeeder {
         "curved" to "Curved"
     )
 
+    // ── Face Shapes ────────────────────────────────────────────────────────
+    val faceShapes = listOf(
+        "round" to "Round",
+        "oval" to "Oval",
+        "heart" to "Heart",
+        "square" to "Square",
+        "diamond" to "Diamond",
+        "petite" to "Petite"
+    )
+
     // ── Free Face Details (real face variations, not stickers) ──────────────
     val freeFaceDetails = listOf(
         AvatarLayerItem(
