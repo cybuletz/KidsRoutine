@@ -134,7 +134,8 @@ fun PetScreen(
                 uiState.pet != null -> {
                     PetDisplay(
                         pet = uiState.pet!!,
-                        onFeed = viewModel::feedPet,
+                        currentXp = uiState.currentXp,
+                        onFeed = { viewModel.feedPet(currentUser.userId) },
                         onInteract = viewModel::interactWithPet
                     )
                 }
@@ -165,6 +166,7 @@ fun PetScreen(
 @Composable
 private fun PetDisplay(
     pet: PetModel,
+    currentXp: Int = 0,
     onFeed: () -> Unit,
     onInteract: () -> Unit
 ) {
@@ -289,13 +291,23 @@ private fun PetDisplay(
                     .weight(1f)
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = HappinessGreen)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetUiState.FEED_COST) HappinessGreen else Color.Gray
+                ),
+                enabled = currentXp >= PetUiState.FEED_COST
             ) {
-                Text(
-                    text = "Feed 🍖",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Feed 🍖",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${PetUiState.FEED_COST} XP",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
 
             Button(
@@ -309,11 +321,18 @@ private fun PetDisplay(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Accent)
             ) {
-                Text(
-                    text = "Play 🎾",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Play 🎾",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Free",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
         }
 
