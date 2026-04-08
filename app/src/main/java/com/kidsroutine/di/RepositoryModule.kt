@@ -30,6 +30,8 @@ import com.kidsroutine.feature.notifications.data.NotificationRepository
 import com.kidsroutine.feature.notifications.data.NotificationRepositoryImpl
 import com.kidsroutine.feature.stats.data.StatsRepository
 import com.kidsroutine.feature.stats.data.StatsRepositoryImpl
+import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
+import com.kidsroutine.feature.spinwheel.data.SpinWheelRepositoryImpl
 import com.kidsroutine.feature.world.data.WorldRepository
 import com.kidsroutine.feature.world.data.WorldRepositoryImpl
 import dagger.Binds
@@ -87,6 +89,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindBossRepository(impl: BossRepositoryImpl): BossRepository
+
+    @Binds @Singleton
+    abstract fun bindSpinWheelRepository(impl: SpinWheelRepositoryImpl): SpinWheelRepository
 
     companion object {
 
