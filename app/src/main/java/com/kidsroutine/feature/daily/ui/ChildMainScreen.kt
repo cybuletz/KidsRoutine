@@ -144,7 +144,15 @@ fun ChildMainScreen(
                     onProfileClick         = { parentNavController.navigate(Routes.CHILD_PROFILE) },
                     onNotificationsClick   = { innerNavController.navigate("notifications") },
                     onLootBoxClick         = { innerNavController.navigate("lootbox") },
-                    onWorldClick           = { innerNavController.navigate("world") }
+                    onWorldClick           = { innerNavController.navigate("world") },
+                    onPetClick             = { innerNavController.navigate("pet") },
+                    onBossBattleClick      = { innerNavController.navigate("boss_battle") },
+                    onSpinWheelClick       = { innerNavController.navigate("spin_wheel") },
+                    onEventsClick          = { innerNavController.navigate("events") },
+                    onStoryArcClick        = { innerNavController.navigate("story_arc") },
+                    onWalletClick          = { innerNavController.navigate("wallet") },
+                    onSkillTreeClick       = { innerNavController.navigate("skill_tree") },
+                    onRitualsClick         = { innerNavController.navigate("rituals") }
                 )
             }
 

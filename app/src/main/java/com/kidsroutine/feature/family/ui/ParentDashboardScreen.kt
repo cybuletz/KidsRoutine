@@ -65,6 +65,14 @@ import com.kidsroutine.feature.settings.ui.SettingsScreen
 import com.kidsroutine.feature.tasks.ui.TaskDetailsScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
 import com.kidsroutine.feature.tasks.ui.TaskManagementViewModel
+import com.kidsroutine.feature.rituals.ui.RitualsScreen
+import com.kidsroutine.feature.wallet.ui.WalletScreen
+import com.kidsroutine.feature.events.ui.EventScreen
+import com.kidsroutine.feature.pet.ui.PetScreen
+import com.kidsroutine.feature.boss.ui.BossScreen
+import com.kidsroutine.feature.spinwheel.ui.SpinWheelScreen
+import com.kidsroutine.feature.storyarc.ui.StoryArcScreen
+import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val GradientStart = Color(0xFFFF6B35)
@@ -198,7 +206,15 @@ fun ParentDashboardScreen(
                     onMarketplaceClick  = { innerNav.navigate("marketplace") },
                     onPublishClick      = { innerNav.navigate("publish") },
                     onContentPacksClick = onContentPacksClick,
-                    onModerationClick   = { innerNav.navigate("moderation") }
+                    onModerationClick   = { innerNav.navigate("moderation") },
+                    onRitualsClick      = { innerNav.navigate("parent_rituals") },
+                    onWalletClick       = { innerNav.navigate("parent_wallet") },
+                    onEventsClick       = { innerNav.navigate("parent_events") },
+                    onPetClick          = { innerNav.navigate("parent_pet") },
+                    onBossClick         = { innerNav.navigate("parent_boss") },
+                    onSpinClick         = { innerNav.navigate("parent_spin") },
+                    onStoryClick        = { innerNav.navigate("parent_story") },
+                    onSkillsClick       = { innerNav.navigate("parent_skills") }
                 )
             }
             composable("settings") {
@@ -236,6 +252,62 @@ fun ParentDashboardScreen(
             composable("privilege_approvals") {
                 currentTab = "home"
                 ParentPrivilegeApprovalsScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_rituals") {
+                currentTab = "discover"
+                RitualsScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_wallet") {
+                currentTab = "discover"
+                WalletScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_events") {
+                currentTab = "discover"
+                EventScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_pet") {
+                currentTab = "discover"
+                PetScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_boss") {
+                currentTab = "discover"
+                BossScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_spin") {
+                currentTab = "discover"
+                SpinWheelScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_story") {
+                currentTab = "discover"
+                StoryArcScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNav.popBackStack() }
+                )
+            }
+            composable("parent_skills") {
+                currentTab = "discover"
+                SkillTreeScreen(
                     currentUser = currentUser,
                     onBackClick = { innerNav.popBackStack() }
                 )
@@ -807,13 +879,25 @@ private fun ParentDiscoverTab(
     onMarketplaceClick: () -> Unit,
     onPublishClick: () -> Unit,
     onContentPacksClick: () -> Unit = {},
-    onModerationClick: () -> Unit = {}
+    onModerationClick: () -> Unit = {},
+    onRitualsClick: () -> Unit = {},
+    onWalletClick: () -> Unit = {},
+    onEventsClick: () -> Unit = {},
+    onPetClick: () -> Unit = {},
+    onBossClick: () -> Unit = {},
+    onSpinClick: () -> Unit = {},
+    onStoryClick: () -> Unit = {},
+    onSkillsClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().background(BgLight).verticalScroll(rememberScrollState())) {
         Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
             Text("Discover", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
         Spacer(Modifier.height(20.dp))
+
+        // ── Tools ──────────────────────────────────────────────────────
+        Text("Tools", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
+        Spacer(Modifier.height(8.dp))
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             DiscoverCard("✨", "AI Task Generator",  "Create personalised tasks using AI",        Color(0xFF4A90E2), onGenerationClick)
             DiscoverCard("📅", "Weekly Planner",     "AI 7-day family schedule · PRO",            Color(0xFF11998E), onWeeklyPlanClick)
@@ -823,6 +907,23 @@ private fun ParentDiscoverTab(
             if (currentUser.isAdmin) {
                 DiscoverCard("🛡️", "Moderation Panel", "Admin only — review community content",  Color(0xFFE74C3C), onModerationClick)
             }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // ── Family Features ────────────────────────────────────────────
+        Text("Family Features", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
+        Text("Fun activities available to your children", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 20.dp))
+        Spacer(Modifier.height(8.dp))
+        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            DiscoverCard("🙏", "Family Rituals",    "Gratitude circle, family meetings & bonding",     Color(0xFF9B5DE5), onRitualsClick)
+            DiscoverCard("💰", "Family Wallet",     "Savings goals & financial literacy for kids",      Color(0xFF11998E), onWalletClick)
+            DiscoverCard("📅", "Timed Events",      "Seasonal limited-time challenges & rewards",       Color(0xFF4361EE), onEventsClick)
+            DiscoverCard("🐾", "Companion Pet",     "Your child's virtual pet companion",               Color(0xFF06D6A0), onPetClick)
+            DiscoverCard("⚔️", "Boss Battles",      "Weekly family boss battles for bonus rewards",     Color(0xFFEF476F), onBossClick)
+            DiscoverCard("🎡", "Daily Spin Wheel",  "Daily reward spin for fun surprises",              Color(0xFFFF9F1C), onSpinClick)
+            DiscoverCard("📖", "Story Arcs",        "Multi-day narrative adventures for your children",  Color(0xFF8B5CF6), onStoryClick)
+            DiscoverCard("🌳", "Skill Trees",       "Visual skill progression & unlocks",                Color(0xFF667EEA), onSkillsClick)
         }
         Spacer(Modifier.height(32.dp))
     }
