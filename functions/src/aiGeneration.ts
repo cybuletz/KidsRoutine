@@ -57,6 +57,11 @@ const VALID_TYPES = ["LOGIC", "REAL_LIFE", "CREATIVE", "LEARNING", "EMOTIONAL", 
 const VALID_DIFFICULTIES = ["EASY", "MEDIUM", "HARD"];
 const VALID_CHALLENGE_CATEGORIES = ["HEALTH", "SLEEP", "SOCIAL", "CREATIVITY", "LEARNING", "SCREEN_TIME"];
 
+// Trial prompt limits for FREE tier users (configurable)
+const DEFAULT_TRIAL_CHALLENGE_LIMIT = 2;
+const DEFAULT_TRIAL_PLAN_LIMIT = 2;
+const DEFAULT_TRIAL_WEEKLY_PLAN_LIMIT = 1;
+
 // ===== HELPER FUNCTIONS =====
 
 async function getGeminiApiKey(): Promise<string> {
@@ -206,6 +211,10 @@ export const generateTasksAI = functions.https.onCall(async (data: any, context:
       tasksLimit: tier === "FREE" ? 1 : tier === "PRO" ? 20 : 999,
       challengesGenerated: 0,
       challengesLimit: tier === "FREE" ? 0 : tier === "PRO" ? 5 : 50,
+      trialChallengesUsed: 0,
+      trialChallengeLimit: DEFAULT_TRIAL_CHALLENGE_LIMIT,
+      trialPlansUsed: 0,
+      trialPlanLimit: DEFAULT_TRIAL_PLAN_LIMIT,
       resetDate: admin.firestore.Timestamp.now(),
     };
 
@@ -547,6 +556,10 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
       tasksLimit: tier === "FREE" ? 1 : tier === "PRO" ? 20 : 999,
       challengesGenerated: 0,
       challengesLimit: tier === "FREE" ? 0 : tier === "PRO" ? 5 : 50,
+      trialChallengesUsed: 0,
+      trialChallengeLimit: DEFAULT_TRIAL_CHALLENGE_LIMIT,
+      trialPlansUsed: 0,
+      trialPlanLimit: DEFAULT_TRIAL_PLAN_LIMIT,
       resetDate: admin.firestore.Timestamp.now(),
     };
 
@@ -567,7 +580,7 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
     if (tier === "FREE") {
       // Check if user has trial prompts remaining
       const trialUsed = quota.trialChallengesUsed ?? 0;
-      const trialLimit = quota.trialChallengeLimit ?? 2;  // Default 2 trial prompts
+      const trialLimit = quota.trialChallengeLimit ?? DEFAULT_TRIAL_CHALLENGE_LIMIT;  // Default 2 trial prompts
       if (trialUsed >= trialLimit) {
         throw new functions.https.HttpsError(
           "permission-denied",
@@ -578,7 +591,8 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
       console.log(`[AIGeneration] FREE tier trial challenge: ${trialUsed + 1}/${trialLimit}`);
     }
 
-    if (quota.challengesGenerated >= quota.challengesLimit) {
+    // Skip regular quota check for FREE trial users (handled above)
+    if (tier !== "FREE" && quota.challengesGenerated >= quota.challengesLimit) {
       throw new functions.https.HttpsError(
         "resource-exhausted",
         `Challenge generation limit reached: ${quota.challengesGenerated}/${quota.challengesLimit}`
@@ -639,7 +653,7 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
         await db.collection("ai_quotas").doc(userId).set(quota);
 
         const trialRemaining = tier === "FREE"
-          ? (quota.trialChallengeLimit ?? 2) - (quota.trialChallengesUsed ?? 0)
+          ? (quota.trialChallengeLimit ?? DEFAULT_TRIAL_CHALLENGE_LIMIT) - (quota.trialChallengesUsed ?? 0)
           : quota.challengesLimit - quota.challengesGenerated;
 
         console.log(
@@ -824,7 +838,7 @@ console.error(`[AIGeneration] Parse error (attempt ${i + 1}):`, (e as Error).mes
     });
 
     const trialRemaining = tier === "FREE"
-      ? (quota.trialChallengeLimit ?? 2) - (quota.trialChallengesUsed ?? 0)
+      ? (quota.trialChallengeLimit ?? DEFAULT_TRIAL_CHALLENGE_LIMIT) - (quota.trialChallengesUsed ?? 0)
       : quota.challengesLimit - quota.challengesGenerated;
 
     console.log(
@@ -884,9 +898,9 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
       plansGenerated: 0,
       plansLimit: tier === "PRO" ? 3 : tier === "PREMIUM" ? 10 : 0,
       trialChallengesUsed: 0,
-      trialChallengeLimit: 2,
+      trialChallengeLimit: DEFAULT_TRIAL_CHALLENGE_LIMIT,
       trialPlansUsed: 0,
-      trialPlanLimit: 2,
+      trialPlanLimit: DEFAULT_TRIAL_PLAN_LIMIT,
       resetDate: admin.firestore.Timestamp.now(),
     };
 
@@ -905,7 +919,7 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
     if (tier === "FREE") {
       // Check trial prompts for daily plans
       const trialUsed = quota.trialPlansUsed ?? 0;
-      const trialLimit = quota.trialPlanLimit ?? 2;  // Default 2 trial prompts
+      const trialLimit = quota.trialPlanLimit ?? DEFAULT_TRIAL_PLAN_LIMIT;  // Default 2 trial prompts
       if (trialUsed >= trialLimit) {
         throw new functions.https.HttpsError(
           "permission-denied",
@@ -947,7 +961,7 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
       }
       await db.collection("ai_quotas").doc(userId).set(quota);
       const trialRemaining = tier === "FREE"
-        ? (quota.trialPlanLimit ?? 2) - (quota.trialPlansUsed ?? 0)
+        ? (quota.trialPlanLimit ?? DEFAULT_TRIAL_PLAN_LIMIT) - (quota.trialPlansUsed ?? 0)
         : plansLimit - quota.plansGenerated;
       return {
         success: true,
@@ -1073,7 +1087,7 @@ Return ONLY a valid JSON object matching the OUTPUT SCHEMA.`;
     });
 
     const trialRemaining = tier === "FREE"
-      ? (quota.trialPlanLimit ?? 2) - (quota.trialPlansUsed ?? 0)
+      ? (quota.trialPlanLimit ?? DEFAULT_TRIAL_PLAN_LIMIT) - (quota.trialPlansUsed ?? 0)
       : plansLimit - quota.plansGenerated;
 
     console.log(`[DailyPlan] ✅ Plan generated: "${plan.theme}", ${plan.tasks.length} tasks, ${plan.totalXp} XP`);
