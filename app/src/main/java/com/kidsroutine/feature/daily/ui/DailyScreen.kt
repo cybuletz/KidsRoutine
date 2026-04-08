@@ -636,6 +636,8 @@ fun TaskCard(
 
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            // Difficulty stars
+                            DifficultyStars(difficulty = task.difficulty, isDone = isDone)
                             if (task.requiresCoop) TaskChip("CO-OP", CoopPurple)
                             if (instance.injectedByChallengeId != null) TaskChip("CHALLENGE", TealSecondary)
                             if (isDone) TaskChip("DONE", DoneGreen)
@@ -654,6 +656,26 @@ fun TaskCard(
                                 style      = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
+                            // Show XP multiplier for harder quests
+                            if (task.difficulty != DifficultyLevel.EASY) {
+                                val multiplierText = when (task.difficulty) {
+                                    DifficultyLevel.MEDIUM -> "2×"
+                                    DifficultyLevel.HARD   -> "3×"
+                                    else -> ""
+                                }
+                                val multiplierColor = when (task.difficulty) {
+                                    DifficultyLevel.MEDIUM -> Color(0xFFFF9800)
+                                    DifficultyLevel.HARD   -> Color(0xFFE53935)
+                                    else -> Color.Gray
+                                }
+                                Text(
+                                    multiplierText,
+                                    color      = if (isDone) Color.Gray else multiplierColor,
+                                    style      = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize   = 11.sp
+                                )
+                            }
                             Text("·", color = Color.Gray)
                             Text("~${task.estimatedDurationSec}s", color = Color.Gray, style = MaterialTheme.typography.labelLarge)
                         }
@@ -666,6 +688,32 @@ fun TaskCard(
                     }
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DifficultyStars — visual difficulty indicator for quests
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun DifficultyStars(difficulty: DifficultyLevel, isDone: Boolean) {
+    val starCount = when (difficulty) {
+        DifficultyLevel.EASY   -> 1
+        DifficultyLevel.MEDIUM -> 2
+        DifficultyLevel.HARD   -> 3
+    }
+    val starColor = when (difficulty) {
+        DifficultyLevel.EASY   -> Color(0xFF4CAF50)
+        DifficultyLevel.MEDIUM -> Color(0xFFFF9800)
+        DifficultyLevel.HARD   -> Color(0xFFE53935)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+        repeat(starCount) {
+            Text(
+                "⭐",
+                fontSize = 10.sp,
+                color    = if (isDone) Color.Gray else starColor
+            )
         }
     }
 }
