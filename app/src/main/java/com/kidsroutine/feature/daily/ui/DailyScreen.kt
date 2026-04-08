@@ -985,16 +985,9 @@ private fun FunZoneTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scale by animateFloatAsState(
-        targetValue   = 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label         = "funZone_$label"
-    )
-
     Card(
         modifier  = modifier
             .aspectRatio(1f)
-            .scale(scale)
             .clickable(onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.10f)),
