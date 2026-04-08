@@ -101,7 +101,8 @@ export const notifyParentControlUpdate = functions.firestore
         }
       }
 
-      // ── Also notify parents for confirmation (if update, not create) ─
+      // ── Send silent refresh trigger to parents (they initiated the action,
+      //    so no visible notification needed — just a data message for screen sync) ─
       if (!isCreate && changes.length > 0) {
         try {
           const parentSnapshot = await db
