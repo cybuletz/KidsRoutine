@@ -424,7 +424,7 @@ private fun PetShopSection(
     onPurchase: (PetAccessory) -> Unit,
     onEquip: (String) -> Unit
 ) {
-    var selectedCategory by remember { mutableStateOf(PetAccessoryCategory.entries.first()) }
+    var selectedCategory by remember { mutableStateOf(PetAccessoryCategory.HAT) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
