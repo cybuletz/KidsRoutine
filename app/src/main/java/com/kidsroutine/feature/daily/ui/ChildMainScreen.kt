@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -120,6 +121,17 @@ fun ChildMainScreen(
 
     // Tracks whether the world node detail card is open — used to hide FABs
     var worldDetailShowing by remember { mutableStateOf(false) }
+
+    // Weekly XP Summary overlay — shows on Monday
+    var showWeeklySummary by remember { mutableStateOf(false) }
+    LaunchedEffect(currentUser.userId) {
+        val today = java.time.LocalDate.now()
+        if (today.dayOfWeek == java.time.DayOfWeek.MONDAY) {
+            // Show the summary on Monday if it hasn't been dismissed yet this session
+            delay(1500) // Brief delay for the screen to load
+            showWeeklySummary = true
+        }
+    }
 
     LaunchedEffect(currentUser.userId) {
         notificationViewModel.loadNotifications(currentUser.userId)
@@ -370,6 +382,14 @@ fun ChildMainScreen(
                     .statusBarsPadding()
                     .offset(y = 2.dp)
                     .zIndex(20f)
+            )
+        }
+
+        // ── Weekly XP Summary Overlay ────────────────────────────────────
+        if (showWeeklySummary) {
+            WeeklyXpSummaryOverlay(
+                user = currentUser,
+                onDismiss = { showWeeklySummary = false }
             )
         }
     }
@@ -1006,6 +1026,216 @@ private fun XpBalanceWidget(
                 fontSize   = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color      = OrangePrimary
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Weekly XP Summary — animated recap overlay shown on Monday mornings
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun WeeklyXpSummaryOverlay(
+    user: UserModel,
+    onDismiss: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "weeklyGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse),
+        label = "weeklyGlowAlpha"
+    )
+
+    // Animated entrance
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "weeklyScale"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(onClick = onDismiss)
+            .zIndex(50f),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .clickable { /* prevent dismiss on card click */ },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header with animated trophy
+                Text("🏆", fontSize = 48.sp, modifier = Modifier.graphicsLayer { this.alpha = glowAlpha })
+                Text(
+                    "Weekly Recap",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = OrangePrimary
+                )
+                Text(
+                    "Here's how last week went!",
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+
+                // Stats grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "⭐",
+                        value = "${user.weeklyXp}",
+                        label = "XP Earned",
+                        color = Color(0xFFFF9800),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "💎",
+                        value = "${user.xp}",
+                        label = "Total XP",
+                        color = Color(0xFF4361EE),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "🔥",
+                        value = "${user.streak}d",
+                        label = "Streak",
+                        color = Color(0xFFE53935),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "📈",
+                        value = "Lvl ${user.level}",
+                        label = "Level",
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "🏅",
+                        value = user.league.name.lowercase()
+                            .replaceFirstChar { it.uppercase() },
+                        label = "League",
+                        color = Color(0xFF6A1B9A),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "🐾",
+                        value = if (user.petId.isNotEmpty()) "Happy" else "—",
+                        label = "Pet Status",
+                        color = Color(0xFF06D6A0),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // Motivational message
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF3E0)
+                ) {
+                    Text(
+                        text = when {
+                            user.weeklyXp >= 200 -> "🌟 Amazing week! You're on fire!"
+                            user.weeklyXp >= 100 -> "💪 Great effort! Keep pushing!"
+                            user.weeklyXp >= 50  -> "👍 Good start! Let's aim higher!"
+                            else                  -> "🚀 New week, new goals! Let's go!"
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = OrangePrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Dismiss button
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Text(
+                        "Let's Go! 🚀",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyStat(
+    emoji: String,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = color.copy(alpha = 0.08f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(emoji, fontSize = 24.sp)
+            Text(
+                value,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                color = color
+            )
+            Text(
+                label,
+                fontSize = 10.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
