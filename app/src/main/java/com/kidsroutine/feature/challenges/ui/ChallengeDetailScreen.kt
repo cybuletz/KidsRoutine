@@ -442,6 +442,88 @@ fun ChallengeDetailScreen(
                         }
                     }
 
+                    // Streak Milestones section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "🏆 Streak Milestones",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDark
+                            )
+                            Text(
+                                text = "Keep your streak alive to unlock bonus rewards!",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+
+                            val milestones = listOf(
+                                Triple(7, "🥉 Bronze Streak", "+25 XP bonus"),
+                                Triple(14, "🥈 Silver Streak", "+75 XP bonus"),
+                                Triple(30, "🥇 Gold Streak", "+200 XP bonus + 🎁 Special Reward")
+                            )
+
+                            milestones.forEach { (days, title, reward) ->
+                                val reached = progress.currentStreak >= days
+                                val progressToMilestone = (progress.currentStreak.toFloat() / days).coerceIn(0f, 1f)
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (reached) Color(0xFFE8F5E9) else Color(0xFFF5F5F5),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = title,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = if (reached) Color(0xFF2E7D32) else TextDark
+                                            )
+                                            Text(
+                                                text = if (reached) "✅ Unlocked!" else "${days - progress.currentStreak} days to go",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (reached) Color(0xFF4CAF50) else Color.Gray
+                                            )
+                                        }
+                                        Text(
+                                            text = reward,
+                                            fontSize = 11.sp,
+                                            color = if (reached) Color(0xFF2E7D32) else Color.Gray
+                                        )
+                                        LinearProgressIndicator(
+                                            progress = { progressToMilestone },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = if (reached) Color(0xFF4CAF50) else GradientStart,
+                                            trackColor = Color(0xFFE0E0E0)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Daily progress - last 7 days
                     Card(
                         modifier = Modifier.fillMaxWidth(),
