@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.common.util.SoundManager
+import com.kidsroutine.core.model.AgeGroup
 import com.kidsroutine.feature.execution.ui.ExecutionEvent
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -36,12 +37,20 @@ import kotlin.random.Random
  */
 @Composable
 fun MemoryGameBlock(
+    ageGroup: AgeGroup = AgeGroup.EXPLORER,
     onSuccess: () -> Unit
 ) {
-    val pairs = listOf("🐱", "🐶", "🦊")
+    // Scale pairs count based on age group
+    val pairs = when (ageGroup) {
+        AgeGroup.SPROUT -> listOf("🐱", "🐶", "🦊")                       // 3 pairs = easy
+        AgeGroup.EXPLORER -> listOf("🐱", "🐶", "🦊", "🐰", "🦁")        // 5 pairs = medium
+        AgeGroup.TRAILBLAZER -> listOf("🇫🇷", "🇬🇧", "🇯🇵", "🇧🇷", "🇩🇪", "🇮🇹")  // 6 pairs, flags
+        AgeGroup.LEGEND -> listOf("H₂O", "NaCl", "CO₂", "O₂", "Fe", "Au", "Ag")  // 7 pairs, elements
+    }
     val cards = remember { (pairs + pairs).shuffled() }
-    var revealed by remember { mutableStateOf(List(6) { false }) }
-    var matched by remember { mutableStateOf(List(6) { false }) }
+    val cardCount = cards.size
+    var revealed by remember { mutableStateOf(List(cardCount) { false }) }
+    var matched by remember { mutableStateOf(List(cardCount) { false }) }
     var selected by remember { mutableStateOf<List<Int>>(emptyList()) }
     var successShown by remember { mutableStateOf(false) }
     var moves by remember { mutableStateOf(0) }
@@ -62,7 +71,7 @@ fun MemoryGameBlock(
             } else {
                 SoundManager.playError()
             }
-            revealed = List(6) { i -> matched[i] }
+            revealed = List(cardCount) { i -> matched[i] }
             selected = emptyList()
             moves++
             isLocked = false
@@ -105,32 +114,42 @@ fun MemoryGameBlock(
             Text("Moves: $moves", fontWeight = FontWeight.Bold, color = Color(0xFFFF6B35))
         }
 
-        // Game Grid (2x3)
+        // Game Grid (dynamic based on card count)
+        val columns = when {
+            cardCount <= 6  -> 3
+            cardCount <= 10 -> 4
+            else -> 5
+        }
+        val rows = (cardCount + columns - 1) / columns
         Column(
             Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            for (row in 0..1) {
+            for (row in 0 until rows) {
                 Row(
                     Modifier.fillMaxWidth(0.9f),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    for (col in 0..2) {
-                        val idx = row * 3 + col
-                        MemoryCard(
-                            emoji = cards[idx],
-                            isRevealed = revealed[idx] || matched[idx],
-                            isMatched = matched[idx],
-                            index = idx,
-                            onClick = {
-                                if (!isLocked && !revealed[idx] && selected.size < 2 && !matched[idx]) {
-                                    SoundManager.playTap()
-                                    revealed = revealed.toMutableList().also { it[idx] = true }
-                                    selected = selected + idx
+                    for (col in 0 until columns) {
+                        val idx = row * columns + col
+                        if (idx < cardCount) {
+                            MemoryCard(
+                                emoji = cards[idx],
+                                isRevealed = revealed[idx] || matched[idx],
+                                isMatched = matched[idx],
+                                index = idx,
+                                onClick = {
+                                    if (!isLocked && !revealed[idx] && selected.size < 2 && !matched[idx]) {
+                                        SoundManager.playTap()
+                                        revealed = revealed.toMutableList().also { it[idx] = true }
+                                        selected = selected + idx
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        } else {
+                            Spacer(Modifier.size(70.dp))
+                        }
                     }
                 }
             }

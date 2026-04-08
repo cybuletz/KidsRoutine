@@ -28,5 +28,32 @@ data class FeatureFlags(
     val storyArcsEnabled: Boolean      = true,
 
     // Future
-    val weeklyPlannerEnabled: Boolean  = false
+    val weeklyPlannerEnabled: Boolean  = false,
+
+    // ── NEW: Competitive feature flags ──────────────────────────────
+    // P0 Features
+    val ageAdaptiveGamesEnabled: Boolean  = true,   // Age-group-scaled game difficulty
+    val companionPetEnabled: Boolean      = true,   // Pet companion system
+    val mascotRooEnabled: Boolean         = true,   // Roo mascot throughout app
+
+    // P1 Features
+    val leagueSystemEnabled: Boolean      = true,   // 10-tier league competition
+    val smartNotificationsEnabled: Boolean = true,   // Personality-driven notifications
+    val darkModeEnabled: Boolean          = true,    // Dark theme + teen UI
+    val hapticFeedbackEnabled: Boolean    = true,    // Vibration feedback on events
+
+    // P2 Features
+    val bossBattlesEnabled: Boolean       = true,    // Weekly family boss battles
+    val dailySpinWheelEnabled: Boolean    = true,    // Daily reward spin
+    val timedEventsEnabled: Boolean       = true,    // Seasonal limited-time events
+    val comebackSystemEnabled: Boolean    = true,    // Roo-covery for lapsed users
+
+    // P3 Features
+    val skillTreesEnabled: Boolean        = false,   // Skill tree progression
+    val familyRitualsEnabled: Boolean     = false,   // Gratitude circle, family meetings
+    val financialLiteracyEnabled: Boolean = false,   // Family wallet, savings goals
+    val friendSystemEnabled: Boolean      = false,   // Beyond-family friend connections
+
+    // P4 Features
+    val i18nEnabled: Boolean              = false    // Multi-language support
 )

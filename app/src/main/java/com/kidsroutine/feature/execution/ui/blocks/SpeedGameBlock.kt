@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.common.util.SoundManager
+import com.kidsroutine.core.model.AgeGroup
 import com.kidsroutine.feature.execution.ui.ExecutionEvent
 import kotlinx.coroutines.delay
 
@@ -28,9 +29,11 @@ import kotlinx.coroutines.delay
  * - Dynamic color matching
  * - Increasing difficulty
  * - Glow/pulse animations
+ * - Age-adaptive: more targets and less time for older groups
  */
 @Composable
 fun SpeedGameBlock(
+    ageGroup: AgeGroup = AgeGroup.EXPLORER,
     onSuccess: () -> Unit
 ) {
     val colors = listOf(
@@ -42,7 +45,20 @@ fun SpeedGameBlock(
 
     var currentColor by remember { mutableStateOf(colors.random()) }
     var correctColor by remember { mutableStateOf(colors.random()) }
-    var timeLeft by remember { mutableStateOf(5000) } // 5 seconds
+    // Time scales with age group: more time for younger, less for older
+    val initialTime = when (ageGroup) {
+        AgeGroup.SPROUT -> 7000
+        AgeGroup.EXPLORER -> 5000
+        AgeGroup.TRAILBLAZER -> 4000
+        AgeGroup.LEGEND -> 3000
+    }
+    val targetScore = when (ageGroup) {
+        AgeGroup.SPROUT -> 3
+        AgeGroup.EXPLORER -> 3
+        AgeGroup.TRAILBLAZER -> 5
+        AgeGroup.LEGEND -> 7
+    }
+    var timeLeft by remember { mutableStateOf(initialTime) }
     var score by remember { mutableStateOf(0) }
     var gameOver by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
@@ -58,9 +74,9 @@ fun SpeedGameBlock(
         }
     }
 
-    // Auto-win after 3 correct
+    // Auto-win after targetScore correct
     LaunchedEffect(score) {
-        if (score >= 3) {
+        if (score >= targetScore) {
             gameOver = true
             showSuccess = true
             delay(1500)
@@ -94,7 +110,7 @@ fun SpeedGameBlock(
                     .background(Color(0xFFFFD93D).copy(alpha = 0.2f))
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Score: $score/3", fontWeight = FontWeight.Bold, color = Color(0xFFFF6B35))
+                Text("Score: $score/$targetScore", fontWeight = FontWeight.Bold, color = Color(0xFFFF6B35))
             }
             Box(
                 Modifier
@@ -117,7 +133,7 @@ fun SpeedGameBlock(
             Box(
                 Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth((timeLeft / 5000f).coerceIn(0f, 1f))
+                    .fillMaxWidth((timeLeft / initialTime.toFloat()).coerceIn(0f, 1f))
                     .background(Color(0xFFFF6B35))
             )
         }
@@ -149,7 +165,7 @@ fun SpeedGameBlock(
                             SoundManager.playSuccess()
                             score++
                             correctColor = colors.random()
-                            timeLeft = 5000
+                            timeLeft = initialTime
                         } else {
                             SoundManager.playError()
                         }
@@ -163,7 +179,7 @@ fun SpeedGameBlock(
                             SoundManager.playSuccess()
                             score++
                             correctColor = colors.random()
-                            timeLeft = 5000
+                            timeLeft = initialTime
                         } else {
                             SoundManager.playError()
                         }
@@ -183,7 +199,7 @@ fun SpeedGameBlock(
                             SoundManager.playSuccess()
                             score++
                             correctColor = colors.random()
-                            timeLeft = 5000
+                            timeLeft = initialTime
                         } else {
                             SoundManager.playError()
                         }
@@ -197,7 +213,7 @@ fun SpeedGameBlock(
                             SoundManager.playSuccess()
                             score++
                             correctColor = colors.random()
-                            timeLeft = 5000
+                            timeLeft = initialTime
                         } else {
                             SoundManager.playError()
                         }
@@ -231,7 +247,7 @@ fun SpeedGameBlock(
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
-                            "Final Score: $score/3",
+                            "Final Score: $score/$targetScore",
                             fontWeight = FontWeight.Bold
                         )
                     }
