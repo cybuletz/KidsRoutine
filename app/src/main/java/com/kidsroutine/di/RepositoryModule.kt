@@ -34,6 +34,12 @@ import com.kidsroutine.feature.events.data.EventRepository
 import com.kidsroutine.feature.events.data.EventRepositoryImpl
 import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
 import com.kidsroutine.feature.spinwheel.data.SpinWheelRepositoryImpl
+import com.kidsroutine.feature.wallet.data.WalletRepository
+import com.kidsroutine.feature.wallet.data.WalletRepositoryImpl
+import com.kidsroutine.feature.skilltree.data.SkillTreeRepository
+import com.kidsroutine.feature.skilltree.data.SkillTreeRepositoryImpl
+import com.kidsroutine.feature.rituals.data.RitualsRepository
+import com.kidsroutine.feature.rituals.data.RitualsRepositoryImpl
 import com.kidsroutine.feature.world.data.WorldRepository
 import com.kidsroutine.feature.world.data.WorldRepositoryImpl
 import dagger.Binds
@@ -97,6 +103,15 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
+
+    @Binds @Singleton
+    abstract fun bindWalletRepository(impl: WalletRepositoryImpl): WalletRepository
+
+    @Binds @Singleton
+    abstract fun bindSkillTreeRepository(impl: SkillTreeRepositoryImpl): SkillTreeRepository
+
+    @Binds @Singleton
+    abstract fun bindRitualsRepository(impl: RitualsRepositoryImpl): RitualsRepository
 
     companion object {
 

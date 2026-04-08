@@ -49,9 +49,9 @@ data class FeatureFlags(
     val comebackSystemEnabled: Boolean    = true,    // Roo-covery for lapsed users
 
     // P3 Features
-    val skillTreesEnabled: Boolean        = false,   // Skill tree progression
-    val familyRitualsEnabled: Boolean     = false,   // Gratitude circle, family meetings
-    val financialLiteracyEnabled: Boolean = false,   // Family wallet, savings goals
+    val skillTreesEnabled: Boolean        = true,    // Skill tree progression
+    val familyRitualsEnabled: Boolean     = true,    // Gratitude circle, family meetings
+    val financialLiteracyEnabled: Boolean = true,    // Family wallet, savings goals
     val friendSystemEnabled: Boolean      = false,   // Beyond-family friend connections
 
     // P4 Features

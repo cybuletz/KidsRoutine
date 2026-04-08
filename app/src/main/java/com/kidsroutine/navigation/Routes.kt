@@ -19,6 +19,14 @@ object Routes {
     const val CHILD_TASK_PROPOSAL = "child_task_proposal"
     const val REWARDS             = "rewards"          // ← NEW
     const val LOOT_BOX            = "lootbox"          // ← NEW
+    const val PET                 = "pet"
+    const val BOSS_BATTLE         = "boss_battle"
+    const val SPIN_WHEEL          = "spin_wheel"
+    const val EVENTS              = "events"
+    const val STORY_ARC           = "story_arc"
+    const val WALLET              = "wallet"
+    const val SKILL_TREE          = "skill_tree"
+    const val RITUALS             = "rituals"
 
     // ═══════════════════════════════════════════════════════════════════════
     // PARENT ROUTES

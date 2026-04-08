@@ -55,6 +55,14 @@ import com.kidsroutine.feature.notifications.ui.NotificationViewModel
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 import com.kidsroutine.feature.rewards.ui.RewardsScreen
 import com.kidsroutine.feature.world.ui.WorldScreen
+import com.kidsroutine.feature.pet.ui.PetScreen
+import com.kidsroutine.feature.boss.ui.BossScreen
+import com.kidsroutine.feature.spinwheel.ui.SpinWheelScreen
+import com.kidsroutine.feature.events.ui.EventScreen
+import com.kidsroutine.feature.storyarc.ui.StoryArcScreen
+import com.kidsroutine.feature.wallet.ui.WalletScreen
+import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
+import com.kidsroutine.feature.rituals.ui.RitualsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -238,6 +246,70 @@ fun ChildMainScreen(
                         innerNavController.popBackStack()
                     }
                 }
+            }
+
+            composable("pet") {
+                currentRoute = "pet"
+                PetScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("boss_battle") {
+                currentRoute = "boss_battle"
+                BossScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("spin_wheel") {
+                currentRoute = "spin_wheel"
+                SpinWheelScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("events") {
+                currentRoute = "events"
+                EventScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("story_arc") {
+                currentRoute = "story_arc"
+                StoryArcScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("wallet") {
+                currentRoute = "wallet"
+                WalletScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("skill_tree") {
+                currentRoute = "skill_tree"
+                SkillTreeScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
+            }
+
+            composable("rituals") {
+                currentRoute = "rituals"
+                RitualsScreen(
+                    currentUser = currentUser,
+                    onBackClick = { innerNavController.navigate("daily") }
+                )
             }
         }
 
