@@ -7,6 +7,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
@@ -30,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -203,7 +208,7 @@ private fun PetDisplay(
     ) {
         Spacer(Modifier.height(8.dp))
 
-        // Pet emoji display
+        // Pet emoji display with mood-based animations
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -216,11 +221,7 @@ private fun PetDisplay(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = pet.displayEmoji,
-                    fontSize = 80.sp,
-                    modifier = Modifier.scale(scale)
-                )
+                AnimatedPetEmoji(pet = pet)
 
                 Spacer(Modifier.height(8.dp))
 
@@ -626,6 +627,192 @@ private fun ShopItemCard(
 }
 
 // ─── Mood Indicator ─────────────────────────────────────────────────────────────
+
+@Composable
+// ─── Animated Pet Emoji ─────────────────────────────────────────────────────────
+@Composable
+private fun AnimatedPetEmoji(pet: PetModel) {
+    val infiniteTransition = rememberInfiniteTransition(label = "petMoodAnim")
+
+    when (pet.mood) {
+        PetMood.ECSTATIC -> {
+            // Bouncy excited animation
+            val bounce by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -12f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(400),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "bounce"
+            )
+            val wiggle by infiniteTransition.animateFloat(
+                initialValue = -5f,
+                targetValue = 5f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(300),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "wiggle"
+            )
+            Text(
+                text = pet.displayEmoji,
+                fontSize = 80.sp,
+                modifier = Modifier.graphicsLayer {
+                    translationY = bounce
+                    rotationZ = wiggle
+                    scaleX = 1.05f
+                    scaleY = 1.05f
+                }
+            )
+            Text("✨", fontSize = 24.sp, modifier = Modifier.graphicsLayer { translationY = bounce * 0.5f })
+        }
+        PetMood.HAPPY -> {
+            // Gentle bounce
+            val bounce by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -6f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(600),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "happyBounce"
+            )
+            Text(
+                text = pet.displayEmoji,
+                fontSize = 80.sp,
+                modifier = Modifier.graphicsLayer {
+                    translationY = bounce
+                }
+            )
+        }
+        PetMood.CONTENT -> {
+            // Subtle breathing/scale animation
+            val breathe by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.03f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "breathe"
+            )
+            Text(
+                text = pet.displayEmoji,
+                fontSize = 80.sp,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = breathe
+                    scaleY = breathe
+                }
+            )
+        }
+        PetMood.BORED -> {
+            // Slow side-to-side sway
+            val sway by infiniteTransition.animateFloat(
+                initialValue = -3f,
+                targetValue = 3f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "sway"
+            )
+            Text(
+                text = pet.displayEmoji,
+                fontSize = 80.sp,
+                modifier = Modifier.graphicsLayer {
+                    rotationZ = sway
+                    alpha = 0.85f
+                }
+            )
+        }
+        PetMood.SAD -> {
+            // Droopy/sagging animation
+            val droop by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 4f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2500),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "droop"
+            )
+            val tilt by infiniteTransition.animateFloat(
+                initialValue = -2f,
+                targetValue = 2f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(3000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "sadTilt"
+            )
+            Text(
+                text = pet.displayEmoji,
+                fontSize = 80.sp,
+                modifier = Modifier.graphicsLayer {
+                    translationY = droop
+                    rotationZ = tilt
+                    alpha = 0.75f
+                    scaleX = 0.95f
+                    scaleY = 0.95f
+                }
+            )
+            Text("💧", fontSize = 18.sp)
+        }
+        PetMood.SLEEPING -> {
+            // Sleeping/breathing with Zzz
+            val breathe by infiniteTransition.animateFloat(
+                initialValue = 0.92f,
+                targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(2000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "sleepBreathe"
+            )
+            val zzzAlpha by infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "zzz"
+            )
+            val zzzOffset by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -15f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1500),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "zzzOffset"
+            )
+            Box {
+                Text(
+                    text = pet.displayEmoji,
+                    fontSize = 80.sp,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = breathe
+                        scaleY = breathe
+                        alpha = 0.7f
+                    }
+                )
+                Text(
+                    "💤",
+                    fontSize = 22.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .graphicsLayer {
+                            alpha = zzzAlpha
+                            translationY = zzzOffset
+                            translationX = 10f
+                        }
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun MoodIndicator(mood: PetMood) {
