@@ -41,19 +41,28 @@ class EntitlementsRepository @Inject constructor(
                 }
 
                 @Suppress("UNCHECKED_CAST")
+                val defaults = planType.defaultEntitlements(userId)
                 val entitlements = UserEntitlements(
-                    userId                = userId,
-                    planType              = planType,
-                    aiTasksPerDay         = (data["aiTasksPerDay"] as? Number)?.toInt()
-                        ?: planType.defaultEntitlements(userId).aiTasksPerDay,
-                    aiChallengesPerDay    = (data["aiChallengesPerDay"] as? Number)?.toInt()
-                        ?: planType.defaultEntitlements(userId).aiChallengesPerDay,
-                    aiPlansPerDay         = (data["aiPlansPerDay"] as? Number)?.toInt()
-                        ?: planType.defaultEntitlements(userId).aiPlansPerDay,
-                    aiWeeklyPlansPerMonth = (data["aiWeeklyPlansPerMonth"] as? Number)?.toInt()
-                        ?: planType.defaultEntitlements(userId).aiWeeklyPlansPerMonth,
-                    unlockedFeatures      = (data["unlockedFeatures"] as? List<String>) ?: emptyList(),
-                    updatedAt             = (data["updatedAt"] as? Number)?.toLong() ?: 0L
+                    userId                  = userId,
+                    planType                = planType,
+                    aiTasksPerDay           = (data["aiTasksPerDay"] as? Number)?.toInt()
+                        ?: defaults.aiTasksPerDay,
+                    aiChallengesPerDay      = (data["aiChallengesPerDay"] as? Number)?.toInt()
+                        ?: defaults.aiChallengesPerDay,
+                    aiPlansPerDay           = (data["aiPlansPerDay"] as? Number)?.toInt()
+                        ?: defaults.aiPlansPerDay,
+                    aiWeeklyPlansPerMonth   = (data["aiWeeklyPlansPerMonth"] as? Number)?.toInt()
+                        ?: defaults.aiWeeklyPlansPerMonth,
+                    unlockedFeatures        = (data["unlockedFeatures"] as? List<String>) ?: emptyList(),
+                    maxChildren             = (data["maxChildren"] as? Number)?.toInt()
+                        ?: defaults.maxChildren,
+                    parentControlsEnabled   = (data["parentControlsEnabled"] as? Boolean)
+                        ?: defaults.parentControlsEnabled,
+                    xpBankEnabled           = (data["xpBankEnabled"] as? Boolean)
+                        ?: defaults.xpBankEnabled,
+                    customDifficultyEnabled = (data["customDifficultyEnabled"] as? Boolean)
+                        ?: defaults.customDifficultyEnabled,
+                    updatedAt               = (data["updatedAt"] as? Number)?.toLong() ?: 0L
                 )
                 cache[userId] = entitlements
                 Log.d("Entitlements", "Loaded entitlements for $userId: ${entitlements.planType}")
@@ -85,13 +94,17 @@ class EntitlementsRepository @Inject constructor(
             firestore.collection("user_entitlements")
                 .document(entitlements.userId)
                 .set(mapOf(
-                    "planType"              to entitlements.planType.name,
-                    "aiTasksPerDay"         to entitlements.aiTasksPerDay,
-                    "aiChallengesPerDay"    to entitlements.aiChallengesPerDay,
-                    "aiPlansPerDay"         to entitlements.aiPlansPerDay,
-                    "aiWeeklyPlansPerMonth" to entitlements.aiWeeklyPlansPerMonth,
-                    "unlockedFeatures"      to entitlements.unlockedFeatures,
-                    "updatedAt"             to System.currentTimeMillis()
+                    "planType"                to entitlements.planType.name,
+                    "aiTasksPerDay"           to entitlements.aiTasksPerDay,
+                    "aiChallengesPerDay"      to entitlements.aiChallengesPerDay,
+                    "aiPlansPerDay"           to entitlements.aiPlansPerDay,
+                    "aiWeeklyPlansPerMonth"   to entitlements.aiWeeklyPlansPerMonth,
+                    "unlockedFeatures"        to entitlements.unlockedFeatures,
+                    "maxChildren"             to entitlements.maxChildren,
+                    "parentControlsEnabled"   to entitlements.parentControlsEnabled,
+                    "xpBankEnabled"           to entitlements.xpBankEnabled,
+                    "customDifficultyEnabled" to entitlements.customDifficultyEnabled,
+                    "updatedAt"               to System.currentTimeMillis()
                 ))
                 .await()
             cache[entitlements.userId] = entitlements
