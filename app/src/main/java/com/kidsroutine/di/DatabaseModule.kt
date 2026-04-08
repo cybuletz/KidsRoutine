@@ -3,6 +3,7 @@ package com.kidsroutine.di
 import android.content.Context
 import androidx.room.Room
 import com.kidsroutine.core.database.AppDatabase
+import com.kidsroutine.core.database.dao.PetDao
 import com.kidsroutine.core.database.dao.TaskInstanceDao
 import com.kidsroutine.core.database.dao.TaskProgressDao
 import com.kidsroutine.core.database.dao.UserDao
@@ -26,4 +27,5 @@ object DatabaseModule {
     @Provides fun provideTaskInstanceDao(db: AppDatabase): TaskInstanceDao = db.taskInstanceDao()
     @Provides fun provideTaskProgressDao(db: AppDatabase): TaskProgressDao = db.taskProgressDao()
     @Provides fun provideUserDao(db: AppDatabase): UserDao = db.userDao()
+    @Provides fun providePetDao(db: AppDatabase): PetDao = db.petDao()
 }

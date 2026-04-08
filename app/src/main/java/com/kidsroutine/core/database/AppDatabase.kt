@@ -7,10 +7,12 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kidsroutine.core.database.dao.AvatarDao
+import com.kidsroutine.core.database.dao.PetDao
 import com.kidsroutine.core.database.dao.TaskInstanceDao
 import com.kidsroutine.core.database.dao.TaskProgressDao
 import com.kidsroutine.core.database.dao.UserDao
 import com.kidsroutine.core.database.entity.AvatarEntity
+import com.kidsroutine.core.database.entity.PetEntity
 import com.kidsroutine.core.database.entity.TaskInstanceEntity
 import com.kidsroutine.core.database.entity.TaskProgressEntity
 import com.kidsroutine.core.database.entity.UserEntity
@@ -112,14 +114,41 @@ val MIGRATION_10_TO_11 = object : Migration(10, 11) {
     }
 }
 
+// ── MIGRATION 11 → 12: Add pets table for companion pet system ─────────────────
+val MIGRATION_11_TO_12 = object : Migration(11, 12) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("""
+            CREATE TABLE IF NOT EXISTS `pets` (
+                `petId` TEXT NOT NULL PRIMARY KEY,
+                `userId` TEXT NOT NULL,
+                `species` TEXT NOT NULL,
+                `name` TEXT NOT NULL DEFAULT '',
+                `stage` TEXT NOT NULL DEFAULT 'EGG',
+                `happiness` INTEGER NOT NULL DEFAULT 80,
+                `energy` INTEGER NOT NULL DEFAULT 80,
+                `style` INTEGER NOT NULL DEFAULT 0,
+                `totalFed` INTEGER NOT NULL DEFAULT 0,
+                `daysAlive` INTEGER NOT NULL DEFAULT 0,
+                `longestHappyStreak` INTEGER NOT NULL DEFAULT 0,
+                `hatchedAt` INTEGER NOT NULL DEFAULT 0,
+                `lastFedAt` INTEGER NOT NULL DEFAULT 0,
+                `lastInteractedAt` INTEGER NOT NULL DEFAULT 0,
+                `accessoryId` TEXT,
+                `isPremium` INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
         TaskProgressEntity::class,
         UserEntity::class,
-        AvatarEntity::class
+        AvatarEntity::class,
+        PetEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 
@@ -130,6 +159,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskProgressDao(): TaskProgressDao
     abstract fun userDao(): UserDao
     abstract fun avatarDao(): AvatarDao
+    abstract fun petDao(): PetDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
@@ -149,7 +179,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_7_TO_8,
                         MIGRATION_8_TO_9,
                         MIGRATION_9_TO_10,
-                        MIGRATION_10_TO_11
+                        MIGRATION_10_TO_11,
+                        MIGRATION_11_TO_12
                     )
                     .build()
                     .also { instance = it }
