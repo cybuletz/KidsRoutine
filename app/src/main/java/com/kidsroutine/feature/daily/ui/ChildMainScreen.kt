@@ -346,7 +346,7 @@ fun ChildMainScreen(
             currentUser             = currentUser,
             hideOverlayButtons      = worldDetailShowing,
             onDailyClick            = { innerNavController.navigate("daily")         { popUpTo("daily") } },
-            onChallengesClick       = { innerNavController.navigate("fun_zone")      { popUpTo("daily") } },
+            onFunZoneClick          = { innerNavController.navigate("fun_zone")      { popUpTo("daily") } },
             onLeaderboardClick      = { innerNavController.navigate("leaderboard")   { popUpTo("daily") } },
             onWorldClick            = { innerNavController.navigate("world")         { popUpTo("daily") } },
             onAchievementsClick     = { innerNavController.navigate("achievements")  { popUpTo("daily") } },
@@ -402,7 +402,7 @@ private fun PersistentNavBar(
     currentUser: UserModel,
     hideOverlayButtons: Boolean = false,
     onDailyClick: () -> Unit,
-    onChallengesClick: () -> Unit,
+    onFunZoneClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onWorldClick: () -> Unit,
     onAchievementsClick: () -> Unit,
@@ -417,7 +417,7 @@ private fun PersistentNavBar(
     data class NavItem(val route: String, val icon: ImageVector, val label: String, val onClick: () -> Unit)
     val items = listOf(
         NavItem("daily",       Icons.Default.Home,         "Daily",       onDailyClick),
-        NavItem("fun_zone",    Icons.Default.SportsEsports,"Fun Zone",    onChallengesClick),
+        NavItem("fun_zone",    Icons.Default.SportsEsports,"Fun Zone",    onFunZoneClick),
         NavItem("leaderboard", Icons.Default.BarChart,     "Leaderboard", onLeaderboardClick),
         NavItem("world",       Icons.Default.Language,     "World",       onWorldClick),
         NavItem("rewards",     Icons.Default.CardGiftcard, "Rewards",     onRewardsClick)

@@ -135,7 +135,7 @@ fun PetScreen(
                     PetDisplay(
                         pet = uiState.pet!!,
                         currentXp = uiState.currentXp,
-                        onFeed = { viewModel.feedPet(currentUser.userId) },
+                        onFeed = { viewModel.feedPet() },
                         onInteract = viewModel::interactWithPet
                     )
                 }

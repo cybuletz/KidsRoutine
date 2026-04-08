@@ -37,7 +37,10 @@ class PetViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PetUiState())
     val uiState: StateFlow<PetUiState> = _uiState.asStateFlow()
 
+    private var currentUserId: String = ""
+
     fun loadPet(userId: String) {
+        currentUserId = userId
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
@@ -75,7 +78,7 @@ class PetViewModel @Inject constructor(
         }
     }
 
-    fun feedPet(userId: String) {
+    fun feedPet(userId: String = currentUserId) {
         val currentPet = _uiState.value.pet ?: return
         val currentXp = _uiState.value.currentXp
 
