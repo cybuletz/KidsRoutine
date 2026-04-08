@@ -1,5 +1,7 @@
 package com.kidsroutine.core.model
 
+import kotlin.random.Random
+
 /**
  * Daily Spin Wheel / Mystery Bonus system.
  * Variable reward schedule — the most addictive mechanic in gaming.
@@ -60,7 +62,7 @@ enum class SpinRewardType(
     companion object {
         /** Weighted random selection based on probabilities */
         fun randomReward(): SpinRewardType {
-            val roll = Math.random().toFloat()
+            val roll = Random.nextFloat()
             var cumulative = 0f
             for (reward in entries) {
                 cumulative += reward.probability

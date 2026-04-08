@@ -100,6 +100,9 @@ fun CodeCrackGameBlock(
     var showSuccess by remember { mutableStateOf(false) }
 
     val current = selectedPuzzles.getOrNull(currentIndex)
+    val shuffledOptions = remember(currentIndex) {
+        current?.options?.shuffled() ?: emptyList()
+    }
 
     Column(
         Modifier
@@ -155,7 +158,7 @@ fun CodeCrackGameBlock(
                 Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                current.options.shuffled().forEach { option ->
+                shuffledOptions.forEach { option ->
                     Box(
                         Modifier
                             .fillMaxWidth()

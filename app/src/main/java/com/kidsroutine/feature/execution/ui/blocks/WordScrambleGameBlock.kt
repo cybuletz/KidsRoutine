@@ -41,7 +41,15 @@ fun WordScrambleGameBlock(
 
     var currentWord by remember { mutableStateOf(wordPool.random()) }
     var scrambled by remember(currentWord) {
-        mutableStateOf(currentWord.toList().shuffled().joinToString(""))
+        val letters = currentWord.toList().shuffled().joinToString("")
+        // Ensure scrambled word differs from original
+        mutableStateOf(
+            if (letters.equals(currentWord, ignoreCase = true) && currentWord.length > 1) {
+                currentWord.reversed()
+            } else {
+                letters
+            }
+        )
     }
     var guess by remember { mutableStateOf("") }
     var score by remember { mutableStateOf(0) }
@@ -128,7 +136,12 @@ fun WordScrambleGameBlock(
                             onSuccess()
                         } else {
                             currentWord = wordPool.random()
-                            scrambled = currentWord.toList().shuffled().joinToString("")
+                            val newScrambled = currentWord.toList().shuffled().joinToString("")
+                            scrambled = if (newScrambled.equals(currentWord, ignoreCase = true) && currentWord.length > 1) {
+                                currentWord.reversed()
+                            } else {
+                                newScrambled
+                            }
                             guess = ""
                             showHint = false
                         }

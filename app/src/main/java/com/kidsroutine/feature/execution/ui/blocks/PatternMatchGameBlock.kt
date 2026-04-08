@@ -46,7 +46,7 @@ fun PatternMatchGameBlock(
                 PatternQuestion(listOf("🐱", "🐶", "🐱", "🐶"), "🐱", listOf("🐱", "🐰", "🐻")),
                 PatternQuestion(listOf("🟡", "🟡", "🔵", "🟡", "🟡"), "🔵", listOf("🔵", "🟡", "🔴"))
             )
-            patterns.random()
+            patterns.random().let { it.copy(options = it.options.shuffled()) }
         }
         AgeGroup.EXPLORER -> {
             val patterns = listOf(
@@ -55,7 +55,7 @@ fun PatternMatchGameBlock(
                 PatternQuestion(listOf("3", "6", "9", "12"), "15", listOf("15", "14", "18")),
                 PatternQuestion(listOf("🔴", "🔵", "🟢", "🔴", "🔵"), "🟢", listOf("🟢", "🔴", "🟡"))
             )
-            patterns.random()
+            patterns.random().let { it.copy(options = it.options.shuffled()) }
         }
         AgeGroup.TRAILBLAZER, AgeGroup.LEGEND -> {
             val patterns = listOf(
@@ -64,7 +64,7 @@ fun PatternMatchGameBlock(
                 PatternQuestion(listOf("1", "4", "9", "16"), "25", listOf("25", "20", "36")),
                 PatternQuestion(listOf("A", "C", "E", "G"), "I", listOf("I", "H", "J"))
             )
-            patterns.random()
+            patterns.random().let { it.copy(options = it.options.shuffled()) }
         }
     }
 
@@ -116,12 +116,12 @@ fun PatternMatchGameBlock(
             }
         }
 
-        // Options
+        // Options (already shuffled in pattern.options)
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            pattern.options.shuffled().forEach { option ->
+            pattern.options.forEach { option ->
                 Box(
                     Modifier
                         .clip(RoundedCornerShape(12.dp))

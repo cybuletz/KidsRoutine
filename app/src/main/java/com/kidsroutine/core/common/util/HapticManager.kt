@@ -24,6 +24,8 @@ object HapticManager {
     private var isEnabled = true
     private var appContext: Context? = null
     private const val TAG = "HapticManager"
+    private const val PREFS_NAME = "notif_prefs"
+    private const val KEY_HAPTIC_ENABLED = "haptic_enabled"
 
     fun initialize(context: Context) {
         appContext = context.applicationContext
@@ -35,8 +37,8 @@ object HapticManager {
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
         // Load persisted preference
-        val prefs = context.getSharedPreferences("notif_prefs", Context.MODE_PRIVATE)
-        isEnabled = prefs.getBoolean("haptic_enabled", true)
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        isEnabled = prefs.getBoolean(KEY_HAPTIC_ENABLED, true)
         Log.d(TAG, "HapticManager initialized ✓ — haptic ${if (isEnabled) "ON" else "OFF"}")
     }
 
@@ -109,8 +111,8 @@ object HapticManager {
     /** Toggle haptic feedback on/off — persisted to SharedPreferences. */
     fun setEnabled(enabled: Boolean) {
         isEnabled = enabled
-        appContext?.getSharedPreferences("notif_prefs", Context.MODE_PRIVATE)
-            ?.edit()?.putBoolean("haptic_enabled", enabled)?.apply()
+        appContext?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            ?.edit()?.putBoolean(KEY_HAPTIC_ENABLED, enabled)?.apply()
         Log.d(TAG, "Haptic ${if (enabled) "enabled" else "disabled"}")
     }
 
