@@ -51,6 +51,11 @@ export const notifyFamilyMemberAdded = notifications.notifyFamilyMemberAdded;
 // Challenges
 export const notifyChallengeAssignment = notifications.notifyChallengeAssignment;
 
+// Parent Controls & XP Bank
+export const notifyXpLoanCreated = notifications.notifyXpLoanCreated;
+export const notifyXpLoanUpdate = notifications.notifyXpLoanUpdate;
+export const notifyParentControlUpdate = notifications.notifyParentControlUpdate;
+
 // ===== EXPORT CONTENT PACK FUNCTIONS =====
 export const applyContentPack = contentPacks.applyContentPack;
 

@@ -8,3 +8,7 @@ export { notifyAchievementUnlock } from "./achievementUnlock";
 export { notifyFamilyChat } from "./familyChat";
 export { notifyFamilyMemberAdded } from "./familyMember";
 export { notifyChallengeAssignment } from "./challengeAssignment";
+
+// Parent Controls & XP Bank
+export { notifyXpLoanCreated, notifyXpLoanUpdate } from "./xpLoan";
+export { notifyParentControlUpdate } from "./parentControl";
