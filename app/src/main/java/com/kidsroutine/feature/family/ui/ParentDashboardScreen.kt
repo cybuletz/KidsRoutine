@@ -473,6 +473,31 @@ private fun ParentHomeTab(
             QuickActionRow(Icons.Default.Shield,      Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",  onPrivilegeApprovalsClick)
         }
 
+        // ── Fun Zone Analytics ────────────────────────────────────────
+        if (familyMembers.isNotEmpty()) {
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "🎮 Fun Zone Analytics",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = TextDark,
+                modifier   = Modifier.padding(horizontal = 20.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "How your children spend their XP",
+                fontSize = 12.sp,
+                color    = Color.Gray,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+            Spacer(Modifier.height(12.dp))
+
+            familyMembers.forEach { child ->
+                FunZoneAnalyticsCard(child = child)
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+
         Spacer(Modifier.height(140.dp))
     }
 
@@ -1005,6 +1030,172 @@ private fun FamilyMemberRow(child: UserModel) {
             Text("Level ${child.level} · ${child.xp} XP · 🔥 ${child.streak}", fontSize = 12.sp, color = Color.Gray)
         }
         Icon(Icons.Default.BarChart, contentDescription = "Stats", tint = Color(0xFF4A90E2), modifier = Modifier.size(20.dp))
+    }
+}
+
+@Composable
+// ─────────────────────────────────────────────────────────────────────────────
+// Fun Zone Analytics Card — shows XP economy per child
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun FunZoneAnalyticsCard(child: UserModel) {
+    Card(
+        modifier  = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(3.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Child name + level
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = OrangePrimary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("👤", fontSize = 18.sp)
+                        }
+                    }
+                    Column {
+                        Text(
+                            child.displayName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = TextDark
+                        )
+                        Text(
+                            "Level ${child.level} · ${child.ageGroup.name}",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFFFF3E0)
+                ) {
+                    Text(
+                        "⭐ ${child.xp} XP",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = OrangePrimary,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // Stats row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AnalyticsMiniStat(
+                    emoji = "🔥",
+                    value = "${child.streak}d",
+                    label = "Streak",
+                    color = Color(0xFFC62828),
+                    modifier = Modifier.weight(1f)
+                )
+                AnalyticsMiniStat(
+                    emoji = "📊",
+                    value = "${child.weeklyXp}",
+                    label = "Weekly XP",
+                    color = Color(0xFF1565C0),
+                    modifier = Modifier.weight(1f)
+                )
+                AnalyticsMiniStat(
+                    emoji = "🏆",
+                    value = child.league.name.lowercase()
+                        .replaceFirstChar { it.uppercase() },
+                    label = "League",
+                    color = Color(0xFF6A1B9A),
+                    modifier = Modifier.weight(1f)
+                )
+                AnalyticsMiniStat(
+                    emoji = "🐾",
+                    value = if (child.petId.isNotEmpty()) "Active" else "None",
+                    label = "Pet",
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Level progress bar
+            val xpForNextLevel = child.level * 100
+            val xpProgress = (child.xp.toFloat() % 100) / 100f
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Level Progress", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextDark)
+                    Text("${(xpProgress * 100).toInt()}% to Lvl ${child.level + 1}", fontSize = 10.sp, color = Color.Gray)
+                }
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { xpProgress.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = OrangePrimary,
+                    trackColor = Color(0xFFEEEEEE)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsMiniStat(
+    emoji: String,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = color.copy(alpha = 0.08f),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(emoji, fontSize = 16.sp)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                value,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                label,
+                fontSize = 9.sp,
+                color = Color.Gray,
+                maxLines = 1
+            )
+        }
     }
 }
 
