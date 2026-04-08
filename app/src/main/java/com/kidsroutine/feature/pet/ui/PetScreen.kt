@@ -626,9 +626,6 @@ private fun ShopItemCard(
     }
 }
 
-// ─── Mood Indicator ─────────────────────────────────────────────────────────────
-
-@Composable
 // ─── Animated Pet Emoji ─────────────────────────────────────────────────────────
 @Composable
 private fun AnimatedPetEmoji(pet: PetModel) {

@@ -1136,9 +1136,12 @@ private fun FunZoneAnalyticsCard(child: UserModel) {
                 )
             }
 
-            // Level progress bar
+            // Level progress bar — each level requires (level * 100) XP total
+            val xpForCurrentLevel = if (child.level > 1) (child.level - 1) * 100 else 0
             val xpForNextLevel = child.level * 100
-            val xpProgress = (child.xp.toFloat() % 100) / 100f
+            val xpInCurrentLevel = (child.xp - xpForCurrentLevel).coerceAtLeast(0)
+            val xpNeeded = (xpForNextLevel - xpForCurrentLevel).coerceAtLeast(1)
+            val xpProgress = xpInCurrentLevel.toFloat() / xpNeeded
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

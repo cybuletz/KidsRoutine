@@ -1071,7 +1071,7 @@ private fun WeeklyXpSummaryOverlay(
             modifier = Modifier
                 .fillMaxWidth(0.88f)
                 .graphicsLayer { scaleX = scale; scaleY = scale }
-                .clickable { /* prevent dismiss on card click */ },
+                .clickable { /* Consume click to prevent propagation to dismiss overlay */ },
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(12.dp)
