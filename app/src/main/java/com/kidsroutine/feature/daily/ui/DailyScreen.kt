@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -68,6 +69,14 @@ fun DailyScreen(
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit = {},
     onWorldClick: () -> Unit = {},           // ← NEW: for "X XP away" nudge tap
+    onPetClick: () -> Unit = {},
+    onBossBattleClick: () -> Unit = {},
+    onSpinWheelClick: () -> Unit = {},
+    onEventsClick: () -> Unit = {},
+    onStoryArcClick: () -> Unit = {},
+    onWalletClick: () -> Unit = {},
+    onSkillTreeClick: () -> Unit = {},
+    onRitualsClick: () -> Unit = {},
     viewModel: DailyViewModel = hiltViewModel(),
     ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -103,6 +112,14 @@ fun DailyScreen(
                 onNotificationsClick   = onNotificationsClick,
                 onLootBoxClick         = onLootBoxClick,
                 onWorldClick           = onWorldClick,
+                onPetClick             = onPetClick,
+                onBossBattleClick      = onBossBattleClick,
+                onSpinWheelClick       = onSpinWheelClick,
+                onEventsClick          = onEventsClick,
+                onStoryArcClick        = onStoryArcClick,
+                onWalletClick          = onWalletClick,
+                onSkillTreeClick       = onSkillTreeClick,
+                onRitualsClick         = onRitualsClick,
                 viewModel = viewModel
             )
         }
@@ -124,6 +141,14 @@ private fun DailyContent(
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit,
     onWorldClick: () -> Unit,
+    onPetClick: () -> Unit,
+    onBossBattleClick: () -> Unit,
+    onSpinWheelClick: () -> Unit,
+    onEventsClick: () -> Unit,
+    onStoryArcClick: () -> Unit,
+    onWalletClick: () -> Unit,
+    onSkillTreeClick: () -> Unit,
+    onRitualsClick: () -> Unit,
     viewModel: DailyViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -152,7 +177,7 @@ private fun DailyContent(
             item {
                 val arc = uiState.activeStoryArc
                 if (arc != null && !arc.isComplete) {
-                    StoryArcBannerCard(arc = arc)
+                    StoryArcBannerCard(arc = arc, onClick = onStoryArcClick)
                 }
             }
 
@@ -264,6 +289,20 @@ private fun DailyContent(
                 TaskCard(
                     instance = instance,
                     onClick  = { onTaskClick(instance) }
+                )
+            }
+
+            // ── Fun Zone — feature discovery cards ────────────────────────
+            item {
+                FunZoneSection(
+                    onPetClick        = onPetClick,
+                    onBossBattleClick = onBossBattleClick,
+                    onSpinWheelClick  = onSpinWheelClick,
+                    onEventsClick     = onEventsClick,
+                    onStoryArcClick   = onStoryArcClick,
+                    onWalletClick     = onWalletClick,
+                    onSkillTreeClick  = onSkillTreeClick,
+                    onRitualsClick    = onRitualsClick
                 )
             }
         }
@@ -758,7 +797,8 @@ private fun DailyEmptyScreen() {
 @Composable
 fun StoryArcBannerCard(
     arc: StoryArc,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     val currentChapter = arc.chapters.getOrNull(arc.currentDay - 1) ?: return
 
@@ -775,7 +815,8 @@ fun StoryArcBannerCard(
     Card(
         modifier  = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .clickable(onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = storyColor.copy(alpha = 0.08f)),
         elevation = CardDefaults.cardElevation(0.dp),
@@ -871,4 +912,112 @@ fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
     TaskType.EMOTIONAL -> Icons.Default.Favorite
     TaskType.SOCIAL    -> Icons.Default.EmojiPeople
     TaskType.STORY     -> Icons.Default.AutoStories
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fun Zone — scrollable feature discovery tiles
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun FunZoneSection(
+    onPetClick: () -> Unit,
+    onBossBattleClick: () -> Unit,
+    onSpinWheelClick: () -> Unit,
+    onEventsClick: () -> Unit,
+    onStoryArcClick: () -> Unit,
+    onWalletClick: () -> Unit,
+    onSkillTreeClick: () -> Unit,
+    onRitualsClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        Text(
+            text       = "🎮 Fun Zone",
+            style      = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier   = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+        )
+        Text(
+            text     = "Explore, play & grow!",
+            fontSize = 13.sp,
+            color    = Color.Gray,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 0.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+
+        // First row — 4 tiles
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            FunZoneTile("🐾", "My Pet",       Color(0xFF06D6A0), onPetClick,        Modifier.weight(1f))
+            FunZoneTile("🎡", "Daily Spin",   Color(0xFFFF9F1C), onSpinWheelClick,  Modifier.weight(1f))
+            FunZoneTile("⚔️", "Boss Battle",  Color(0xFFEF476F), onBossBattleClick, Modifier.weight(1f))
+            FunZoneTile("📅", "Events",       Color(0xFF4361EE), onEventsClick,     Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // Second row — 4 tiles
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            FunZoneTile("📖", "Story Arc",     Color(0xFF8B5CF6), onStoryArcClick,  Modifier.weight(1f))
+            FunZoneTile("💰", "My Wallet",     Color(0xFF11998E), onWalletClick,    Modifier.weight(1f))
+            FunZoneTile("🌳", "Skill Tree",    Color(0xFF667EEA), onSkillTreeClick, Modifier.weight(1f))
+            FunZoneTile("🙏", "Rituals",       Color(0xFF9B5DE5), onRitualsClick,   Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun FunZoneTile(
+    emoji: String,
+    label: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scale by animateFloatAsState(
+        targetValue   = 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label         = "funZone_$label"
+    )
+
+    Card(
+        modifier  = modifier
+            .aspectRatio(1f)
+            .scale(scale)
+            .clickable(onClick = onClick),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.10f)),
+        elevation = CardDefaults.cardElevation(2.dp),
+        border    = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(emoji, fontSize = 26.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text       = label,
+                fontSize   = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color      = accentColor,
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
