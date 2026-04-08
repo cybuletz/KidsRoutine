@@ -358,6 +358,20 @@ fun ChildMainScreen(
             onNotificationsClick    = { innerNavController.navigate("notifications") { popUpTo("daily") } },
             onProposeTaskClick      = { innerNavController.navigate("child_task_proposal") }
         )
+
+        // ── Persistent XP Balance Widget ──────────────────────────────
+        // Visible across all child screens, positioned at top-center
+        if (!worldDetailShowing) {
+            XpBalanceWidget(
+                xp = currentUser.xp,
+                level = currentUser.level,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .offset(y = 2.dp)
+                    .zIndex(20f)
+            )
+        }
     }
 }
 
@@ -946,6 +960,52 @@ private fun FunZoneCompactCard(
                 color    = Color.Gray,
                 maxLines = 2,
                 lineHeight = 14.sp
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// XP Balance Widget — persistent floating XP badge visible across all screens
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun XpBalanceWidget(
+    xp: Int,
+    level: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape    = RoundedCornerShape(20.dp),
+        color    = Color.White,
+        shadowElevation = 6.dp,
+        border   = BorderStroke(1.dp, OrangePrimary.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Level badge
+            Surface(
+                shape = CircleShape,
+                color = OrangePrimary.copy(alpha = 0.15f),
+                modifier = Modifier.size(22.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "$level",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = OrangePrimary
+                    )
+                }
+            }
+            Text(
+                "⭐ $xp XP",
+                fontSize   = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color      = OrangePrimary
             )
         }
     }
