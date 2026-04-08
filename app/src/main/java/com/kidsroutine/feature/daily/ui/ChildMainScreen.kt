@@ -44,8 +44,11 @@ import com.kidsroutine.core.model.LootBoxRarity
 import com.kidsroutine.core.model.LootBoxReward
 import com.kidsroutine.core.model.LootBoxRewardType
 import com.kidsroutine.core.model.UserModel
-import com.kidsroutine.feature.achievements.ui.AchievementsScreen
-import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
+import com.kidsroutine.core.model.ParentControlSettings
+import com.kidsroutine.core.model.UserEntitlements
+import com.kidsroutine.core.model.PlanType
+import com.kidsroutine.core.model.defaultEntitlements
+import com.kidsroutine.feature.achievements.ui.AchievementsScreenimport com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
 import androidx.lifecycle.viewModelScope
@@ -68,6 +71,7 @@ import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
 import com.kidsroutine.feature.rituals.ui.RitualsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight       = Color(0xFFFFFBF0)
@@ -137,6 +141,75 @@ fun ChildMainScreen(
         notificationViewModel.loadNotifications(currentUser.userId)
     }
 
+    // Load parent controls and entitlements for Fun Zone gating
+    var parentControls by remember { mutableStateOf(ParentControlSettings()) }
+    var entitlements by remember { mutableStateOf(UserEntitlements()) }
+
+    LaunchedEffect(currentUser.userId, currentUser.familyId) {
+        if (currentUser.familyId.isNotEmpty()) {
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                // Load parent controls
+                val controlDoc = db.collection("families").document(currentUser.familyId)
+                    .collection("parent_controls").document(currentUser.userId)
+                    .get().await()
+                if (controlDoc.exists()) {
+                    val data = controlDoc.data ?: emptyMap()
+                    parentControls = ParentControlSettings(
+                        childId           = currentUser.userId,
+                        familyId          = currentUser.familyId,
+                        petEnabled        = data["petEnabled"] as? Boolean ?: true,
+                        bossBattleEnabled = data["bossBattleEnabled"] as? Boolean ?: true,
+                        dailySpinEnabled  = data["dailySpinEnabled"] as? Boolean ?: true,
+                        storyArcsEnabled  = data["storyArcsEnabled"] as? Boolean ?: true,
+                        eventsEnabled     = data["eventsEnabled"] as? Boolean ?: true,
+                        skillTreeEnabled  = data["skillTreeEnabled"] as? Boolean ?: true,
+                        walletEnabled     = data["walletEnabled"] as? Boolean ?: true,
+                        ritualsEnabled    = data["ritualsEnabled"] as? Boolean ?: true
+                    )
+                }
+                // Load entitlements — find the parent's entitlements (family-level billing)
+                val usersSnap = db.collection("users")
+                    .whereEqualTo("familyId", currentUser.familyId)
+                    .whereEqualTo("role", "PARENT")
+                    .get().await()
+                val parentId = usersSnap.documents.firstOrNull()?.id
+                if (parentId != null) {
+                    val entDoc = db.collection("user_entitlements").document(parentId).get().await()
+                    if (entDoc.exists()) {
+                        val planStr = entDoc.data?.get("planType") as? String ?: "FREE"
+                        val planType = try { com.kidsroutine.core.model.PlanType.valueOf(planStr) } catch (_: Exception) { com.kidsroutine.core.model.PlanType.FREE }
+                        entitlements = planType.defaultEntitlements(parentId)
+                    }
+                }
+            } catch (_: Exception) { /* Use defaults */ }
+        }
+    }
+
+    // Also set up a real-time listener to auto-refresh when parent changes controls
+    LaunchedEffect(currentUser.userId, currentUser.familyId) {
+        if (currentUser.familyId.isNotEmpty()) {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            db.collection("families").document(currentUser.familyId)
+                .collection("parent_controls").document(currentUser.userId)
+                .addSnapshotListener { snapshot, _ ->
+                    val data = snapshot?.data ?: return@addSnapshotListener
+                    parentControls = ParentControlSettings(
+                        childId           = currentUser.userId,
+                        familyId          = currentUser.familyId,
+                        petEnabled        = data["petEnabled"] as? Boolean ?: true,
+                        bossBattleEnabled = data["bossBattleEnabled"] as? Boolean ?: true,
+                        dailySpinEnabled  = data["dailySpinEnabled"] as? Boolean ?: true,
+                        storyArcsEnabled  = data["storyArcsEnabled"] as? Boolean ?: true,
+                        eventsEnabled     = data["eventsEnabled"] as? Boolean ?: true,
+                        skillTreeEnabled  = data["skillTreeEnabled"] as? Boolean ?: true,
+                        walletEnabled     = data["walletEnabled"] as? Boolean ?: true,
+                        ritualsEnabled    = data["ritualsEnabled"] as? Boolean ?: true
+                    )
+                }
+        }
+    }
+
     val themeManager = remember { SeasonalThemeManager() }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -191,7 +264,9 @@ fun ChildMainScreen(
             composable("fun_zone") {
                 currentRoute = "fun_zone"
                 FunZoneFullScreen(
-                    userLevel     = currentUser.level,
+                    userLevel        = currentUser.level,
+                    parentControls   = parentControls,
+                    entitlements     = entitlements,
                     onBackClick       = { innerNavController.navigate("daily") },
                     onPetClick        = { innerNavController.navigate("pet") },
                     onBossBattleClick = { innerNavController.navigate("boss_battle") },
@@ -604,6 +679,8 @@ private fun PersistentNavBar(
 @Composable
 private fun FunZoneFullScreen(
     userLevel: Int = 1,
+    parentControls: ParentControlSettings = ParentControlSettings(),
+    entitlements: UserEntitlements = UserEntitlements(),
     onBackClick: () -> Unit,
     onPetClick: () -> Unit,
     onBossBattleClick: () -> Unit,
@@ -665,139 +742,176 @@ private fun FunZoneFullScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Companion & Care
-            Text(
-                text       = "🐾 Companion & Care",
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2D3436),
-                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-            )
+            // Helper: check if feature is visible (parent control + billing tier)
+            fun isFeatureVisible(featureKey: String): Boolean {
+                return parentControls.isFunZoneFeatureEnabled(featureKey) &&
+                       entitlements.hasFunZoneFeature(featureKey)
+            }
 
-            FunZoneFeatureCard(
-                emoji       = "🐾",
-                title       = "My Pet",
-                description = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
-                accentColor = Color(0xFF06D6A0),
-                onClick     = onPetClick,
-                badge       = "🌟 Popular",
-                requiredLevel = 1,
-                userLevel = userLevel
-            )
-
-            // Action & Adventure
-            Text(
-                text       = "⚔️ Action & Adventure",
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2D3436),
-                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FunZoneCompactCard(
-                    emoji       = "⚔️",
-                    title       = "Boss Battle",
-                    description = "Team up to defeat weekly bosses!",
-                    accentColor = Color(0xFFEF476F),
-                    onClick     = onBossBattleClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 5,
-                    userLevel = userLevel
+            // Companion & Care — show section if pet is visible
+            if (isFeatureVisible("pet")) {
+                Text(
+                    text       = "🐾 Companion & Care",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 )
-                FunZoneCompactCard(
-                    emoji       = "🎡",
-                    title       = "Daily Spin",
-                    description = "Spin the wheel for surprise rewards!",
-                    accentColor = Color(0xFFFF9F1C),
-                    onClick     = onSpinWheelClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 2,
+
+                FunZoneFeatureCard(
+                    emoji       = "🐾",
+                    title       = "My Pet",
+                    description = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
+                    accentColor = Color(0xFF06D6A0),
+                    onClick     = onPetClick,
+                    badge       = "🌟 Popular",
+                    requiredLevel = 1,
                     userLevel = userLevel
                 )
             }
 
-            // Explore & Discover
-            Text(
-                text       = "🌍 Explore & Discover",
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2D3436),
-                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-            )
-
-            FunZoneFeatureCard(
-                emoji       = "📖",
-                title       = "Story Arcs",
-                description = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
-                accentColor = Color(0xFF8B5CF6),
-                onClick     = onStoryArcClick,
-                requiredLevel = 3,
-                userLevel = userLevel
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FunZoneCompactCard(
-                    emoji       = "📅",
-                    title       = "Events",
-                    description = "Limited-time seasonal fun!",
-                    accentColor = Color(0xFF4361EE),
-                    onClick     = onEventsClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 4,
-                    userLevel = userLevel
+            // Action & Adventure — show section if either boss or spin is visible
+            val showBoss = isFeatureVisible("boss_battle")
+            val showSpin = isFeatureVisible("daily_spin")
+            if (showBoss || showSpin) {
+                Text(
+                    text       = "⚔️ Action & Adventure",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 )
-                FunZoneCompactCard(
-                    emoji       = "🌳",
-                    title       = "Skill Tree",
-                    description = "Unlock new abilities & skills!",
-                    accentColor = Color(0xFF667EEA),
-                    onClick     = onSkillTreeClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 3,
-                    userLevel = userLevel
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (showBoss) {
+                        FunZoneCompactCard(
+                            emoji       = "⚔️",
+                            title       = "Boss Battle",
+                            description = "Team up to defeat weekly bosses!",
+                            accentColor = Color(0xFFEF476F),
+                            onClick     = onBossBattleClick,
+                            modifier    = Modifier.weight(1f),
+                            requiredLevel = 5,
+                            userLevel = userLevel
+                        )
+                    }
+                    if (showSpin) {
+                        FunZoneCompactCard(
+                            emoji       = "🎡",
+                            title       = "Daily Spin",
+                            description = "Spin the wheel for surprise rewards!",
+                            accentColor = Color(0xFFFF9F1C),
+                            onClick     = onSpinWheelClick,
+                            modifier    = Modifier.weight(1f),
+                            requiredLevel = 2,
+                            userLevel = userLevel
+                        )
+                    }
+                }
             }
 
-            // Money & Mindfulness
-            Text(
-                text       = "💫 Money & Mindfulness",
-                fontSize   = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color      = Color(0xFF2D3436),
-                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-            )
+            // Explore & Discover — show section if any of story/events/skill are visible
+            val showStory = isFeatureVisible("story_arcs")
+            val showEvents = isFeatureVisible("events")
+            val showSkills = isFeatureVisible("skill_tree")
+            if (showStory || showEvents || showSkills) {
+                Text(
+                    text       = "🌍 Explore & Discover",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                FunZoneCompactCard(
-                    emoji       = "💰",
-                    title       = "My Wallet",
-                    description = "Savings goals & financial smarts!",
-                    accentColor = Color(0xFF11998E),
-                    onClick     = onWalletClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 4,
-                    userLevel = userLevel
+                if (showStory) {
+                    FunZoneFeatureCard(
+                        emoji       = "📖",
+                        title       = "Story Arcs",
+                        description = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
+                        accentColor = Color(0xFF8B5CF6),
+                        onClick     = onStoryArcClick,
+                        requiredLevel = 3,
+                        userLevel = userLevel
+                    )
+                }
+
+                if (showEvents || showSkills) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (showEvents) {
+                            FunZoneCompactCard(
+                                emoji       = "📅",
+                                title       = "Events",
+                                description = "Limited-time seasonal fun!",
+                                accentColor = Color(0xFF4361EE),
+                                onClick     = onEventsClick,
+                                modifier    = Modifier.weight(1f),
+                                requiredLevel = 4,
+                                userLevel = userLevel
+                            )
+                        }
+                        if (showSkills) {
+                            FunZoneCompactCard(
+                                emoji       = "🌳",
+                                title       = "Skill Tree",
+                                description = "Unlock new abilities & skills!",
+                                accentColor = Color(0xFF667EEA),
+                                onClick     = onSkillTreeClick,
+                                modifier    = Modifier.weight(1f),
+                                requiredLevel = 3,
+                                userLevel = userLevel
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Money & Mindfulness — show section if wallet or rituals visible
+            val showWallet = isFeatureVisible("wallet")
+            val showRituals = isFeatureVisible("rituals")
+            if (showWallet || showRituals) {
+                Text(
+                    text       = "💫 Money & Mindfulness",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 )
-                FunZoneCompactCard(
-                    emoji       = "🙏",
-                    title       = "Rituals",
-                    description = "Family gratitude & bonding!",
-                    accentColor = Color(0xFF9B5DE5),
-                    onClick     = onRitualsClick,
-                    modifier    = Modifier.weight(1f),
-                    requiredLevel = 2,
-                    userLevel = userLevel
-                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (showWallet) {
+                        FunZoneCompactCard(
+                            emoji       = "💰",
+                            title       = "My Wallet",
+                            description = "Savings goals & financial smarts!",
+                            accentColor = Color(0xFF11998E),
+                            onClick     = onWalletClick,
+                            modifier    = Modifier.weight(1f),
+                            requiredLevel = 4,
+                            userLevel = userLevel
+                        )
+                    }
+                    if (showRituals) {
+                        FunZoneCompactCard(
+                            emoji       = "🙏",
+                            title       = "Rituals",
+                            description = "Family gratitude & bonding!",
+                            accentColor = Color(0xFF9B5DE5),
+                            onClick     = onRitualsClick,
+                            modifier    = Modifier.weight(1f),
+                            requiredLevel = 2,
+                            userLevel = userLevel
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(140.dp))
