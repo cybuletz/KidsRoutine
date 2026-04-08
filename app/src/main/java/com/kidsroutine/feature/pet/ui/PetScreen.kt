@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.PetEvolutionStage
+import com.kidsroutine.core.model.PetAccessory
+import com.kidsroutine.core.model.PetAccessoryCategory
 import com.kidsroutine.core.model.PetModel
 import com.kidsroutine.core.model.PetMood
 import com.kidsroutine.core.model.PetSpecies
@@ -135,8 +137,13 @@ fun PetScreen(
                     PetDisplay(
                         pet = uiState.pet!!,
                         currentXp = uiState.currentXp,
+                        showShop = uiState.showShop,
+                        ownedAccessoryIds = uiState.ownedAccessoryIds,
                         onFeed = { viewModel.feedPet() },
-                        onInteract = viewModel::interactWithPet
+                        onInteract = viewModel::interactWithPet,
+                        onShopClick = viewModel::toggleShop,
+                        onPurchase = viewModel::purchaseAccessory,
+                        onEquip = viewModel::equipAccessory
                     )
                 }
             }
@@ -167,8 +174,13 @@ fun PetScreen(
 private fun PetDisplay(
     pet: PetModel,
     currentXp: Int = 0,
+    showShop: Boolean = false,
+    ownedAccessoryIds: List<String> = emptyList(),
     onFeed: () -> Unit,
-    onInteract: () -> Unit
+    onInteract: () -> Unit,
+    onShopClick: () -> Unit = {},
+    onPurchase: (PetAccessory) -> Unit = {},
+    onEquip: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     var bouncing by remember { mutableStateOf(false) }
@@ -338,6 +350,38 @@ private fun PetDisplay(
 
         Spacer(Modifier.height(16.dp))
 
+        // Shop button
+        Button(
+            onClick = onShopClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFF39C12)
+            )
+        ) {
+            Text(
+                text = "🛍️ Pet Shop",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Shop section
+        if (showShop) {
+            Spacer(Modifier.height(16.dp))
+            PetShopSection(
+                currentXp = currentXp,
+                ownedAccessoryIds = ownedAccessoryIds,
+                equippedAccessoryId = pet.accessoryId,
+                onPurchase = onPurchase,
+                onEquip = onEquip
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         // Pet info card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -367,6 +411,217 @@ private fun PetDisplay(
         }
 
         Spacer(Modifier.height(140.dp))
+    }
+}
+
+// ─── Pet Shop Section ────────────────────────────────────────────────────────────
+
+@Composable
+private fun PetShopSection(
+    currentXp: Int,
+    ownedAccessoryIds: List<String>,
+    equippedAccessoryId: String?,
+    onPurchase: (PetAccessory) -> Unit,
+    onEquip: (String) -> Unit
+) {
+    var selectedCategory by remember { mutableStateOf(PetAccessoryCategory.entries.first()) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "🛍️ Pet Shop",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = TextDark
+            )
+            Text(
+                text = "Dress up your companion!",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "💰 $currentXp XP available",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Accent
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Category tabs
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                PetAccessoryCategory.entries.forEach { category ->
+                    val isSelected = category == selectedCategory
+                    Surface(
+                        modifier = Modifier
+                            .clickable { selectedCategory = category },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) Accent else Color(0xFFF0F0F0)
+                    ) {
+                        Text(
+                            text = "${category.emoji}\n${category.label}",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) Color.White else TextDark,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Items in selected category
+            val categoryItems = PetUiState.SHOP_ITEMS.filter { it.category == selectedCategory }
+            categoryItems.forEach { accessory ->
+                val isOwned = accessory.id in ownedAccessoryIds
+                val isEquipped = accessory.id == equippedAccessoryId
+                val canAfford = currentXp >= accessory.xpCost
+
+                ShopItemCard(
+                    accessory = accessory,
+                    isOwned = isOwned,
+                    isEquipped = isEquipped,
+                    canAfford = canAfford,
+                    onPurchase = { onPurchase(accessory) },
+                    onEquip = { onEquip(accessory.id) }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShopItemCard(
+    accessory: PetAccessory,
+    isOwned: Boolean,
+    isEquipped: Boolean,
+    canAfford: Boolean,
+    onPurchase: () -> Unit,
+    onEquip: () -> Unit
+) {
+    val borderColor = when {
+        isEquipped -> Accent
+        isOwned -> HappinessGreen
+        else -> Color(0xFFE0E0E0)
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = if (isEquipped) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(14.dp)
+            ),
+        shape = RoundedCornerShape(14.dp),
+        color = if (isEquipped) Accent.copy(alpha = 0.05f) else Color(0xFFFAFAFA)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Emoji
+            Text(
+                text = accessory.emoji,
+                fontSize = 32.sp
+            )
+
+            // Info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = accessory.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+                Text(
+                    text = accessory.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (accessory.happinessBoost > 0) {
+                        Text(
+                            text = "😊+${accessory.happinessBoost}",
+                            fontSize = 11.sp,
+                            color = HappinessGreen
+                        )
+                    }
+                    if (accessory.energyBoost > 0) {
+                        Text(
+                            text = "⚡+${accessory.energyBoost}",
+                            fontSize = 11.sp,
+                            color = EnergyBlue
+                        )
+                    }
+                }
+            }
+
+            // Action button
+            when {
+                isEquipped -> {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Accent.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "Equipped ✓",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Accent
+                        )
+                    }
+                }
+                isOwned -> {
+                    Button(
+                        onClick = onEquip,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Equip", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                else -> {
+                    Button(
+                        onClick = onPurchase,
+                        enabled = canAfford,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (canAfford) Color(0xFFF39C12) else Color.Gray
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "${accessory.xpCost} XP",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

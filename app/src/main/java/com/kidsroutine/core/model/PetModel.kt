@@ -94,3 +94,22 @@ data class PetModel(
             PetEvolutionStage.MAJESTIC -> "👑${species.emoji}"
         }
 }
+
+data class PetAccessory(
+    val id: String,
+    val name: String,
+    val emoji: String,
+    val description: String,
+    val xpCost: Int,
+    val category: PetAccessoryCategory,
+    val happinessBoost: Int = 0,
+    val energyBoost: Int = 0
+)
+
+enum class PetAccessoryCategory(val emoji: String, val label: String) {
+    HAT("🎩", "Hats"),
+    COLLAR("📿", "Collars"),
+    TOY("🧸", "Toys"),
+    BED("🛏️", "Beds"),
+    SNACK("🍪", "Treats")
+}
