@@ -61,6 +61,7 @@ import com.kidsroutine.feature.onboarding.ui.ParentOnboardingWizard
 import com.kidsroutine.feature.parent.ui.ParentAiInsightCard
 import com.kidsroutine.feature.parent.ui.ParentPendingTasksScreen
 import com.kidsroutine.feature.parent.ui.ParentPrivilegeApprovalsScreen
+import com.kidsroutine.feature.parent.ui.ParentControlsScreen
 import com.kidsroutine.feature.settings.ui.SettingsScreen
 import com.kidsroutine.feature.tasks.ui.TaskDetailsScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
@@ -132,7 +133,8 @@ fun ParentDashboardScreen(
                     onPrivilegeApprovalsClick = { innerNav.navigate("privilege_approvals") },
                     onChallengesClick         = { innerNav.navigate("tasks_challenges") },
                     onGenerateForChild        = { innerNav.navigate("generation") },
-                    onTaskDetailsClick        = { task -> innerNav.navigate("taskDetails/${task.id}") }
+                    onTaskDetailsClick        = { task -> innerNav.navigate("taskDetails/${task.id}") },
+                    onChildControlsClick      = { child -> innerNav.navigate("parent_controls/${child.userId}") }
                 )
             }
             composable("tasks") {
@@ -312,6 +314,20 @@ fun ParentDashboardScreen(
                     onBackClick = { innerNav.popBackStack() }
                 )
             }
+            composable(
+                "parent_controls/{childId}",
+                arguments = listOf(navArgument("childId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val childId = backStackEntry.arguments?.getString("childId") ?: return@composable
+                val child = familyMembers.find { it.userId == childId } ?: return@composable
+                currentTab = "home"
+                ParentControlsScreen(
+                    currentUser = currentUser,
+                    child = child,
+                    onBackClick = { innerNav.popBackStack() },
+                    onUpgradeClick = onUpgradeClick
+                )
+            }
         }
 
         ParentNavBar(
@@ -360,7 +376,8 @@ private fun ParentHomeTab(
     onPrivilegeApprovalsClick: () -> Unit,
     onChallengesClick: () -> Unit = {},
     onGenerateForChild: (UserModel) -> Unit = {},
-    onTaskDetailsClick: (TaskModel) -> Unit = {}
+    onTaskDetailsClick: (TaskModel) -> Unit = {},
+    onChildControlsClick: (UserModel) -> Unit = {}
 ) {
     var selectedChild by remember { mutableStateOf<UserModel?>(null) }
 
@@ -493,7 +510,10 @@ private fun ParentHomeTab(
             Spacer(Modifier.height(12.dp))
 
             familyMembers.forEach { child ->
-                FunZoneAnalyticsCard(child = child)
+                FunZoneAnalyticsCard(
+                    child = child,
+                    onControlsClick = { onChildControlsClick(child) }
+                )
                 Spacer(Modifier.height(8.dp))
             }
         }
@@ -1038,7 +1058,7 @@ private fun FamilyMemberRow(child: UserModel) {
 // Fun Zone Analytics Card — shows XP economy per child
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
-private fun FunZoneAnalyticsCard(child: UserModel) {
+private fun FunZoneAnalyticsCard(child: UserModel, onControlsClick: () -> Unit = {}) {
     Card(
         modifier  = Modifier
             .fillMaxWidth()
@@ -1160,6 +1180,37 @@ private fun FunZoneAnalyticsCard(child: UserModel) {
                     color = OrangePrimary,
                     trackColor = Color(0xFFEEEEEE)
                 )
+            }
+
+            // Controls button
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onControlsClick),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF6C63FF).copy(alpha = 0.08f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Settings,
+                        contentDescription = "Controls",
+                        tint = Color(0xFF6C63FF),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "⚙️ Manage Controls & XP Bank",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = Color(0xFF6C63FF)
+                    )
+                }
             }
         }
     }
