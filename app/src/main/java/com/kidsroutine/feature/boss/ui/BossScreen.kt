@@ -61,7 +61,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.BossModel
 import com.kidsroutine.core.model.UserModel
 import kotlinx.coroutines.delay
+import kotlin.math.PI
 import kotlin.math.sin
+import kotlin.random.Random
 
 private val BattleRed = Color(0xFFE53935)
 private val BattleRedDark = Color(0xFFB71C1C)
@@ -232,7 +234,7 @@ private fun BossEmojiDisplay(emoji: String, isAlive: Boolean) {
         label = "shake"
     )
 
-    val shakeOffset = if (isAlive) (sin(shake * Math.PI * 2).toFloat() * 3f) else 0f
+    val shakeOffset = if (isAlive) (sin(shake * PI * 2).toFloat() * 3f) else 0f
     val scaleValue = if (isAlive) pulse else 0.9f
 
     Box(
@@ -709,8 +711,8 @@ private fun ConfettiOverlay(emojis: List<String>) {
         val positions = remember {
             List(15) {
                 Triple(
-                    (Math.random() * 0.9f + 0.05f).toFloat(),
-                    (Math.random()).toFloat(),
+                    (Random.nextFloat() * 0.9f + 0.05f),
+                    Random.nextFloat(),
                     emojis.random()
                 )
             }

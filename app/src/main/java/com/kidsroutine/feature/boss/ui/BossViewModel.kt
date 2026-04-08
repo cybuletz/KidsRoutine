@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.WeekFields
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class BossUiState(
@@ -160,6 +161,6 @@ class BossViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "BossViewModel"
-        private const val WEEK_MILLIS = 7L * 24 * 60 * 60 * 1000
+        private val WEEK_MILLIS = TimeUnit.DAYS.toMillis(7)
     }
 }
