@@ -164,7 +164,7 @@ private fun ChildLeaderboardContent(entries: List<ChildLeaderboardEntry>) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 140.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -260,7 +260,7 @@ private fun FamilyLeaderboardContent(entries: List<FamilyLeaderboardEntry>) {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 140.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -366,7 +366,7 @@ private fun ChallengeLeaderboardContent(entries: List<ChallengeLeaderboardEntry>
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 140.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         itemsIndexed(entries) { index, entry ->
@@ -492,7 +492,7 @@ private fun MyFamilyLeaderboardContent(entries: List<LeaderboardEntry>, currentU
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {

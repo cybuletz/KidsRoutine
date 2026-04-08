@@ -88,6 +88,7 @@ fun WalletScreen(
             Modifier
                 .fillMaxSize()
                 .padding(16.dp),
+            contentPadding = PaddingValues(bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Wallet Status Card

@@ -101,7 +101,7 @@ fun TaskListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(top = 12.dp, bottom = 140.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(uiState.tasks) { task ->

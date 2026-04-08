@@ -154,7 +154,7 @@ private fun DailyContent(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier            = Modifier.fillMaxSize(),
-            contentPadding      = PaddingValues(bottom = 100.dp),
+            contentPadding      = PaddingValues(bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {

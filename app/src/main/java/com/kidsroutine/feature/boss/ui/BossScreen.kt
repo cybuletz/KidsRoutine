@@ -154,7 +154,7 @@ private fun BattleArena(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 80.dp, bottom = 24.dp),
+            .padding(top = 80.dp, bottom = 140.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Timer

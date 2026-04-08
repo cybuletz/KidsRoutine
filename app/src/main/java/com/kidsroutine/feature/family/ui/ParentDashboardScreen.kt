@@ -473,7 +473,7 @@ private fun ParentHomeTab(
             QuickActionRow(Icons.Default.Shield,      Color(0xFF06D6A0), "Privilege Approvals", "Review requests from your children",  onPrivilegeApprovalsClick)
         }
 
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(140.dp))
     }
 
     selectedChild?.let { child ->
@@ -731,7 +731,7 @@ private fun ParentFamilyTab(
     onChallengesClick: () -> Unit,
     onSwitchToChild: (UserModel) -> Unit = {}
 ) {
-    LazyColumn(modifier = Modifier.fillMaxSize().background(BgLight), contentPadding = PaddingValues(bottom = 32.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().background(BgLight), contentPadding = PaddingValues(bottom = 140.dp)) {
         item {
             Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
                 Text("Family", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -925,7 +925,7 @@ private fun ParentDiscoverTab(
             DiscoverCard("📖", "Story Arcs",        "Multi-day narrative adventures for your children",  Color(0xFF8B5CF6), onStoryClick)
             DiscoverCard("🌳", "Skill Trees",       "Visual skill progression & unlocks",                Color(0xFF667EEA), onSkillsClick)
         }
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(140.dp))
     }
 }
 

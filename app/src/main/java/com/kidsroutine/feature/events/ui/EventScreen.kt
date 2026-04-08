@@ -185,7 +185,7 @@ fun EventScreen(
                         // ── Rewards section ─────────────────────────
                         RewardsSection(event = event)
 
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(140.dp))
                     }
                 }
 
