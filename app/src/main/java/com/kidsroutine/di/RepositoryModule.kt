@@ -14,6 +14,8 @@ import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
 import com.kidsroutine.feature.daily.data.StoryArcRepository
 import com.kidsroutine.feature.daily.data.StoryArcRepositoryImpl
+import com.kidsroutine.feature.pet.data.PetRepository
+import com.kidsroutine.feature.pet.data.PetRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.execution.data.TaskProgressRepositoryImpl
 import com.kidsroutine.feature.family.data.FamilyMessageRepository
@@ -77,6 +79,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindStoryArcRepository(impl: StoryArcRepositoryImpl): StoryArcRepository
+
+    @Binds @Singleton
+    abstract fun bindPetRepository(impl: PetRepositoryImpl): PetRepository
 
     companion object {
 
