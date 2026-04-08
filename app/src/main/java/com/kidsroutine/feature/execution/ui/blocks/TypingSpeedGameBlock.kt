@@ -405,11 +405,19 @@ private fun LetterButton(
     letter: Char,
     onClick: () -> Unit
 ) {
+    var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = 1f,
+        targetValue = if (pressed) 0.9f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "letter_btn_scale"
     )
+
+    LaunchedEffect(pressed) {
+        if (pressed) {
+            delay(150)
+            pressed = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -417,7 +425,7 @@ private fun LetterButton(
             .scale(scale)
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF0984E3))
-            .clickable { onClick() },
+            .clickable { pressed = true; onClick() },
         contentAlignment = Alignment.Center
     ) {
         Text(

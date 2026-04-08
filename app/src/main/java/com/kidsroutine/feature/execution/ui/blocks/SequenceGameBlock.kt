@@ -123,7 +123,11 @@ fun SequenceGameBlock(
                     // Geometric ×2 or ×3
                     val multiplier = listOf(2, 3).random()
                     val start = (1..3).random()
-                    val seq = List(6) { start * Math.pow(multiplier.toDouble(), it.toDouble()).toInt() }
+                    val seq = List(6) { i ->
+                        var result = start
+                        repeat(i) { result *= multiplier }
+                        result
+                    }
                     val answer = seq.last()
                     val display = seq.dropLast(1)
                     SeqProblem(

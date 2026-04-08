@@ -177,7 +177,7 @@ fun TimeArchitectGameBlock(
                             val actOrder = slotOrder[actSlot] ?: 0
                             val beforeOrder = slotOrder[beforeSlot] ?: 0
                             if (actOrder >= beforeOrder) {
-                                errors.add("${act.emoji} ${act.name} must be before ${beforeAct.emoji} ${beforeName}")
+                                errors.add("${act.emoji} ${act.name} must come before ${beforeAct.emoji} ${beforeName}")
                             }
                         }
                     }
