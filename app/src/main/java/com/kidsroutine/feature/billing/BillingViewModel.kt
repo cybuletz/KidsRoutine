@@ -9,6 +9,7 @@ import com.kidsroutine.core.model.PlanType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 data class BillingUiState(
@@ -142,14 +143,10 @@ class BillingViewModel @Inject constructor(
                 .collection("users")
                 .document(parentId)
                 .get()
-                .let { kotlinx.coroutines.tasks.await(it) }
+                .await()
             doc.data?.get("displayName") as? String ?: "a parent"
         } catch (_: Exception) {
             "a parent"
         }
-    }
-
-    private suspend fun <T> await(task: com.google.android.gms.tasks.Task<T>): T {
-        return kotlinx.coroutines.tasks.await(task)
     }
 }

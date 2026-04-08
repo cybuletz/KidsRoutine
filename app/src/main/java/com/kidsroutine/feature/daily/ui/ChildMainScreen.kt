@@ -48,7 +48,8 @@ import com.kidsroutine.core.model.ParentControlSettings
 import com.kidsroutine.core.model.UserEntitlements
 import com.kidsroutine.core.model.PlanType
 import com.kidsroutine.core.model.defaultEntitlements
-import com.kidsroutine.feature.achievements.ui.AchievementsScreenimport com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
+import com.kidsroutine.feature.achievements.ui.AchievementsScreen
+import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
 import androidx.compose.material.icons.filled.Language
 import androidx.lifecycle.viewModelScope
