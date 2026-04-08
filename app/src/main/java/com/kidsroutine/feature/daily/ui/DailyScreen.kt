@@ -316,6 +316,11 @@ private fun DailyContent(
                         onClick   = { onChallengeDetailClick(challenge) }
                     )
                 }
+
+                // "Challenge a Sibling!" button
+                item {
+                    ChallengeSiblingCard(onClick = onChallengesClick)
+                }
             }
 
             // ── Fun Zone — feature discovery cards ────────────────────────
@@ -1085,6 +1090,74 @@ private fun FunZoneTile(
                 maxLines   = 1,
                 overflow   = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ChallengeSiblingCard — "Challenge a Sibling!" invite button
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun ChallengeSiblingCard(onClick: () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "siblingGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label = "siblingGlowAlpha"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+        elevation = CardDefaults.cardElevation(3.dp),
+        border = BorderStroke(1.5.dp, OrangePrimary.copy(alpha = glowAlpha * 0.4f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                color = OrangePrimary.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🤝", fontSize = 22.sp)
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Challenge a Sibling!",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 14.sp,
+                    color = OrangePrimary
+                )
+                Text(
+                    text = "Start a 1v1 or team challenge with your family!",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = OrangePrimary
+            ) {
+                Text(
+                    "GO!",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
         }
     }
 }
