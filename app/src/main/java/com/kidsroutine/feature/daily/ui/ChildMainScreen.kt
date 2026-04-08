@@ -179,6 +179,7 @@ fun ChildMainScreen(
             composable("fun_zone") {
                 currentRoute = "fun_zone"
                 FunZoneFullScreen(
+                    userLevel     = currentUser.level,
                     onBackClick       = { innerNavController.navigate("daily") },
                     onPetClick        = { innerNavController.navigate("pet") },
                     onBossBattleClick = { innerNavController.navigate("boss_battle") },
@@ -568,6 +569,7 @@ private fun PersistentNavBar(
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 private fun FunZoneFullScreen(
+    userLevel: Int = 1,
     onBackClick: () -> Unit,
     onPetClick: () -> Unit,
     onBossBattleClick: () -> Unit,
@@ -644,7 +646,9 @@ private fun FunZoneFullScreen(
                 description = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
                 accentColor = Color(0xFF06D6A0),
                 onClick     = onPetClick,
-                badge       = "🌟 Popular"
+                badge       = "🌟 Popular",
+                requiredLevel = 1,
+                userLevel = userLevel
             )
 
             // Action & Adventure
@@ -666,7 +670,9 @@ private fun FunZoneFullScreen(
                     description = "Team up to defeat weekly bosses!",
                     accentColor = Color(0xFFEF476F),
                     onClick     = onBossBattleClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 5,
+                    userLevel = userLevel
                 )
                 FunZoneCompactCard(
                     emoji       = "🎡",
@@ -674,7 +680,9 @@ private fun FunZoneFullScreen(
                     description = "Spin the wheel for surprise rewards!",
                     accentColor = Color(0xFFFF9F1C),
                     onClick     = onSpinWheelClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 2,
+                    userLevel = userLevel
                 )
             }
 
@@ -692,7 +700,9 @@ private fun FunZoneFullScreen(
                 title       = "Story Arcs",
                 description = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
                 accentColor = Color(0xFF8B5CF6),
-                onClick     = onStoryArcClick
+                onClick     = onStoryArcClick,
+                requiredLevel = 3,
+                userLevel = userLevel
             )
 
             Row(
@@ -705,7 +715,9 @@ private fun FunZoneFullScreen(
                     description = "Limited-time seasonal fun!",
                     accentColor = Color(0xFF4361EE),
                     onClick     = onEventsClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 4,
+                    userLevel = userLevel
                 )
                 FunZoneCompactCard(
                     emoji       = "🌳",
@@ -713,7 +725,9 @@ private fun FunZoneFullScreen(
                     description = "Unlock new abilities & skills!",
                     accentColor = Color(0xFF667EEA),
                     onClick     = onSkillTreeClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 3,
+                    userLevel = userLevel
                 )
             }
 
@@ -736,7 +750,9 @@ private fun FunZoneFullScreen(
                     description = "Savings goals & financial smarts!",
                     accentColor = Color(0xFF11998E),
                     onClick     = onWalletClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 4,
+                    userLevel = userLevel
                 )
                 FunZoneCompactCard(
                     emoji       = "🙏",
@@ -744,7 +760,9 @@ private fun FunZoneFullScreen(
                     description = "Family gratitude & bonding!",
                     accentColor = Color(0xFF9B5DE5),
                     onClick     = onRitualsClick,
-                    modifier    = Modifier.weight(1f)
+                    modifier    = Modifier.weight(1f),
+                    requiredLevel = 2,
+                    userLevel = userLevel
                 )
             }
 
@@ -760,16 +778,22 @@ private fun FunZoneFeatureCard(
     description: String,
     accentColor: Color,
     onClick: () -> Unit,
-    badge: String? = null
+    badge: String? = null,
+    requiredLevel: Int = 1,
+    userLevel: Int = 99
 ) {
+    val isLocked = userLevel < requiredLevel
+
     Card(
         modifier  = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = !isLocked, onClick = onClick),
         shape     = RoundedCornerShape(20.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp),
-        border    = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.25f))
+        colors    = CardDefaults.cardColors(
+            containerColor = if (isLocked) Color(0xFFF0F0F0) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 4.dp),
+        border    = BorderStroke(1.5.dp, if (isLocked) Color.Gray.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.25f))
     ) {
         Row(
             modifier = Modifier
@@ -782,11 +806,15 @@ private fun FunZoneFeatureCard(
             Surface(
                 modifier = Modifier.size(56.dp),
                 shape    = CircleShape,
-                color    = accentColor.copy(alpha = 0.12f),
-                border   = BorderStroke(2.dp, accentColor.copy(alpha = 0.3f))
+                color    = if (isLocked) Color.Gray.copy(alpha = 0.1f) else accentColor.copy(alpha = 0.12f),
+                border   = BorderStroke(2.dp, if (isLocked) Color.Gray.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.3f))
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(emoji, fontSize = 28.sp)
+                    if (isLocked) {
+                        Text("🔒", fontSize = 28.sp)
+                    } else {
+                        Text(emoji, fontSize = 28.sp)
+                    }
                 }
             }
 
@@ -799,9 +827,22 @@ private fun FunZoneFeatureCard(
                         text       = title,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize   = 16.sp,
-                        color      = Color(0xFF2D3436)
+                        color      = if (isLocked) Color.Gray else Color(0xFF2D3436)
                     )
-                    if (badge != null) {
+                    if (isLocked) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFFEBEE)
+                        ) {
+                            Text(
+                                "Lvl $requiredLevel",
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color(0xFFE53935),
+                                modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    } else if (badge != null) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = accentColor.copy(alpha = 0.15f)
@@ -818,7 +859,7 @@ private fun FunZoneFeatureCard(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text     = description,
+                    text     = if (isLocked) "Reach level $requiredLevel to unlock!" else description,
                     fontSize = 12.sp,
                     color    = Color.Gray,
                     maxLines = 2
@@ -826,9 +867,9 @@ private fun FunZoneFeatureCard(
             }
 
             Icon(
-                Icons.Default.ChevronRight,
+                if (isLocked) Icons.Default.Lock else Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint     = accentColor.copy(alpha = 0.6f),
+                tint     = if (isLocked) Color.Gray else accentColor.copy(alpha = 0.6f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -842,15 +883,21 @@ private fun FunZoneCompactCard(
     description: String,
     accentColor: Color,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requiredLevel: Int = 1,
+    userLevel: Int = 99
 ) {
+    val isLocked = userLevel < requiredLevel
+
     Card(
         modifier  = modifier
-            .clickable(onClick = onClick),
+            .clickable(enabled = !isLocked, onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(3.dp),
-        border    = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+        colors    = CardDefaults.cardColors(
+            containerColor = if (isLocked) Color(0xFFF0F0F0) else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 3.dp),
+        border    = BorderStroke(1.dp, if (isLocked) Color.Gray.copy(alpha = 0.15f) else accentColor.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier
@@ -858,23 +905,43 @@ private fun FunZoneCompactCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape    = RoundedCornerShape(12.dp),
-                color    = accentColor.copy(alpha = 0.12f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(emoji, fontSize = 20.sp)
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape    = RoundedCornerShape(12.dp),
+                    color    = if (isLocked) Color.Gray.copy(alpha = 0.1f) else accentColor.copy(alpha = 0.12f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(if (isLocked) "🔒" else emoji, fontSize = 20.sp)
+                    }
+                }
+                if (isLocked) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFFEBEE)
+                    ) {
+                        Text(
+                            "Lvl $requiredLevel",
+                            fontSize   = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color(0xFFE53935),
+                            modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
             Text(
                 text       = title,
                 fontWeight = FontWeight.Bold,
                 fontSize   = 13.sp,
-                color      = Color(0xFF2D3436)
+                color      = if (isLocked) Color.Gray else Color(0xFF2D3436)
             )
             Text(
-                text     = description,
+                text     = if (isLocked) "Reach Lvl $requiredLevel" else description,
                 fontSize = 10.sp,
                 color    = Color.Gray,
                 maxLines = 2,
