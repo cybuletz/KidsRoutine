@@ -6,6 +6,7 @@ import com.kidsroutine.core.engine.spin_engine.DailyRewardEngine
 import com.kidsroutine.core.model.DailySpinState
 import com.kidsroutine.core.model.PlanType
 import com.kidsroutine.core.model.SpinWheelResult
+import com.kidsroutine.feature.daily.data.UserRepository
 import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -30,13 +31,16 @@ data class SpinWheelUiState(
     val dailyState: DailySpinState = DailySpinState(),
     val lastResult: SpinWheelResult? = null,
     val spinsRemaining: Int = 0,
+    val currentXp: Int = 0,
+    val currentUserId: String = "",
     val error: String? = null
 )
 
 @HiltViewModel
 class SpinWheelViewModel @Inject constructor(
     private val repository: SpinWheelRepository,
-    private val rewardEngine: DailyRewardEngine
+    private val rewardEngine: DailyRewardEngine,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SpinWheelUiState())
@@ -62,6 +66,16 @@ class SpinWheelViewModel @Inject constructor(
                     spinsRemaining = state.maxSpins - state.spinsUsed,
                     phase = if (state.canSpin) SpinPhase.IDLE else SpinPhase.DONE
                 )
+
+                // Observe user XP
+                viewModelScope.launch {
+                    userRepository.observeUser(userId).collect { user ->
+                        _uiState.value = _uiState.value.copy(
+                            currentXp = user.xp,
+                            currentUserId = userId
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -75,7 +89,13 @@ class SpinWheelViewModel @Inject constructor(
         val current = _uiState.value
         if (current.phase == SpinPhase.SPINNING || !current.dailyState.canSpin) return
 
+        if (current.currentXp < SPIN_COST) {
+            _uiState.value = current.copy(error = "Not enough XP! You need $SPIN_COST XP to spin.")
+            return
+        }
+
         viewModelScope.launch {
+            userRepository.updateUserXp(current.currentUserId, -SPIN_COST)
             // Determine the result before animation so the wheel knows where to land
             val (updatedState, result) = rewardEngine.spin(current.dailyState)
 
@@ -121,5 +141,6 @@ class SpinWheelViewModel @Inject constructor(
     companion object {
         const val SPIN_DURATION_MS = 3000L
         const val REVEAL_PAUSE_MS = 1500L
+        const val SPIN_COST = 3
     }
 }

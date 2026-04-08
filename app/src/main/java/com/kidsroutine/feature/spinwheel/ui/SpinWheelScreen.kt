@@ -201,6 +201,15 @@ fun SpinWheelScreen(
             )
         }
 
+        // XP balance indicator
+        Text(
+            text = "⭐ ${uiState.currentXp} XP",
+            color = AccentGold,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+
         if (uiState.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = AccentGold)
@@ -255,7 +264,8 @@ fun SpinWheelScreen(
         Spacer(Modifier.height(20.dp))
 
         // ── Spin button ──────────────────────────────────────────────────
-        val canSpin = uiState.phase == SpinPhase.IDLE && uiState.dailyState.canSpin
+        val hasEnoughXp = uiState.currentXp >= SpinWheelViewModel.SPIN_COST
+        val canSpin = uiState.phase == SpinPhase.IDLE && uiState.dailyState.canSpin && hasEnoughXp
         Button(
             onClick = { viewModel.spin() },
             enabled = canSpin,
@@ -270,16 +280,25 @@ fun SpinWheelScreen(
                 disabledContentColor = Color.White.copy(alpha = 0.5f)
             )
         ) {
-            Text(
-                text = when (uiState.phase) {
-                    SpinPhase.IDLE -> if (uiState.dailyState.canSpin) "🎰 SPIN!" else "No spins left"
-                    SpinPhase.SPINNING -> "Spinning…"
-                    SpinPhase.REVEALING -> "🎉 Revealing…"
-                    SpinPhase.DONE -> if (uiState.dailyState.canSpin) "🎰 SPIN AGAIN!" else "No spins left"
-                },
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = when (uiState.phase) {
+                        SpinPhase.IDLE -> if (uiState.dailyState.canSpin) "🎰 SPIN!" else "No spins left"
+                        SpinPhase.SPINNING -> "Spinning…"
+                        SpinPhase.REVEALING -> "🎉 Revealing…"
+                        SpinPhase.DONE -> if (uiState.dailyState.canSpin) "🎰 SPIN AGAIN!" else "No spins left"
+                    },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (uiState.dailyState.canSpin && uiState.phase != SpinPhase.SPINNING && uiState.phase != SpinPhase.REVEALING) {
+                    Text(
+                        text = "Cost: ${SpinWheelViewModel.SPIN_COST} XP",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
         }
 
         // ── If DONE and can spin again ───────────────────────────────────

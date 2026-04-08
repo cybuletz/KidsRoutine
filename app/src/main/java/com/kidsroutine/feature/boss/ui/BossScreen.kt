@@ -89,7 +89,7 @@ fun BossScreen(
 
     LaunchedEffect(currentUser.familyId) {
         Log.d("BossScreen", "Loading boss for family: ${currentUser.familyId}")
-        viewModel.loadBoss(currentUser.familyId)
+        viewModel.loadBoss(currentUser.familyId, currentUser.userId)
     }
 
     Box(
@@ -121,7 +121,8 @@ fun BossScreen(
                         familySize = 3
                     )
                 },
-                onBackClick = onBackClick
+                onBackClick = onBackClick,
+                currentXp = uiState.currentXp
             )
         }
 
@@ -833,8 +834,10 @@ private fun ExpiredScreen(
 @Composable
 private fun NoBossState(
     onGenerateBoss: () -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    currentXp: Int = 0
 ) {
+    val hasEnoughXp = currentXp >= BossViewModel.BOSS_ENTRY_COST
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -867,19 +870,40 @@ private fun NoBossState(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            Text(
+                text = "⭐ $currentXp XP",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = GoldAccent
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Button(
                 onClick = onGenerateBoss,
-                colors = ButtonDefaults.buttonColors(containerColor = BattleRed),
+                enabled = hasEnoughXp,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BattleRed,
+                    disabledContainerColor = Color.Gray.copy(alpha = 0.4f),
+                    disabledContentColor = Color.White.copy(alpha = 0.5f)
+                ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
                     .height(52.dp)
             ) {
-                Text(
-                    text = "⚔️ Summon Boss",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "⚔️ Summon Boss",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Cost: ${BossViewModel.BOSS_ENTRY_COST} XP",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
             }
         }
     }
