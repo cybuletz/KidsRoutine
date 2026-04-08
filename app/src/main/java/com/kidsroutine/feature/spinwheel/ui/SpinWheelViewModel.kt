@@ -9,6 +9,7 @@ import com.kidsroutine.core.model.SpinWheelResult
 import com.kidsroutine.feature.daily.data.UserRepository
 import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,7 @@ class SpinWheelViewModel @Inject constructor(
     val uiState: StateFlow<SpinWheelUiState> = _uiState.asStateFlow()
 
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+    private var xpObserveJob: Job? = null
 
     fun loadState(userId: String) {
         viewModelScope.launch {
@@ -68,7 +70,8 @@ class SpinWheelViewModel @Inject constructor(
                 )
 
                 // Observe user XP
-                viewModelScope.launch {
+                xpObserveJob?.cancel()
+                xpObserveJob = viewModelScope.launch {
                     userRepository.observeUser(userId).collect { user ->
                         _uiState.value = _uiState.value.copy(
                             currentXp = user.xp,
