@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -41,6 +44,10 @@ import com.kidsroutine.core.model.LootBoxRarity
 import com.kidsroutine.core.model.LootBoxReward
 import com.kidsroutine.core.model.LootBoxRewardType
 import com.kidsroutine.core.model.UserModel
+import com.kidsroutine.core.model.ParentControlSettings
+import com.kidsroutine.core.model.UserEntitlements
+import com.kidsroutine.core.model.PlanType
+import com.kidsroutine.core.model.defaultEntitlements
 import com.kidsroutine.feature.achievements.ui.AchievementsScreen
 import com.kidsroutine.feature.challenges.ui.ActiveChallengesScreen
 import com.kidsroutine.feature.community.ui.LeaderboardScreen
@@ -65,6 +72,7 @@ import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
 import com.kidsroutine.feature.rituals.ui.RitualsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight       = Color(0xFFFFFBF0)
@@ -119,8 +127,77 @@ fun ChildMainScreen(
     // Tracks whether the world node detail card is open — used to hide FABs
     var worldDetailShowing by remember { mutableStateOf(false) }
 
+    // Weekly XP Summary overlay — shows on Monday
+    var showWeeklySummary by remember { mutableStateOf(false) }
+    LaunchedEffect(currentUser.userId) {
+        val today = java.time.LocalDate.now()
+        if (today.dayOfWeek == java.time.DayOfWeek.MONDAY) {
+            // Show the summary on Monday if it hasn't been dismissed yet this session
+            delay(1500) // Brief delay for the screen to load
+            showWeeklySummary = true
+        }
+    }
+
     LaunchedEffect(currentUser.userId) {
         notificationViewModel.loadNotifications(currentUser.userId)
+    }
+
+    // Load parent controls and entitlements for Fun Zone gating
+    var parentControls by remember { mutableStateOf(ParentControlSettings()) }
+    var entitlements by remember { mutableStateOf(UserEntitlements()) }
+
+    LaunchedEffect(currentUser.userId, currentUser.familyId) {
+        if (currentUser.familyId.isNotEmpty()) {
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                // Load parent controls
+                val controlDoc = db.collection("families").document(currentUser.familyId)
+                    .collection("parent_controls").document(currentUser.userId)
+                    .get().await()
+                if (controlDoc.exists()) {
+                    val data = controlDoc.data ?: emptyMap()
+                    parentControls = ParentControlSettings(
+                        childId           = currentUser.userId,
+                        familyId          = currentUser.familyId,
+                        petEnabled        = data["petEnabled"] as? Boolean ?: true,
+                        bossBattleEnabled = data["bossBattleEnabled"] as? Boolean ?: true,
+                        dailySpinEnabled  = data["dailySpinEnabled"] as? Boolean ?: true,
+                        storyArcsEnabled  = data["storyArcsEnabled"] as? Boolean ?: true,
+                        eventsEnabled     = data["eventsEnabled"] as? Boolean ?: true,
+                        skillTreeEnabled  = data["skillTreeEnabled"] as? Boolean ?: true,
+                        walletEnabled     = data["walletEnabled"] as? Boolean ?: true,
+                        ritualsEnabled    = data["ritualsEnabled"] as? Boolean ?: true
+                    )
+                }
+                // Load entitlements — family-aware: checks user doc → family subscription → FREE
+                val entitlementsRepo = com.kidsroutine.core.model.EntitlementsRepository(db)
+                entitlements = entitlementsRepo.getEntitlements(currentUser.userId, currentUser.familyId)
+            } catch (_: Exception) { /* Use defaults */ }
+        }
+    }
+
+    // Also set up a real-time listener to auto-refresh when parent changes controls
+    LaunchedEffect(currentUser.userId, currentUser.familyId) {
+        if (currentUser.familyId.isNotEmpty()) {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            db.collection("families").document(currentUser.familyId)
+                .collection("parent_controls").document(currentUser.userId)
+                .addSnapshotListener { snapshot, _ ->
+                    val data = snapshot?.data ?: return@addSnapshotListener
+                    parentControls = ParentControlSettings(
+                        childId           = currentUser.userId,
+                        familyId          = currentUser.familyId,
+                        petEnabled        = data["petEnabled"] as? Boolean ?: true,
+                        bossBattleEnabled = data["bossBattleEnabled"] as? Boolean ?: true,
+                        dailySpinEnabled  = data["dailySpinEnabled"] as? Boolean ?: true,
+                        storyArcsEnabled  = data["storyArcsEnabled"] as? Boolean ?: true,
+                        eventsEnabled     = data["eventsEnabled"] as? Boolean ?: true,
+                        skillTreeEnabled  = data["skillTreeEnabled"] as? Boolean ?: true,
+                        walletEnabled     = data["walletEnabled"] as? Boolean ?: true,
+                        ritualsEnabled    = data["ritualsEnabled"] as? Boolean ?: true
+                    )
+                }
+        }
     }
 
     val themeManager = remember { SeasonalThemeManager() }
@@ -152,7 +229,10 @@ fun ChildMainScreen(
                     onStoryArcClick        = { innerNavController.navigate("story_arc") },
                     onWalletClick          = { innerNavController.navigate("wallet") },
                     onSkillTreeClick       = { innerNavController.navigate("skill_tree") },
-                    onRitualsClick         = { innerNavController.navigate("rituals") }
+                    onRitualsClick         = { innerNavController.navigate("rituals") },
+                    onChallengeDetailClick = { challenge ->
+                        parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
+                    }
                 )
             }
 
@@ -168,6 +248,24 @@ fun ChildMainScreen(
                     onViewDetailClick     = { challenge ->
                         parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
                     }
+                )
+            }
+
+            composable("fun_zone") {
+                currentRoute = "fun_zone"
+                FunZoneFullScreen(
+                    userLevel        = currentUser.level,
+                    parentControls   = parentControls,
+                    entitlements     = entitlements,
+                    onBackClick       = { innerNavController.navigate("daily") },
+                    onPetClick        = { innerNavController.navigate("pet") },
+                    onBossBattleClick = { innerNavController.navigate("boss_battle") },
+                    onSpinWheelClick  = { innerNavController.navigate("spin_wheel") },
+                    onEventsClick     = { innerNavController.navigate("events") },
+                    onStoryArcClick   = { innerNavController.navigate("story_arc") },
+                    onWalletClick     = { innerNavController.navigate("wallet") },
+                    onSkillTreeClick  = { innerNavController.navigate("skill_tree") },
+                    onRitualsClick    = { innerNavController.navigate("rituals") }
                 )
             }
 
@@ -326,7 +424,7 @@ fun ChildMainScreen(
             currentUser             = currentUser,
             hideOverlayButtons      = worldDetailShowing,
             onDailyClick            = { innerNavController.navigate("daily")         { popUpTo("daily") } },
-            onChallengesClick       = { innerNavController.navigate("challenges")    { popUpTo("daily") } },
+            onFunZoneClick          = { innerNavController.navigate("fun_zone")      { popUpTo("daily") } },
             onLeaderboardClick      = { innerNavController.navigate("leaderboard")   { popUpTo("daily") } },
             onWorldClick            = { innerNavController.navigate("world")         { popUpTo("daily") } },
             onAchievementsClick     = { innerNavController.navigate("achievements")  { popUpTo("daily") } },
@@ -337,6 +435,28 @@ fun ChildMainScreen(
             onNotificationsClick    = { innerNavController.navigate("notifications") { popUpTo("daily") } },
             onProposeTaskClick      = { innerNavController.navigate("child_task_proposal") }
         )
+
+        // ── Persistent XP Balance Widget ──────────────────────────────
+        // Visible across all child screens, positioned at top-center
+        if (!worldDetailShowing) {
+            XpBalanceWidget(
+                xp = currentUser.xp,
+                level = currentUser.level,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .offset(y = 2.dp)
+                    .zIndex(20f)
+            )
+        }
+
+        // ── Weekly XP Summary Overlay ────────────────────────────────────
+        if (showWeeklySummary) {
+            WeeklyXpSummaryOverlay(
+                user = currentUser,
+                onDismiss = { showWeeklySummary = false }
+            )
+        }
     }
 }
 
@@ -382,7 +502,7 @@ private fun PersistentNavBar(
     currentUser: UserModel,
     hideOverlayButtons: Boolean = false,
     onDailyClick: () -> Unit,
-    onChallengesClick: () -> Unit,
+    onFunZoneClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onWorldClick: () -> Unit,
     onAchievementsClick: () -> Unit,
@@ -397,7 +517,7 @@ private fun PersistentNavBar(
     data class NavItem(val route: String, val icon: ImageVector, val label: String, val onClick: () -> Unit)
     val items = listOf(
         NavItem("daily",       Icons.Default.Home,         "Daily",       onDailyClick),
-        NavItem("challenges",  Icons.Default.EmojiEvents,  "Challenges",  onChallengesClick),
+        NavItem("fun_zone",    Icons.Default.SportsEsports,"Fun Zone",    onFunZoneClick),
         NavItem("leaderboard", Icons.Default.BarChart,     "Leaderboard", onLeaderboardClick),
         NavItem("world",       Icons.Default.Language,     "World",       onWorldClick),
         NavItem("rewards",     Icons.Default.CardGiftcard, "Rewards",     onRewardsClick)
@@ -539,6 +659,864 @@ private fun PersistentNavBar(
                     Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fun Zone Full Screen — attractive feature discovery hub
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun FunZoneFullScreen(
+    userLevel: Int = 1,
+    parentControls: ParentControlSettings = ParentControlSettings(),
+    entitlements: UserEntitlements = UserEntitlements(),
+    onBackClick: () -> Unit,
+    onPetClick: () -> Unit,
+    onBossBattleClick: () -> Unit,
+    onSpinWheelClick: () -> Unit,
+    onEventsClick: () -> Unit,
+    onStoryArcClick: () -> Unit,
+    onWalletClick: () -> Unit,
+    onSkillTreeClick: () -> Unit,
+    onRitualsClick: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "funZoneGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue  = 0.4f,
+        targetValue   = 0.8f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label         = "funGlow"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFFF8F0))
+    ) {
+        // ── Header ─────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                    )
+                )
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Column {
+                Text(
+                    text       = "🎮 Fun Zone",
+                    style      = MaterialTheme.typography.headlineLarge,
+                    color      = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize   = 32.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text  = "Your playground of awesome activities!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+                // Show plan badge
+                if (entitlements.planType != PlanType.FREE) {
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            "${entitlements.planType.emoji} ${entitlements.planType.displayName} Member",
+                            fontSize   = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White,
+                            modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // ── Content ────────────────────────────────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Helper: check if parent has hidden a feature for this child
+            fun isParentEnabled(featureKey: String): Boolean {
+                return parentControls.isFunZoneFeatureEnabled(featureKey)
+            }
+
+            // Helper: check subscription lock (feature visible but not accessible)
+            fun isSubscriptionLocked(featureKey: String): Boolean {
+                return !entitlements.hasFunZoneFeature(featureKey)
+            }
+
+            // Helper: get required plan for locked feature
+            fun requiredPlan(featureKey: String): PlanType {
+                return entitlements.requiredPlanForFeature(featureKey) ?: PlanType.PRO
+            }
+
+            // ── 🐾 Companion & Care ────────────────────────────────────
+            // Always show Pet (parent can still hide via controls)
+            if (isParentEnabled("pet")) {
+                Text(
+                    text       = "🐾 Companion & Care",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+
+                FunZoneFeatureCard(
+                    emoji              = "🐾",
+                    title              = "My Pet",
+                    description        = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
+                    accentColor        = Color(0xFF06D6A0),
+                    onClick            = onPetClick,
+                    badge              = "🌟 Popular",
+                    requiredLevel      = 1,
+                    userLevel          = userLevel,
+                    subscriptionLocked = isSubscriptionLocked("pet"),
+                    requiredPlan       = requiredPlan("pet")
+                )
+            }
+
+            // ── ⚔️ Action & Adventure ──────────────────────────────────
+            // Always show both Boss Battle and Daily Spin (subscription-locked if needed)
+            val showBoss = isParentEnabled("boss_battle")
+            val showSpin = isParentEnabled("daily_spin")
+            if (showBoss || showSpin) {
+                Text(
+                    text       = "⚔️ Action & Adventure",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (showBoss) {
+                        FunZoneCompactCard(
+                            emoji              = "⚔️",
+                            title              = "Boss Battle",
+                            description        = "Team up to defeat weekly bosses!",
+                            accentColor        = Color(0xFFEF476F),
+                            onClick            = onBossBattleClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 5,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("boss_battle"),
+                            requiredPlan       = requiredPlan("boss_battle")
+                        )
+                    }
+                    if (showSpin) {
+                        FunZoneCompactCard(
+                            emoji              = "🎡",
+                            title              = "Daily Spin",
+                            description        = "Spin the wheel for surprise rewards!",
+                            accentColor        = Color(0xFFFF9F1C),
+                            onClick            = onSpinWheelClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 2,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("daily_spin"),
+                            requiredPlan       = requiredPlan("daily_spin")
+                        )
+                    }
+                }
+            }
+
+            // ── 🌍 Explore & Discover ──────────────────────────────────
+            // Always show Story Arcs, Events, Skill Tree
+            val showStory  = isParentEnabled("story_arcs")
+            val showEvents = isParentEnabled("events")
+            val showSkills = isParentEnabled("skill_tree")
+            if (showStory || showEvents || showSkills) {
+                Text(
+                    text       = "🌍 Explore & Discover",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+
+                if (showStory) {
+                    FunZoneFeatureCard(
+                        emoji              = "📖",
+                        title              = "Story Arcs",
+                        description        = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
+                        accentColor        = Color(0xFF8B5CF6),
+                        onClick            = onStoryArcClick,
+                        requiredLevel      = 3,
+                        userLevel          = userLevel,
+                        subscriptionLocked = isSubscriptionLocked("story_arcs"),
+                        requiredPlan       = requiredPlan("story_arcs")
+                    )
+                }
+
+                if (showEvents || showSkills) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (showEvents) {
+                            FunZoneCompactCard(
+                                emoji              = "📅",
+                                title              = "Events",
+                                description        = "Limited-time seasonal fun!",
+                                accentColor        = Color(0xFF4361EE),
+                                onClick            = onEventsClick,
+                                modifier           = Modifier.weight(1f),
+                                requiredLevel      = 4,
+                                userLevel          = userLevel,
+                                subscriptionLocked = isSubscriptionLocked("events"),
+                                requiredPlan       = requiredPlan("events")
+                            )
+                        }
+                        if (showSkills) {
+                            FunZoneCompactCard(
+                                emoji              = "🌳",
+                                title              = "Skill Tree",
+                                description        = "Unlock new abilities & skills!",
+                                accentColor        = Color(0xFF667EEA),
+                                onClick            = onSkillTreeClick,
+                                modifier           = Modifier.weight(1f),
+                                requiredLevel      = 3,
+                                userLevel          = userLevel,
+                                subscriptionLocked = isSubscriptionLocked("skill_tree"),
+                                requiredPlan       = requiredPlan("skill_tree")
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── 💫 Money & Mindfulness ─────────────────────────────────
+            val showWallet  = isParentEnabled("wallet")
+            val showRituals = isParentEnabled("rituals")
+            if (showWallet || showRituals) {
+                Text(
+                    text       = "💫 Money & Mindfulness",
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2D3436),
+                    modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (showWallet) {
+                        FunZoneCompactCard(
+                            emoji              = "💰",
+                            title              = "My Wallet",
+                            description        = "Savings goals & financial smarts!",
+                            accentColor        = Color(0xFF11998E),
+                            onClick            = onWalletClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 4,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("wallet"),
+                            requiredPlan       = requiredPlan("wallet")
+                        )
+                    }
+                    if (showRituals) {
+                        FunZoneCompactCard(
+                            emoji              = "🙏",
+                            title              = "Rituals",
+                            description        = "Family gratitude & bonding!",
+                            accentColor        = Color(0xFF9B5DE5),
+                            onClick            = onRitualsClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 2,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("rituals"),
+                            requiredPlan       = requiredPlan("rituals")
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(140.dp))
+        }
+    }
+}
+
+@Composable
+private fun FunZoneFeatureCard(
+    emoji: String,
+    title: String,
+    description: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    badge: String? = null,
+    requiredLevel: Int = 1,
+    userLevel: Int = 99,
+    subscriptionLocked: Boolean = false,
+    requiredPlan: PlanType = PlanType.PRO
+) {
+    val isLevelLocked = userLevel < requiredLevel
+    val isLocked = isLevelLocked || subscriptionLocked
+
+    Card(
+        modifier  = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLocked, onClick = onClick),
+        shape     = RoundedCornerShape(20.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = when {
+                subscriptionLocked -> Color(0xFFF3E8FF)  // Soft purple tint for sub-locked
+                isLevelLocked      -> Color(0xFFF0F0F0)
+                else               -> Color.White
+            }
+        ),
+        elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 4.dp),
+        border    = BorderStroke(
+            1.5.dp,
+            when {
+                subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.3f)
+                isLevelLocked      -> Color.Gray.copy(alpha = 0.2f)
+                else               -> accentColor.copy(alpha = 0.25f)
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Big emoji circle
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape    = CircleShape,
+                color    = when {
+                    subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.08f)
+                    isLevelLocked      -> Color.Gray.copy(alpha = 0.1f)
+                    else               -> accentColor.copy(alpha = 0.12f)
+                },
+                border   = BorderStroke(
+                    2.dp,
+                    when {
+                        subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.2f)
+                        isLevelLocked      -> Color.Gray.copy(alpha = 0.2f)
+                        else               -> accentColor.copy(alpha = 0.3f)
+                    }
+                )
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    // Show the actual emoji even when locked (kids see what they're missing)
+                    Text(emoji, fontSize = 28.sp)
+                    if (isLocked) {
+                        // Overlay a small lock icon
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp)
+                                .background(
+                                    if (subscriptionLocked) Color(0xFF8B5CF6) else Color.Gray,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text       = title,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize   = 16.sp,
+                        color      = if (isLocked) Color(0xFF555555) else Color(0xFF2D3436)
+                    )
+                    when {
+                        subscriptionLocked -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFEDE9FE)
+                            ) {
+                                Text(
+                                    "${requiredPlan.emoji} ${requiredPlan.displayName}",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = Color(0xFF7C3AED),
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        isLevelLocked -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFFFEBEE)
+                            ) {
+                                Text(
+                                    "Lvl $requiredLevel",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = Color(0xFFE53935),
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        badge != null -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = accentColor.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    badge,
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = accentColor,
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text     = when {
+                        subscriptionLocked -> "$description\n✨ Ask your parents to upgrade!"
+                        isLevelLocked      -> "Reach level $requiredLevel to unlock!"
+                        else               -> description
+                    },
+                    fontSize = 12.sp,
+                    color    = if (subscriptionLocked) Color(0xFF7C3AED).copy(alpha = 0.7f)
+                               else Color.Gray,
+                    maxLines = 3
+                )
+            }
+
+            Icon(
+                when {
+                    subscriptionLocked -> Icons.Default.Star
+                    isLocked           -> Icons.Default.Lock
+                    else               -> Icons.Default.ChevronRight
+                },
+                contentDescription = null,
+                tint     = when {
+                    subscriptionLocked -> Color(0xFF7C3AED).copy(alpha = 0.6f)
+                    isLocked           -> Color.Gray
+                    else               -> accentColor.copy(alpha = 0.6f)
+                },
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FunZoneCompactCard(
+    emoji: String,
+    title: String,
+    description: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    requiredLevel: Int = 1,
+    userLevel: Int = 99,
+    subscriptionLocked: Boolean = false,
+    requiredPlan: PlanType = PlanType.PRO
+) {
+    val isLevelLocked = userLevel < requiredLevel
+    val isLocked = isLevelLocked || subscriptionLocked
+
+    Card(
+        modifier  = modifier
+            .clickable(enabled = !isLocked, onClick = onClick),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(
+            containerColor = when {
+                subscriptionLocked -> Color(0xFFF3E8FF)  // Soft purple for sub-locked
+                isLevelLocked      -> Color(0xFFF0F0F0)
+                else               -> Color.White
+            }
+        ),
+        elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 3.dp),
+        border    = BorderStroke(
+            1.dp,
+            when {
+                subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.2f)
+                isLevelLocked      -> Color.Gray.copy(alpha = 0.15f)
+                else               -> accentColor.copy(alpha = 0.2f)
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape    = RoundedCornerShape(12.dp),
+                        color    = when {
+                            subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.08f)
+                            isLevelLocked      -> Color.Gray.copy(alpha = 0.1f)
+                            else               -> accentColor.copy(alpha = 0.12f)
+                        }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            // Always show the feature emoji (kids see what they're missing!)
+                            Text(emoji, fontSize = 20.sp)
+                        }
+                    }
+                    if (isLocked) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(16.dp)
+                                .background(
+                                    if (subscriptionLocked) Color(0xFF8B5CF6) else Color.Gray,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+                    }
+                }
+                when {
+                    subscriptionLocked -> {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFEDE9FE)
+                        ) {
+                            Text(
+                                "${requiredPlan.emoji} ${requiredPlan.displayName}",
+                                fontSize   = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color(0xFF7C3AED),
+                                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    isLevelLocked -> {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFFEBEE)
+                        ) {
+                            Text(
+                                "Lvl $requiredLevel",
+                                fontSize   = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color(0xFFE53935),
+                                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Text(
+                text       = title,
+                fontWeight = FontWeight.Bold,
+                fontSize   = 13.sp,
+                color      = if (isLocked) Color(0xFF555555) else Color(0xFF2D3436)
+            )
+            Text(
+                text     = when {
+                    subscriptionLocked -> "✨ Ask parents to upgrade!"
+                    isLevelLocked      -> "Reach Lvl $requiredLevel"
+                    else               -> description
+                },
+                fontSize = 10.sp,
+                color    = if (subscriptionLocked) Color(0xFF7C3AED).copy(alpha = 0.7f) else Color.Gray,
+                maxLines = 2,
+                lineHeight = 14.sp
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// XP Balance Widget — persistent floating XP badge visible across all screens
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun XpBalanceWidget(
+    xp: Int,
+    level: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape    = RoundedCornerShape(20.dp),
+        color    = Color.White,
+        shadowElevation = 6.dp,
+        border   = BorderStroke(1.dp, OrangePrimary.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Level badge
+            Surface(
+                shape = CircleShape,
+                color = OrangePrimary.copy(alpha = 0.15f),
+                modifier = Modifier.size(22.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "$level",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = OrangePrimary
+                    )
+                }
+            }
+            Text(
+                "⭐ $xp XP",
+                fontSize   = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color      = OrangePrimary
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Weekly XP Summary — animated recap overlay shown on Monday mornings
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun WeeklyXpSummaryOverlay(
+    user: UserModel,
+    onDismiss: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "weeklyGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1000), RepeatMode.Reverse),
+        label = "weeklyGlowAlpha"
+    )
+
+    // Animated entrance
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "weeklyScale"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(onClick = onDismiss)
+            .zIndex(50f),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .clickable { /* Consume click to prevent propagation to dismiss overlay */ },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header with animated trophy
+                Text("🏆", fontSize = 48.sp, modifier = Modifier.graphicsLayer { this.alpha = glowAlpha })
+                Text(
+                    "Weekly Recap",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = OrangePrimary
+                )
+                Text(
+                    "Here's how last week went!",
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+
+                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+
+                // Stats grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "⭐",
+                        value = "${user.weeklyXp}",
+                        label = "XP Earned",
+                        color = Color(0xFFFF9800),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "💎",
+                        value = "${user.xp}",
+                        label = "Total XP",
+                        color = Color(0xFF4361EE),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "🔥",
+                        value = "${user.streak}d",
+                        label = "Streak",
+                        color = Color(0xFFE53935),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "📈",
+                        value = "Lvl ${user.level}",
+                        label = "Level",
+                        color = Color(0xFF2E7D32),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    WeeklyStat(
+                        emoji = "🏅",
+                        value = user.league.name.lowercase()
+                            .replaceFirstChar { it.uppercase() },
+                        label = "League",
+                        color = Color(0xFF6A1B9A),
+                        modifier = Modifier.weight(1f)
+                    )
+                    WeeklyStat(
+                        emoji = "🐾",
+                        value = if (user.petId.isNotEmpty()) "Happy" else "—",
+                        label = "Pet Status",
+                        color = Color(0xFF06D6A0),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                // Motivational message
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF3E0)
+                ) {
+                    Text(
+                        text = when {
+                            user.weeklyXp >= 200 -> "🌟 Amazing week! You're on fire!"
+                            user.weeklyXp >= 100 -> "💪 Great effort! Keep pushing!"
+                            user.weeklyXp >= 50  -> "👍 Good start! Let's aim higher!"
+                            else                  -> "🚀 New week, new goals! Let's go!"
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = OrangePrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Dismiss button
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = OrangePrimary)
+                ) {
+                    Text(
+                        "Let's Go! 🚀",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklyStat(
+    emoji: String,
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = color.copy(alpha = 0.08f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(emoji, fontSize = 24.sp)
+            Text(
+                value,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                color = color
+            )
+            Text(
+                label,
+                fontSize = 10.sp,
+                color = Color.Gray,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

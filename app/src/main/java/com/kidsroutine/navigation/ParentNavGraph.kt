@@ -292,7 +292,7 @@ fun NavGraphBuilder.parentNavGraph(
             val contentPacksViewModel: ContentPacksViewModel = hiltViewModel()
             val contentUiState by contentPacksViewModel.uiState.collectAsState()
             LaunchedEffect(currentUser.userId) {
-                contentPacksViewModel.loadForUser(userId = currentUser.userId, userXp = currentUser.xp)
+                contentPacksViewModel.loadForUser(userId = currentUser.userId, userXp = currentUser.xp, familyId = currentUser.familyId)
             }
             ContentPacksScreen(
                 currentUser = currentUser,

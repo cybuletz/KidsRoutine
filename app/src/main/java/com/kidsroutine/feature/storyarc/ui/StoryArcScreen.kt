@@ -281,7 +281,7 @@ fun StoryArcScreen(
                 }
             }
 
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(140.dp))
         }
     }
 }

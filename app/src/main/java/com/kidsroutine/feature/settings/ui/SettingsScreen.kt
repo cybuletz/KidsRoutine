@@ -347,7 +347,7 @@ fun SettingsScreen(
             Text("Sign Out", color = Color.White, fontWeight = FontWeight.Bold)
         }
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(140.dp))
     }
 
     // ── Edit Display Name Dialog ──────────────────────────────────────────

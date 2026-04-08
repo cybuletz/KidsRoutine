@@ -40,6 +40,8 @@ import com.kidsroutine.feature.skilltree.data.SkillTreeRepository
 import com.kidsroutine.feature.skilltree.data.SkillTreeRepositoryImpl
 import com.kidsroutine.feature.rituals.data.RitualsRepository
 import com.kidsroutine.feature.rituals.data.RitualsRepositoryImpl
+import com.kidsroutine.feature.parent.data.ParentControlRepository
+import com.kidsroutine.feature.parent.data.ParentControlRepositoryImpl
 import com.kidsroutine.feature.world.data.WorldRepository
 import com.kidsroutine.feature.world.data.WorldRepositoryImpl
 import dagger.Binds
@@ -112,6 +114,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindRitualsRepository(impl: RitualsRepositoryImpl): RitualsRepository
+
+    @Binds @Singleton
+    abstract fun bindParentControlRepository(impl: ParentControlRepositoryImpl): ParentControlRepository
 
     companion object {
 

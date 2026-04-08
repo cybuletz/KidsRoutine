@@ -86,7 +86,7 @@ fun MomentsScreen(
         LazyColumn(
             state  = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            contentPadding = PaddingValues(bottom = 140.dp)
         ) {
             // ── Header ────────────────────────────────────────────────────
             item {

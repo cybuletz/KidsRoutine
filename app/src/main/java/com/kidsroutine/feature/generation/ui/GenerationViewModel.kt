@@ -98,7 +98,7 @@ class GenerationViewModel @Inject constructor(
                 Log.d("GenerationVM", "Generating tasks for age $childAge...")
 
                 // Load entitlements (cached after first call)
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 _uiState.value = _uiState.value.copy(entitlements = entitlements)
 
                 if (_uiState.value.quotaRemaining <= 0) {
@@ -173,10 +173,10 @@ class GenerationViewModel @Inject constructor(
                 Log.d("GenerationVM", "Generating challenges...")
 
                 // Load entitlements
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 _uiState.value = _uiState.value.copy(entitlements = entitlements)
 
-                // Gate: challenges require PRO or above
+                // Gate: challenges require PRO or above, but FREE users get trial prompts
                 if (!entitlements.canGenerateChallenges()) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -184,6 +184,9 @@ class GenerationViewModel @Inject constructor(
                     )
                     return@launch
                 }
+
+                // Show trial badge for FREE users using trial prompts
+                val isTrialAccess = entitlements.isTrialAccess("challenges")
 
                 val goals = _uiState.value.selectedGoals
                     .mapNotNull { displayLabelToCategory(it) }
@@ -200,14 +203,15 @@ class GenerationViewModel @Inject constructor(
                 )
 
                 result.onSuccess { response ->
+                    val trialMsg = if (isTrialAccess) " (Trial: ${response.quotaRemaining} left)" else ""
                     _uiState.value = _uiState.value.copy(
                         isLoading          = false,
                         generatedChallenges = response.challenges,
                         quotaRemaining     = response.quotaRemaining,
                         isCached           = response.cached,
-                        successMessage     = "✅ Generated ${response.challenges.size} challenges!"
+                        successMessage     = "✅ Generated ${response.challenges.size} challenges!$trialMsg"
                     )
-                    Log.d("GenerationVM", "Success: ${response.challenges.size} challenges, tier=$tier")
+                    Log.d("GenerationVM", "Success: ${response.challenges.size} challenges, tier=$tier, trial=$isTrialAccess")
                 }
 
                 result.onFailure { error ->
@@ -235,7 +239,8 @@ class GenerationViewModel @Inject constructor(
                 generatedStoryArc = null
             )
             try {
-                val tier = "FREE"
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
+                val tier = entitlements.planType.name
                 val result = repository.generateStoryArc(
                     familyId = currentUser.familyId,
                     childAge = childAge,

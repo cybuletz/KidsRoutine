@@ -8,6 +8,7 @@ import com.kidsroutine.core.model.BossModel
 import com.kidsroutine.core.model.DifficultyLevel
 import com.kidsroutine.core.model.Season
 import com.kidsroutine.feature.boss.data.BossRepository
+import com.kidsroutine.feature.daily.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -27,21 +28,28 @@ data class BossUiState(
     val damageDealt: Int = 0,
     val mvpUserId: String? = null,
     val timeRemaining: Long = 0L,
+    val currentXp: Int = 0,
+    val currentUserId: String = "",
     val error: String? = null
 )
 
 @HiltViewModel
 class BossViewModel @Inject constructor(
     private val bossRepository: BossRepository,
-    private val bossEngine: BossEngine
+    private val bossEngine: BossEngine,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BossUiState())
     val uiState: StateFlow<BossUiState> = _uiState.asStateFlow()
 
     private var countdownJob: Job? = null
+    private var xpObserveJob: Job? = null
 
-    fun loadBoss(familyId: String) {
+    fun loadBoss(familyId: String, userId: String = "") {
+        if (userId.isNotEmpty()) {
+            observeUserXp(userId)
+        }
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
@@ -88,9 +96,17 @@ class BossViewModel @Inject constructor(
         season: Season = Season.NONE,
         difficulty: DifficultyLevel = DifficultyLevel.MEDIUM
     ) {
+        val current = _uiState.value
+        if (current.currentXp < BOSS_ENTRY_COST) {
+            _uiState.value = current.copy(error = "Not enough XP! You need $BOSS_ENTRY_COST XP to summon a boss.")
+            return
+        }
+
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         viewModelScope.launch {
             try {
+                userRepository.updateUserXp(current.currentUserId, -BOSS_ENTRY_COST)
+
                 val week = currentWeekString()
                 Log.d(TAG, "Generating new boss for family: $familyId, week: $week, size: $familySize")
 
@@ -130,6 +146,18 @@ class BossViewModel @Inject constructor(
         }
     }
 
+    private fun observeUserXp(userId: String) {
+        xpObserveJob?.cancel()
+        xpObserveJob = viewModelScope.launch {
+            userRepository.observeUser(userId).collect { user ->
+                _uiState.value = _uiState.value.copy(
+                    currentXp = user.xp,
+                    currentUserId = userId
+                )
+            }
+        }
+    }
+
     private fun startCountdown(deadline: Long) {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
@@ -157,10 +185,12 @@ class BossViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         countdownJob?.cancel()
+        xpObserveJob?.cancel()
     }
 
     companion object {
         private const val TAG = "BossViewModel"
         private val WEEK_MILLIS = TimeUnit.DAYS.toMillis(7)
+        const val BOSS_ENTRY_COST = 10
     }
 }

@@ -51,12 +51,12 @@ class ContentPacksViewModel @Inject constructor(
     }
 
     // ── Called from ParentNavGraph ─────────────────────────────────────────
-    fun loadForUser(userId: String, userXp: Int) {
+    fun loadForUser(userId: String, userXp: Int, familyId: String = "") {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                // 1. Load plan type
-                val entitlements = entitlementsRepository.getEntitlements(userId)
+                // 1. Load plan type (family-aware)
+                val entitlements = entitlementsRepository.getEntitlements(userId, familyId)
                 val isPro = entitlements.planType != PlanType.FREE
 
                 // 2. Load unlocked pack IDs from Firestore

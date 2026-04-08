@@ -31,6 +31,7 @@ private val PurpleTop  = Color(0xFF7C3AED)
 private val PurpleBot  = Color(0xFF4F46E5)
 private val BgDark     = Color(0xFF0F0F1A)
 private val CardBg     = Color(0xFF1E1E3F)
+private val GreenAccent = Color(0xFF10B981)
 
 @Composable
 fun UpgradeScreen(
@@ -45,7 +46,7 @@ fun UpgradeScreen(
 
     // Initialise billing client when screen opens
     LaunchedEffect(currentUser.userId) {
-        viewModel.init(currentUser.userId)
+        viewModel.init(currentUser.userId, currentUser.familyId)
     }
 
     // React to purchase outcome
@@ -82,6 +83,24 @@ fun UpgradeScreen(
             UpgradeHero()
             Spacer(Modifier.height(24.dp))
 
+            // ── Family Already Subscribed Banner ─────────────────────────
+            val existingSub = uiState.existingFamilySubscription
+            if (existingSub != null && existingSub.planType != PlanType.FREE) {
+                FamilySubscribedBanner(
+                    planType    = existingSub.planType,
+                    parentName  = uiState.billingParentName,
+                    isSelf      = existingSub.billingParentId == currentUser.userId,
+                    modifier    = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            // ── Current Free Plan ────────────────────────────────────────
+            FreePlanCard(
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+
             // Live prices from Play Store (fallback to hardcoded if not loaded)
             val proPrice     = uiState.products.find { it.productId == BillingProducts.PRO_MONTHLY }
                 ?.formattedPrice ?: "$4.99 / month"
@@ -98,12 +117,17 @@ fun UpgradeScreen(
                     onSelect   = { selectedPlan = PlanType.PRO },
                     price      = proPrice,
                     features   = listOf(
-                        "20 AI task generations / day",
+                        "20 AI-powered task generations / day",
                         "5 AI challenge generations / day",
                         "3 AI daily plans / day",
-                        "World map + Loot boxes",
-                        "Story arcs (3-day adventures)"
-                    )
+                        "4 weekly family plans / month",
+                        "Boss battles, Story arcs, Events",
+                        "Skill trees & progression system",
+                        "Full parent controls & XP bank",
+                        "Up to 5 children per family",
+                        "Custom difficulty settings"
+                    ),
+                    highlightText = "Most Popular"
                 )
                 PlanCard(
                     plan       = PlanType.PREMIUM,
@@ -111,12 +135,16 @@ fun UpgradeScreen(
                     onSelect   = { selectedPlan = PlanType.PREMIUM },
                     price      = premiumPrice,
                     features   = listOf(
-                        "Unlimited AI generations",
-                        "Weekly family planner",
-                        "Seasonal themes",
-                        "All PRO features",
-                        "Priority support"
-                    )
+                        "Unlimited AI generations (tasks, challenges, plans)",
+                        "30 weekly family plans / month",
+                        "Seasonal themes & exclusive content",
+                        "All Fun Zone features unlocked",
+                        "All PRO features included",
+                        "Up to 20 children per family",
+                        "Priority support & early access",
+                        "Story-based tasks & custom narratives"
+                    ),
+                    highlightText = "Best Value"
                 )
             }
 
@@ -177,7 +205,17 @@ fun UpgradeScreen(
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(20.dp))
+
+            // ── Why KidsRoutine is Better ────────────────────────────────
+            WhyBetterSection(modifier = Modifier.padding(horizontal = 20.dp))
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── Feature Comparison vs Other Apps ─────────────────────────
+            CompetitiveComparisonSection(modifier = Modifier.padding(horizontal = 20.dp))
+
+            Spacer(Modifier.height(20.dp))
 
             // Restore purchases
             TextButton(
@@ -192,7 +230,7 @@ fun UpgradeScreen(
             }
 
             Text(
-                "Cancel anytime · Secure payment · Restore purchases",
+                "Cancel anytime · Secure payment via Google Play · Auto-renews monthly",
                 fontSize  = 11.sp,
                 color     = Color.White.copy(alpha = 0.4f),
                 textAlign = TextAlign.Center,
@@ -203,7 +241,7 @@ fun UpgradeScreen(
     }
 }
 
-// ─── Hero (unchanged from Batch 8) ──────────────────────────────────────────
+// ─── Hero ────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun UpgradeHero() {
@@ -243,12 +281,63 @@ private fun UpgradeHero() {
                 modifier   = Modifier.padding(horizontal = 24.dp)
             )
             Text(
-                "AI-powered tasks, story arcs, world maps & more",
+                "AI-powered tasks, story arcs, boss battles & more",
                 fontSize  = 13.sp,
                 color     = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
                 modifier  = Modifier.padding(horizontal = 32.dp)
             )
+        }
+    }
+}
+
+// ─── Free Plan Card ──────────────────────────────────────────────────────────
+
+@Composable
+private fun FreePlanCard(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("🆓", fontSize = 18.sp)
+                Text(
+                    "Your Current Free Plan",
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White.copy(alpha = 0.7f)
+                )
+            }
+            val freeFeatures = listOf(
+                "✅ 3 AI task suggestions / day",
+                "✅ Pet companion",
+                "✅ Daily spin wheel",
+                "✅ Family rituals",
+                "✅ 2 trial AI challenge prompts",
+                "✅ 2 trial AI daily plan prompts",
+                "❌ Boss battles, Story arcs, Events",
+                "❌ Skill trees & progression",
+                "❌ Parent controls & XP bank",
+                "❌ Weekly family planner"
+            )
+            freeFeatures.forEach { feature ->
+                val isIncluded = feature.startsWith("✅")
+                Text(
+                    feature,
+                    fontSize = 11.sp,
+                    color    = if (isIncluded) Color.White.copy(alpha = 0.5f)
+                               else Color(0xFFFF6B6B).copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }
@@ -261,7 +350,8 @@ private fun PlanCard(
     isSelected: Boolean,
     onSelect: () -> Unit,
     price: String,
-    features: List<String>
+    features: List<String>,
+    highlightText: String? = null
 ) {
     val borderColor = if (isSelected) GoldTop else Color.White.copy(alpha = 0.15f)
     val bgColor     = if (isSelected) CardBg.copy(alpha = 0.95f) else CardBg.copy(alpha = 0.5f)
@@ -299,7 +389,23 @@ private fun PlanCard(
                         color      = if (isSelected) GoldTop else Color.White
                     )
                 }
-                Text(price, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(price, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
+                    if (highlightText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (plan == PlanType.PRO) GreenAccent.copy(alpha = 0.2f) else GoldTop.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                highlightText,
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = if (plan == PlanType.PRO) GreenAccent else GoldTop,
+                                modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
             if (isSelected) {
                 Surface(shape = RoundedCornerShape(6.dp), color = GoldTop.copy(alpha = 0.2f)) {
@@ -321,6 +427,177 @@ private fun PlanCard(
                     Text(feature, fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
                 }
             }
+        }
+    }
+}
+
+// ─── Why KidsRoutine is Better ───────────────────────────────────────────────
+
+@Composable
+private fun WhyBetterSection(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2744))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "🏆 Why KidsRoutine Stands Out",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = GoldTop
+            )
+
+            val advantages = listOf(
+                Triple("🤖", "AI-Personalized Tasks",
+                    "Gemini AI creates unique, age-appropriate tasks tailored to YOUR child's interests and developmental stage. No generic checklists."),
+                Triple("📖", "Story-Driven Adventures",
+                    "Multi-day narrative arcs turn chores into epic quests. Kids complete chapters, not tasks — motivation through storytelling."),
+                Triple("⚔️", "Family Boss Battles",
+                    "Collaborative family challenges where everyone works together to defeat weekly bosses. No other app has real-time family co-op."),
+                Triple("🌳", "Skill Trees & Progression",
+                    "RPG-style skill trees let kids unlock abilities as they grow. Visual proof of growth that other sticker-chart apps can't match."),
+                Triple("💰", "Financial Literacy Built In",
+                    "Wallet system teaches real money concepts through XP savings goals. Your child learns finance while having fun."),
+                Triple("🎮", "8+ Fun Zone Activities",
+                    "Pet companion, daily spin, events, rituals, and more. A complete engagement ecosystem, not just a to-do list."),
+                Triple("👨\u200D👩\u200D👧", "Per-Child Parent Controls",
+                    "Fine-grained controls per child: toggle features, set difficulty, manage XP economy. Other apps offer one-size-fits-all."),
+                Triple("🧠", "Adaptive Difficulty",
+                    "AI adjusts task difficulty based on performance. Tasks grow with your child — never too easy, never too hard.")
+            )
+
+            advantages.forEach { (emoji, title, desc) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(emoji, fontSize = 24.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            title,
+                            fontSize   = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White
+                        )
+                        Text(
+                            desc,
+                            fontSize = 11.sp,
+                            color    = Color.White.copy(alpha = 0.6f),
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Competitive Comparison ──────────────────────────────────────────────────
+
+@Composable
+private fun CompetitiveComparisonSection(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2744))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "📊 How We Compare",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = GoldTop
+            )
+            Text(
+                "See what makes KidsRoutine the complete family solution",
+                fontSize = 11.sp,
+                color    = Color.White.copy(alpha = 0.5f)
+            )
+
+            // Comparison rows
+            val comparisons = listOf(
+                Triple("AI-Personalized Tasks", true, false),
+                Triple("Story-Driven Quests", true, false),
+                Triple("Family Boss Battles", true, false),
+                Triple("Skill Tree Progression", true, false),
+                Triple("Financial Literacy", true, false),
+                Triple("Per-Child Controls", true, false),
+                Triple("Daily Spin Rewards", true, true),
+                Triple("Avatar Customization", true, true),
+                Triple("Basic Task Lists", true, true),
+                Triple("Adaptive Difficulty", true, false),
+                Triple("XP Bank & Loans", true, false),
+                Triple("Weekly Family Plans", true, false)
+            )
+
+            // Header
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "Feature",
+                    fontSize   = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White.copy(alpha = 0.5f),
+                    modifier   = Modifier.weight(1f)
+                )
+                Text(
+                    "KidsRoutine",
+                    fontSize   = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = GoldTop,
+                    textAlign  = TextAlign.Center,
+                    modifier   = Modifier.width(80.dp)
+                )
+                Text(
+                    "Others",
+                    fontSize   = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color.White.copy(alpha = 0.4f),
+                    textAlign  = TextAlign.Center,
+                    modifier   = Modifier.width(60.dp)
+                )
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            comparisons.forEach { (feature, us, them) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        feature,
+                        fontSize = 11.sp,
+                        color    = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        if (us) "✅" else "❌",
+                        fontSize  = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier  = Modifier.width(80.dp)
+                    )
+                    Text(
+                        if (them) "⚠️" else "❌",
+                        fontSize  = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier  = Modifier.width(60.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "⚠️ = Limited/partial implementation in competing apps",
+                fontSize = 9.sp,
+                color    = Color.White.copy(alpha = 0.3f)
+            )
         }
     }
 }
@@ -381,4 +658,56 @@ private fun UpgradeCta(
             }
         }
     }
+}
+
+// ─── Family Already Subscribed Banner ────────────────────────────────────────
+
+@Composable
+private fun FamilySubscribedBanner(
+    planType: PlanType,
+    parentName: String,
+    isSelf: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A3A2A))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("✅", fontSize = 20.sp)
+                Text(
+                    "Family Subscribed — ${planType.displayName} ${planType.emoji}",
+                    fontSize   = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = GreenAccent
+                )
+            }
+            Text(
+                if (isSelf) {
+                    "You are the billing parent for this family. Your ${planType.displayName} plan is active for all family members — parents and kids alike."
+                } else {
+                    "This family's ${planType.displayName} plan is managed by $parentName. All family members (parents & kids) share the benefits."
+                },
+                fontSize   = 12.sp,
+                color      = Color.White.copy(alpha = 0.7f),
+                lineHeight = 18.sp
+            )
+            if (!isSelf) {
+                Text(
+                    "To upgrade or change the plan, ask $parentName (the billing parent).",
+                    fontSize = 11.sp,
+                    color    = Color.White.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
 }

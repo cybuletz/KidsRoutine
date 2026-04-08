@@ -64,7 +64,7 @@ class WeeklyPlanViewModel @Inject constructor(
 
             try {
                 // Check entitlements
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 val isPro = entitlements.planType != PlanType.FREE
                 _uiState.value = _uiState.value.copy(isPro = isPro)
 
