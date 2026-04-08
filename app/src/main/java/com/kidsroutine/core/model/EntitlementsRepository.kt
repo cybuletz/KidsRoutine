@@ -62,7 +62,13 @@ class EntitlementsRepository @Inject constructor(
                         ?: defaults.xpBankEnabled,
                     customDifficultyEnabled = (data["customDifficultyEnabled"] as? Boolean)
                         ?: defaults.customDifficultyEnabled,
-                    updatedAt               = (data["updatedAt"] as? Number)?.toLong() ?: 0L
+                    updatedAt               = (data["updatedAt"] as? Number)?.toLong() ?: 0L,
+                    aiTrialChallengePrompts = (data["aiTrialChallengePrompts"] as? Number)?.toInt()
+                        ?: defaults.aiTrialChallengePrompts,
+                    aiTrialPlanPrompts      = (data["aiTrialPlanPrompts"] as? Number)?.toInt()
+                        ?: defaults.aiTrialPlanPrompts,
+                    aiTrialWeeklyPlanPrompts = (data["aiTrialWeeklyPlanPrompts"] as? Number)?.toInt()
+                        ?: defaults.aiTrialWeeklyPlanPrompts
                 )
                 cache[userId] = entitlements
                 Log.d("Entitlements", "Loaded entitlements for $userId: ${entitlements.planType}")
@@ -94,17 +100,20 @@ class EntitlementsRepository @Inject constructor(
             firestore.collection("user_entitlements")
                 .document(entitlements.userId)
                 .set(mapOf(
-                    "planType"                to entitlements.planType.name,
-                    "aiTasksPerDay"           to entitlements.aiTasksPerDay,
-                    "aiChallengesPerDay"      to entitlements.aiChallengesPerDay,
-                    "aiPlansPerDay"           to entitlements.aiPlansPerDay,
-                    "aiWeeklyPlansPerMonth"   to entitlements.aiWeeklyPlansPerMonth,
-                    "unlockedFeatures"        to entitlements.unlockedFeatures,
-                    "maxChildren"             to entitlements.maxChildren,
-                    "parentControlsEnabled"   to entitlements.parentControlsEnabled,
-                    "xpBankEnabled"           to entitlements.xpBankEnabled,
-                    "customDifficultyEnabled" to entitlements.customDifficultyEnabled,
-                    "updatedAt"               to System.currentTimeMillis()
+                    "planType"                 to entitlements.planType.name,
+                    "aiTasksPerDay"            to entitlements.aiTasksPerDay,
+                    "aiChallengesPerDay"       to entitlements.aiChallengesPerDay,
+                    "aiPlansPerDay"            to entitlements.aiPlansPerDay,
+                    "aiWeeklyPlansPerMonth"    to entitlements.aiWeeklyPlansPerMonth,
+                    "unlockedFeatures"         to entitlements.unlockedFeatures,
+                    "maxChildren"              to entitlements.maxChildren,
+                    "parentControlsEnabled"    to entitlements.parentControlsEnabled,
+                    "xpBankEnabled"            to entitlements.xpBankEnabled,
+                    "customDifficultyEnabled"  to entitlements.customDifficultyEnabled,
+                    "aiTrialChallengePrompts"  to entitlements.aiTrialChallengePrompts,
+                    "aiTrialPlanPrompts"       to entitlements.aiTrialPlanPrompts,
+                    "aiTrialWeeklyPlanPrompts" to entitlements.aiTrialWeeklyPlanPrompts,
+                    "updatedAt"                to System.currentTimeMillis()
                 ))
                 .await()
             cache[entitlements.userId] = entitlements

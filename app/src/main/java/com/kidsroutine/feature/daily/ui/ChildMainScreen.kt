@@ -731,6 +731,22 @@ private fun FunZoneFullScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.85f)
                 )
+                // Show plan badge
+                if (entitlements.planType != PlanType.FREE) {
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            "${entitlements.planType.emoji} ${entitlements.planType.displayName} Member",
+                            fontSize   = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color      = Color.White,
+                            modifier   = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -742,14 +758,24 @@ private fun FunZoneFullScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Helper: check if feature is visible (parent control + billing tier)
-            fun isFeatureVisible(featureKey: String): Boolean {
-                return parentControls.isFunZoneFeatureEnabled(featureKey) &&
-                       entitlements.hasFunZoneFeature(featureKey)
+            // Helper: check if parent has hidden a feature for this child
+            fun isParentEnabled(featureKey: String): Boolean {
+                return parentControls.isFunZoneFeatureEnabled(featureKey)
             }
 
-            // Companion & Care — show section if pet is visible
-            if (isFeatureVisible("pet")) {
+            // Helper: check subscription lock (feature visible but not accessible)
+            fun isSubscriptionLocked(featureKey: String): Boolean {
+                return !entitlements.hasFunZoneFeature(featureKey)
+            }
+
+            // Helper: get required plan for locked feature
+            fun requiredPlan(featureKey: String): PlanType {
+                return entitlements.requiredPlanForFeature(featureKey) ?: PlanType.PRO
+            }
+
+            // ── 🐾 Companion & Care ────────────────────────────────────
+            // Always show Pet (parent can still hide via controls)
+            if (isParentEnabled("pet")) {
                 Text(
                     text       = "🐾 Companion & Care",
                     fontSize   = 16.sp,
@@ -759,20 +785,23 @@ private fun FunZoneFullScreen(
                 )
 
                 FunZoneFeatureCard(
-                    emoji       = "🐾",
-                    title       = "My Pet",
-                    description = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
-                    accentColor = Color(0xFF06D6A0),
-                    onClick     = onPetClick,
-                    badge       = "🌟 Popular",
-                    requiredLevel = 1,
-                    userLevel = userLevel
+                    emoji              = "🐾",
+                    title              = "My Pet",
+                    description        = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
+                    accentColor        = Color(0xFF06D6A0),
+                    onClick            = onPetClick,
+                    badge              = "🌟 Popular",
+                    requiredLevel      = 1,
+                    userLevel          = userLevel,
+                    subscriptionLocked = isSubscriptionLocked("pet"),
+                    requiredPlan       = requiredPlan("pet")
                 )
             }
 
-            // Action & Adventure — show section if either boss or spin is visible
-            val showBoss = isFeatureVisible("boss_battle")
-            val showSpin = isFeatureVisible("daily_spin")
+            // ── ⚔️ Action & Adventure ──────────────────────────────────
+            // Always show both Boss Battle and Daily Spin (subscription-locked if needed)
+            val showBoss = isParentEnabled("boss_battle")
+            val showSpin = isParentEnabled("daily_spin")
             if (showBoss || showSpin) {
                 Text(
                     text       = "⚔️ Action & Adventure",
@@ -788,35 +817,40 @@ private fun FunZoneFullScreen(
                 ) {
                     if (showBoss) {
                         FunZoneCompactCard(
-                            emoji       = "⚔️",
-                            title       = "Boss Battle",
-                            description = "Team up to defeat weekly bosses!",
-                            accentColor = Color(0xFFEF476F),
-                            onClick     = onBossBattleClick,
-                            modifier    = Modifier.weight(1f),
-                            requiredLevel = 5,
-                            userLevel = userLevel
+                            emoji              = "⚔️",
+                            title              = "Boss Battle",
+                            description        = "Team up to defeat weekly bosses!",
+                            accentColor        = Color(0xFFEF476F),
+                            onClick            = onBossBattleClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 5,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("boss_battle"),
+                            requiredPlan       = requiredPlan("boss_battle")
                         )
                     }
                     if (showSpin) {
                         FunZoneCompactCard(
-                            emoji       = "🎡",
-                            title       = "Daily Spin",
-                            description = "Spin the wheel for surprise rewards!",
-                            accentColor = Color(0xFFFF9F1C),
-                            onClick     = onSpinWheelClick,
-                            modifier    = Modifier.weight(1f),
-                            requiredLevel = 2,
-                            userLevel = userLevel
+                            emoji              = "🎡",
+                            title              = "Daily Spin",
+                            description        = "Spin the wheel for surprise rewards!",
+                            accentColor        = Color(0xFFFF9F1C),
+                            onClick            = onSpinWheelClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 2,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("daily_spin"),
+                            requiredPlan       = requiredPlan("daily_spin")
                         )
                     }
                 }
             }
 
-            // Explore & Discover — show section if any of story/events/skill are visible
-            val showStory = isFeatureVisible("story_arcs")
-            val showEvents = isFeatureVisible("events")
-            val showSkills = isFeatureVisible("skill_tree")
+            // ── 🌍 Explore & Discover ──────────────────────────────────
+            // Always show Story Arcs, Events, Skill Tree
+            val showStory  = isParentEnabled("story_arcs")
+            val showEvents = isParentEnabled("events")
+            val showSkills = isParentEnabled("skill_tree")
             if (showStory || showEvents || showSkills) {
                 Text(
                     text       = "🌍 Explore & Discover",
@@ -828,13 +862,15 @@ private fun FunZoneFullScreen(
 
                 if (showStory) {
                     FunZoneFeatureCard(
-                        emoji       = "📖",
-                        title       = "Story Arcs",
-                        description = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
-                        accentColor = Color(0xFF8B5CF6),
-                        onClick     = onStoryArcClick,
-                        requiredLevel = 3,
-                        userLevel = userLevel
+                        emoji              = "📖",
+                        title              = "Story Arcs",
+                        description        = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
+                        accentColor        = Color(0xFF8B5CF6),
+                        onClick            = onStoryArcClick,
+                        requiredLevel      = 3,
+                        userLevel          = userLevel,
+                        subscriptionLocked = isSubscriptionLocked("story_arcs"),
+                        requiredPlan       = requiredPlan("story_arcs")
                     )
                 }
 
@@ -845,35 +881,39 @@ private fun FunZoneFullScreen(
                     ) {
                         if (showEvents) {
                             FunZoneCompactCard(
-                                emoji       = "📅",
-                                title       = "Events",
-                                description = "Limited-time seasonal fun!",
-                                accentColor = Color(0xFF4361EE),
-                                onClick     = onEventsClick,
-                                modifier    = Modifier.weight(1f),
-                                requiredLevel = 4,
-                                userLevel = userLevel
+                                emoji              = "📅",
+                                title              = "Events",
+                                description        = "Limited-time seasonal fun!",
+                                accentColor        = Color(0xFF4361EE),
+                                onClick            = onEventsClick,
+                                modifier           = Modifier.weight(1f),
+                                requiredLevel      = 4,
+                                userLevel          = userLevel,
+                                subscriptionLocked = isSubscriptionLocked("events"),
+                                requiredPlan       = requiredPlan("events")
                             )
                         }
                         if (showSkills) {
                             FunZoneCompactCard(
-                                emoji       = "🌳",
-                                title       = "Skill Tree",
-                                description = "Unlock new abilities & skills!",
-                                accentColor = Color(0xFF667EEA),
-                                onClick     = onSkillTreeClick,
-                                modifier    = Modifier.weight(1f),
-                                requiredLevel = 3,
-                                userLevel = userLevel
+                                emoji              = "🌳",
+                                title              = "Skill Tree",
+                                description        = "Unlock new abilities & skills!",
+                                accentColor        = Color(0xFF667EEA),
+                                onClick            = onSkillTreeClick,
+                                modifier           = Modifier.weight(1f),
+                                requiredLevel      = 3,
+                                userLevel          = userLevel,
+                                subscriptionLocked = isSubscriptionLocked("skill_tree"),
+                                requiredPlan       = requiredPlan("skill_tree")
                             )
                         }
                     }
                 }
             }
 
-            // Money & Mindfulness — show section if wallet or rituals visible
-            val showWallet = isFeatureVisible("wallet")
-            val showRituals = isFeatureVisible("rituals")
+            // ── 💫 Money & Mindfulness ─────────────────────────────────
+            val showWallet  = isParentEnabled("wallet")
+            val showRituals = isParentEnabled("rituals")
             if (showWallet || showRituals) {
                 Text(
                     text       = "💫 Money & Mindfulness",
@@ -889,26 +929,30 @@ private fun FunZoneFullScreen(
                 ) {
                     if (showWallet) {
                         FunZoneCompactCard(
-                            emoji       = "💰",
-                            title       = "My Wallet",
-                            description = "Savings goals & financial smarts!",
-                            accentColor = Color(0xFF11998E),
-                            onClick     = onWalletClick,
-                            modifier    = Modifier.weight(1f),
-                            requiredLevel = 4,
-                            userLevel = userLevel
+                            emoji              = "💰",
+                            title              = "My Wallet",
+                            description        = "Savings goals & financial smarts!",
+                            accentColor        = Color(0xFF11998E),
+                            onClick            = onWalletClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 4,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("wallet"),
+                            requiredPlan       = requiredPlan("wallet")
                         )
                     }
                     if (showRituals) {
                         FunZoneCompactCard(
-                            emoji       = "🙏",
-                            title       = "Rituals",
-                            description = "Family gratitude & bonding!",
-                            accentColor = Color(0xFF9B5DE5),
-                            onClick     = onRitualsClick,
-                            modifier    = Modifier.weight(1f),
-                            requiredLevel = 2,
-                            userLevel = userLevel
+                            emoji              = "🙏",
+                            title              = "Rituals",
+                            description        = "Family gratitude & bonding!",
+                            accentColor        = Color(0xFF9B5DE5),
+                            onClick            = onRitualsClick,
+                            modifier           = Modifier.weight(1f),
+                            requiredLevel      = 2,
+                            userLevel          = userLevel,
+                            subscriptionLocked = isSubscriptionLocked("rituals"),
+                            requiredPlan       = requiredPlan("rituals")
                         )
                     }
                 }
@@ -928,9 +972,12 @@ private fun FunZoneFeatureCard(
     onClick: () -> Unit,
     badge: String? = null,
     requiredLevel: Int = 1,
-    userLevel: Int = 99
+    userLevel: Int = 99,
+    subscriptionLocked: Boolean = false,
+    requiredPlan: PlanType = PlanType.PRO
 ) {
-    val isLocked = userLevel < requiredLevel
+    val isLevelLocked = userLevel < requiredLevel
+    val isLocked = isLevelLocked || subscriptionLocked
 
     Card(
         modifier  = Modifier
@@ -938,10 +985,21 @@ private fun FunZoneFeatureCard(
             .clickable(enabled = !isLocked, onClick = onClick),
         shape     = RoundedCornerShape(20.dp),
         colors    = CardDefaults.cardColors(
-            containerColor = if (isLocked) Color(0xFFF0F0F0) else Color.White
+            containerColor = when {
+                subscriptionLocked -> Color(0xFFF3E8FF)  // Soft purple tint for sub-locked
+                isLevelLocked      -> Color(0xFFF0F0F0)
+                else               -> Color.White
+            }
         ),
         elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 4.dp),
-        border    = BorderStroke(1.5.dp, if (isLocked) Color.Gray.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.25f))
+        border    = BorderStroke(
+            1.5.dp,
+            when {
+                subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.3f)
+                isLevelLocked      -> Color.Gray.copy(alpha = 0.2f)
+                else               -> accentColor.copy(alpha = 0.25f)
+            }
+        )
     ) {
         Row(
             modifier = Modifier
@@ -954,14 +1012,42 @@ private fun FunZoneFeatureCard(
             Surface(
                 modifier = Modifier.size(56.dp),
                 shape    = CircleShape,
-                color    = if (isLocked) Color.Gray.copy(alpha = 0.1f) else accentColor.copy(alpha = 0.12f),
-                border   = BorderStroke(2.dp, if (isLocked) Color.Gray.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.3f))
+                color    = when {
+                    subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.08f)
+                    isLevelLocked      -> Color.Gray.copy(alpha = 0.1f)
+                    else               -> accentColor.copy(alpha = 0.12f)
+                },
+                border   = BorderStroke(
+                    2.dp,
+                    when {
+                        subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.2f)
+                        isLevelLocked      -> Color.Gray.copy(alpha = 0.2f)
+                        else               -> accentColor.copy(alpha = 0.3f)
+                    }
+                )
             ) {
                 Box(contentAlignment = Alignment.Center) {
+                    // Show the actual emoji even when locked (kids see what they're missing)
+                    Text(emoji, fontSize = 28.sp)
                     if (isLocked) {
-                        Text("🔒", fontSize = 28.sp)
-                    } else {
-                        Text(emoji, fontSize = 28.sp)
+                        // Overlay a small lock icon
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp)
+                                .background(
+                                    if (subscriptionLocked) Color(0xFF8B5CF6) else Color.Gray,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -975,49 +1061,79 @@ private fun FunZoneFeatureCard(
                         text       = title,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize   = 16.sp,
-                        color      = if (isLocked) Color.Gray else Color(0xFF2D3436)
+                        color      = if (isLocked) Color(0xFF555555) else Color(0xFF2D3436)
                     )
-                    if (isLocked) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFFFEBEE)
-                        ) {
-                            Text(
-                                "Lvl $requiredLevel",
-                                fontSize   = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = Color(0xFFE53935),
-                                modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+                    when {
+                        subscriptionLocked -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFEDE9FE)
+                            ) {
+                                Text(
+                                    "${requiredPlan.emoji} ${requiredPlan.displayName}",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = Color(0xFF7C3AED),
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
-                    } else if (badge != null) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = accentColor.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                badge,
-                                fontSize   = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color      = accentColor,
-                                modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+                        isLevelLocked -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFFFEBEE)
+                            ) {
+                                Text(
+                                    "Lvl $requiredLevel",
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = Color(0xFFE53935),
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        badge != null -> {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = accentColor.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    badge,
+                                    fontSize   = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color      = accentColor,
+                                    modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                     }
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text     = if (isLocked) "Reach level $requiredLevel to unlock!" else description,
+                    text     = when {
+                        subscriptionLocked -> "$description\n✨ Ask your parents to upgrade!"
+                        isLevelLocked      -> "Reach level $requiredLevel to unlock!"
+                        else               -> description
+                    },
                     fontSize = 12.sp,
-                    color    = Color.Gray,
-                    maxLines = 2
+                    color    = if (subscriptionLocked) Color(0xFF7C3AED).copy(alpha = 0.7f)
+                               else Color.Gray,
+                    maxLines = 3
                 )
             }
 
             Icon(
-                if (isLocked) Icons.Default.Lock else Icons.Default.ChevronRight,
+                when {
+                    subscriptionLocked -> Icons.Default.Star
+                    isLocked           -> Icons.Default.Lock
+                    else               -> Icons.Default.ChevronRight
+                },
                 contentDescription = null,
-                tint     = if (isLocked) Color.Gray else accentColor.copy(alpha = 0.6f),
+                tint     = when {
+                    subscriptionLocked -> Color(0xFF7C3AED).copy(alpha = 0.6f)
+                    isLocked           -> Color.Gray
+                    else               -> accentColor.copy(alpha = 0.6f)
+                },
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1033,19 +1149,33 @@ private fun FunZoneCompactCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     requiredLevel: Int = 1,
-    userLevel: Int = 99
+    userLevel: Int = 99,
+    subscriptionLocked: Boolean = false,
+    requiredPlan: PlanType = PlanType.PRO
 ) {
-    val isLocked = userLevel < requiredLevel
+    val isLevelLocked = userLevel < requiredLevel
+    val isLocked = isLevelLocked || subscriptionLocked
 
     Card(
         modifier  = modifier
             .clickable(enabled = !isLocked, onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(
-            containerColor = if (isLocked) Color(0xFFF0F0F0) else Color.White
+            containerColor = when {
+                subscriptionLocked -> Color(0xFFF3E8FF)  // Soft purple for sub-locked
+                isLevelLocked      -> Color(0xFFF0F0F0)
+                else               -> Color.White
+            }
         ),
         elevation = CardDefaults.cardElevation(if (isLocked) 1.dp else 3.dp),
-        border    = BorderStroke(1.dp, if (isLocked) Color.Gray.copy(alpha = 0.15f) else accentColor.copy(alpha = 0.2f))
+        border    = BorderStroke(
+            1.dp,
+            when {
+                subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.2f)
+                isLevelLocked      -> Color.Gray.copy(alpha = 0.15f)
+                else               -> accentColor.copy(alpha = 0.2f)
+            }
+        )
     ) {
         Column(
             modifier = Modifier
@@ -1058,27 +1188,69 @@ private fun FunZoneCompactCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape    = RoundedCornerShape(12.dp),
-                    color    = if (isLocked) Color.Gray.copy(alpha = 0.1f) else accentColor.copy(alpha = 0.12f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(if (isLocked) "🔒" else emoji, fontSize = 20.sp)
+                Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape    = RoundedCornerShape(12.dp),
+                        color    = when {
+                            subscriptionLocked -> Color(0xFF8B5CF6).copy(alpha = 0.08f)
+                            isLevelLocked      -> Color.Gray.copy(alpha = 0.1f)
+                            else               -> accentColor.copy(alpha = 0.12f)
+                        }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            // Always show the feature emoji (kids see what they're missing!)
+                            Text(emoji, fontSize = 20.sp)
+                        }
+                    }
+                    if (isLocked) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(16.dp)
+                                .background(
+                                    if (subscriptionLocked) Color(0xFF8B5CF6) else Color.Gray,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint     = Color.White,
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
                     }
                 }
-                if (isLocked) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFFEBEE)
-                    ) {
-                        Text(
-                            "Lvl $requiredLevel",
-                            fontSize   = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            color      = Color(0xFFE53935),
-                            modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
+                when {
+                    subscriptionLocked -> {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFEDE9FE)
+                        ) {
+                            Text(
+                                "${requiredPlan.emoji} ${requiredPlan.displayName}",
+                                fontSize   = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color(0xFF7C3AED),
+                                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                    isLevelLocked -> {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFFEBEE)
+                        ) {
+                            Text(
+                                "Lvl $requiredLevel",
+                                fontSize   = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = Color(0xFFE53935),
+                                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -1086,12 +1258,16 @@ private fun FunZoneCompactCard(
                 text       = title,
                 fontWeight = FontWeight.Bold,
                 fontSize   = 13.sp,
-                color      = if (isLocked) Color.Gray else Color(0xFF2D3436)
+                color      = if (isLocked) Color(0xFF555555) else Color(0xFF2D3436)
             )
             Text(
-                text     = if (isLocked) "Reach Lvl $requiredLevel" else description,
+                text     = when {
+                    subscriptionLocked -> "✨ Ask parents to upgrade!"
+                    isLevelLocked      -> "Reach Lvl $requiredLevel"
+                    else               -> description
+                },
                 fontSize = 10.sp,
-                color    = Color.Gray,
+                color    = if (subscriptionLocked) Color(0xFF7C3AED).copy(alpha = 0.7f) else Color.Gray,
                 maxLines = 2,
                 lineHeight = 14.sp
             )

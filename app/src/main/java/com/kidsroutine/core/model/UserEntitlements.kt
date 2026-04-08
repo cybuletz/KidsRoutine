@@ -17,13 +17,28 @@ data class UserEntitlements(
     val parentControlsEnabled: Boolean = false,        // Can parent configure Fun Zone / difficulty
     val xpBankEnabled: Boolean = false,                // Can parent lend XP
     val customDifficultyEnabled: Boolean = false,      // Can parent configure quest difficulty tiers
-    val updatedAt: Long = 0L
+    val updatedAt: Long = 0L,
+
+    // ── AI Trial Prompts (configurable) ────────────────────────────
+    // FREE users get a limited number of trial prompts for premium AI features
+    // so they can experience the value before upgrading. Configurable via Firestore.
+    val aiTrialChallengePrompts: Int = DEFAULT_TRIAL_CHALLENGE_PROMPTS,
+    val aiTrialPlanPrompts: Int = DEFAULT_TRIAL_PLAN_PROMPTS,
+    val aiTrialWeeklyPlanPrompts: Int = DEFAULT_TRIAL_WEEKLY_PLAN_PROMPTS
 ) {
     fun canGenerateTasks()        = aiTasksPerDay > 0
-    fun canGenerateChallenges()   = aiChallengesPerDay > 0
-    fun canGenerateDailyPlan()    = aiPlansPerDay > 0
-    fun canGenerateWeeklyPlan()   = aiWeeklyPlansPerMonth > 0
+    fun canGenerateChallenges()   = aiChallengesPerDay > 0 || (planType == PlanType.FREE && aiTrialChallengePrompts > 0)
+    fun canGenerateDailyPlan()    = aiPlansPerDay > 0 || (planType == PlanType.FREE && aiTrialPlanPrompts > 0)
+    fun canGenerateWeeklyPlan()   = aiWeeklyPlansPerMonth > 0 || (planType == PlanType.FREE && aiTrialWeeklyPlanPrompts > 0)
     fun hasFeature(key: String)   = unlockedFeatures.contains(key)
+
+    /** Whether this is a trial-only access (no full quota, only trial prompts) */
+    fun isTrialAccess(feature: String): Boolean = planType == PlanType.FREE && when (feature) {
+        "challenges"   -> aiChallengesPerDay == 0 && aiTrialChallengePrompts > 0
+        "daily_plan"   -> aiPlansPerDay == 0 && aiTrialPlanPrompts > 0
+        "weekly_plan"  -> aiWeeklyPlansPerMonth == 0 && aiTrialWeeklyPlanPrompts > 0
+        else           -> false
+    }
 
     /** Check if a specific Fun Zone feature is available in this billing tier */
     fun hasFunZoneFeature(key: String): Boolean = when (planType) {
@@ -32,7 +47,21 @@ data class UserEntitlements(
         PlanType.PREMIUM -> true  // Premium gets everything
     }
 
+    /** Returns the required plan for a Fun Zone feature (for display when locked) */
+    fun requiredPlanForFeature(key: String): PlanType? {
+        if (hasFunZoneFeature(key)) return null // Already unlocked
+        return when (key) {
+            in PRO_FUN_ZONE_FEATURES -> PlanType.PRO
+            else -> PlanType.PRO  // Default to PRO for any premium feature
+        }
+    }
+
     companion object {
+        /** Configurable trial prompt defaults — FREE users get a taste of premium AI */
+        const val DEFAULT_TRIAL_CHALLENGE_PROMPTS = 2
+        const val DEFAULT_TRIAL_PLAN_PROMPTS = 2
+        const val DEFAULT_TRIAL_WEEKLY_PLAN_PROMPTS = 1
+
         /** Fun Zone features available per billing tier */
         val FREE_FUN_ZONE_FEATURES = setOf(
             "pet", "daily_spin", "rituals"
@@ -40,6 +69,12 @@ data class UserEntitlements(
         val PRO_FUN_ZONE_FEATURES = setOf(
             "pet", "daily_spin", "rituals",
             "boss_battle", "story_arcs", "events", "skill_tree"
+        )
+        /** All possible Fun Zone feature keys */
+        val ALL_FUN_ZONE_FEATURE_KEYS = setOf(
+            "pet", "daily_spin", "rituals",
+            "boss_battle", "story_arcs", "events", "skill_tree",
+            "wallet"
         )
         // PREMIUM = all features
     }
@@ -57,42 +92,51 @@ enum class PlanType(val displayName: String, val emoji: String) {
  */
 fun PlanType.defaultEntitlements(userId: String) = when (this) {
     PlanType.FREE -> UserEntitlements(
-        userId                  = userId,
-        planType                = PlanType.FREE,
-        aiTasksPerDay           = 3,
-        aiChallengesPerDay      = 0,
-        aiPlansPerDay           = 0,
-        aiWeeklyPlansPerMonth   = 0,
-        unlockedFeatures        = emptyList(),
-        maxChildren             = 2,
-        parentControlsEnabled   = false,
-        xpBankEnabled           = false,
-        customDifficultyEnabled = false
+        userId                     = userId,
+        planType                   = PlanType.FREE,
+        aiTasksPerDay              = 3,
+        aiChallengesPerDay         = 0,
+        aiPlansPerDay              = 0,
+        aiWeeklyPlansPerMonth      = 0,
+        unlockedFeatures           = emptyList(),
+        maxChildren                = 2,
+        parentControlsEnabled      = false,
+        xpBankEnabled              = false,
+        customDifficultyEnabled    = false,
+        aiTrialChallengePrompts    = UserEntitlements.DEFAULT_TRIAL_CHALLENGE_PROMPTS,
+        aiTrialPlanPrompts         = UserEntitlements.DEFAULT_TRIAL_PLAN_PROMPTS,
+        aiTrialWeeklyPlanPrompts   = UserEntitlements.DEFAULT_TRIAL_WEEKLY_PLAN_PROMPTS
     )
     PlanType.PRO -> UserEntitlements(
-        userId                  = userId,
-        planType                = PlanType.PRO,
-        aiTasksPerDay           = 20,
-        aiChallengesPerDay      = 5,
-        aiPlansPerDay           = 3,
-        aiWeeklyPlansPerMonth   = 4,
-        unlockedFeatures        = listOf("world_map", "lootbox", "daily_plan", "weekly_plan"),
-        maxChildren             = 5,
-        parentControlsEnabled   = true,
-        xpBankEnabled           = true,
-        customDifficultyEnabled = true
+        userId                     = userId,
+        planType                   = PlanType.PRO,
+        aiTasksPerDay              = 20,
+        aiChallengesPerDay         = 5,
+        aiPlansPerDay              = 3,
+        aiWeeklyPlansPerMonth      = 4,
+        unlockedFeatures           = listOf("world_map", "lootbox", "daily_plan", "weekly_plan"),
+        maxChildren                = 5,
+        parentControlsEnabled      = true,
+        xpBankEnabled              = true,
+        customDifficultyEnabled    = true,
+        aiTrialChallengePrompts    = 0,  // Not needed — full access
+        aiTrialPlanPrompts         = 0,
+        aiTrialWeeklyPlanPrompts   = 0
     )
     PlanType.PREMIUM -> UserEntitlements(
-        userId                  = userId,
-        planType                = PlanType.PREMIUM,
-        aiTasksPerDay           = 999,
-        aiChallengesPerDay      = 50,
-        aiPlansPerDay           = 10,
-        aiWeeklyPlansPerMonth   = 30,
-        unlockedFeatures        = listOf("world_map", "lootbox", "daily_plan", "weekly_plan", "story_tasks", "seasonal_themes"),
-        maxChildren             = 20,
-        parentControlsEnabled   = true,
-        xpBankEnabled           = true,
-        customDifficultyEnabled = true
+        userId                     = userId,
+        planType                   = PlanType.PREMIUM,
+        aiTasksPerDay              = 999,
+        aiChallengesPerDay         = 50,
+        aiPlansPerDay              = 10,
+        aiWeeklyPlansPerMonth      = 30,
+        unlockedFeatures           = listOf("world_map", "lootbox", "daily_plan", "weekly_plan", "story_tasks", "seasonal_themes"),
+        maxChildren                = 20,
+        parentControlsEnabled      = true,
+        xpBankEnabled              = true,
+        customDifficultyEnabled    = true,
+        aiTrialChallengePrompts    = 0,  // Not needed — full access
+        aiTrialPlanPrompts         = 0,
+        aiTrialWeeklyPlanPrompts   = 0
     )
 }
