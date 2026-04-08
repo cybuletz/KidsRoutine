@@ -6,6 +6,8 @@ import com.kidsroutine.core.network.FeatureFlagRepository
 import com.kidsroutine.core.network.FeatureFlagRepositoryImpl
 import com.kidsroutine.feature.achievements.data.AchievementRepository
 import com.kidsroutine.feature.achievements.data.AchievementRepositoryImpl
+import com.kidsroutine.feature.boss.data.BossRepository
+import com.kidsroutine.feature.boss.data.BossRepositoryImpl
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import com.kidsroutine.feature.challenges.data.ChallengeRepositoryImpl
 import com.kidsroutine.feature.community.data.CommunityRepository
@@ -14,6 +16,8 @@ import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.DailyRepositoryImpl
 import com.kidsroutine.feature.daily.data.StoryArcRepository
 import com.kidsroutine.feature.daily.data.StoryArcRepositoryImpl
+import com.kidsroutine.feature.pet.data.PetRepository
+import com.kidsroutine.feature.pet.data.PetRepositoryImpl
 import com.kidsroutine.feature.execution.data.TaskProgressRepository
 import com.kidsroutine.feature.execution.data.TaskProgressRepositoryImpl
 import com.kidsroutine.feature.family.data.FamilyMessageRepository
@@ -26,6 +30,16 @@ import com.kidsroutine.feature.notifications.data.NotificationRepository
 import com.kidsroutine.feature.notifications.data.NotificationRepositoryImpl
 import com.kidsroutine.feature.stats.data.StatsRepository
 import com.kidsroutine.feature.stats.data.StatsRepositoryImpl
+import com.kidsroutine.feature.events.data.EventRepository
+import com.kidsroutine.feature.events.data.EventRepositoryImpl
+import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
+import com.kidsroutine.feature.spinwheel.data.SpinWheelRepositoryImpl
+import com.kidsroutine.feature.wallet.data.WalletRepository
+import com.kidsroutine.feature.wallet.data.WalletRepositoryImpl
+import com.kidsroutine.feature.skilltree.data.SkillTreeRepository
+import com.kidsroutine.feature.skilltree.data.SkillTreeRepositoryImpl
+import com.kidsroutine.feature.rituals.data.RitualsRepository
+import com.kidsroutine.feature.rituals.data.RitualsRepositoryImpl
 import com.kidsroutine.feature.world.data.WorldRepository
 import com.kidsroutine.feature.world.data.WorldRepositoryImpl
 import dagger.Binds
@@ -77,6 +91,27 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindStoryArcRepository(impl: StoryArcRepositoryImpl): StoryArcRepository
+
+    @Binds @Singleton
+    abstract fun bindPetRepository(impl: PetRepositoryImpl): PetRepository
+
+    @Binds @Singleton
+    abstract fun bindBossRepository(impl: BossRepositoryImpl): BossRepository
+
+    @Binds @Singleton
+    abstract fun bindSpinWheelRepository(impl: SpinWheelRepositoryImpl): SpinWheelRepository
+
+    @Binds @Singleton
+    abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
+
+    @Binds @Singleton
+    abstract fun bindWalletRepository(impl: WalletRepositoryImpl): WalletRepository
+
+    @Binds @Singleton
+    abstract fun bindSkillTreeRepository(impl: SkillTreeRepositoryImpl): SkillTreeRepository
+
+    @Binds @Singleton
+    abstract fun bindRitualsRepository(impl: RitualsRepositoryImpl): RitualsRepository
 
     companion object {
 

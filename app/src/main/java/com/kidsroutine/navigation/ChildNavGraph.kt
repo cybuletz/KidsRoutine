@@ -29,6 +29,14 @@ import com.kidsroutine.feature.family.ui.FamilyMessagingScreen
 import com.kidsroutine.feature.lootbox.ui.LootBoxScreen
 import com.kidsroutine.feature.moments.ui.MomentsScreen
 import com.kidsroutine.feature.notifications.ui.NotificationsScreen
+import com.kidsroutine.feature.pet.ui.PetScreen
+import com.kidsroutine.feature.boss.ui.BossScreen
+import com.kidsroutine.feature.spinwheel.ui.SpinWheelScreen
+import com.kidsroutine.feature.events.ui.EventScreen
+import com.kidsroutine.feature.storyarc.ui.StoryArcScreen
+import com.kidsroutine.feature.wallet.ui.WalletScreen
+import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
+import com.kidsroutine.feature.rituals.ui.RitualsScreen
 import com.kidsroutine.feature.profile.ui.ChildProfileScreen
 import com.kidsroutine.feature.stats.ui.StatsScreen
 import com.kidsroutine.feature.world.ui.WorldScreen
@@ -211,6 +219,62 @@ fun NavGraphBuilder.childNavGraph(
                 lootBox = sampleBox,
                 onBack  = { navController.popBackStack() },
                 onClaim = { /* TODO: viewModel.claimLootBox(it) */ }
+            )
+        }
+
+        composable(Routes.PET) {
+            PetScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.BOSS_BATTLE) {
+            BossScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SPIN_WHEEL) {
+            SpinWheelScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.EVENTS) {
+            EventScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.STORY_ARC) {
+            StoryArcScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.WALLET) {
+            WalletScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.SKILL_TREE) {
+            SkillTreeScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.RITUALS) {
+            RitualsScreen(
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }
