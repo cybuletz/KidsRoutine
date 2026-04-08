@@ -218,6 +218,8 @@ export const generateTasksAI = functions.https.onCall(async (data: any, context:
     ) {
       quota.tasksGenerated = 0;
       quota.challengesGenerated = 0;
+      quota.trialChallengesUsed = 0;
+      quota.trialPlansUsed = 0;
       quota.resetDate = admin.firestore.Timestamp.now();
     }
 
@@ -557,14 +559,23 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
     ) {
       quota.tasksGenerated = 0;
       quota.challengesGenerated = 0;
+      quota.trialChallengesUsed = 0;
+      quota.trialPlansUsed = 0;
       quota.resetDate = admin.firestore.Timestamp.now();
     }
 
     if (tier === "FREE") {
-      throw new functions.https.HttpsError(
-        "permission-denied",
-        "Challenge generation not available on FREE tier"
-      );
+      // Check if user has trial prompts remaining
+      const trialUsed = quota.trialChallengesUsed ?? 0;
+      const trialLimit = quota.trialChallengeLimit ?? 2;  // Default 2 trial prompts
+      if (trialUsed >= trialLimit) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "Challenge trial prompts exhausted. Upgrade to Pro for unlimited access!"
+        );
+      }
+      // Use trial prompt — will be tracked below
+      console.log(`[AIGeneration] FREE tier trial challenge: ${trialUsed + 1}/${trialLimit}`);
     }
 
     if (quota.challengesGenerated >= quota.challengesLimit) {
@@ -622,7 +633,14 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
         challenges.push(randomCachedChallenge);
 
         quota.challengesGenerated += 1;
+        if (tier === "FREE") {
+          quota.trialChallengesUsed = (quota.trialChallengesUsed ?? 0) + 1;
+        }
         await db.collection("ai_quotas").doc(userId).set(quota);
+
+        const trialRemaining = tier === "FREE"
+          ? (quota.trialChallengeLimit ?? 2) - (quota.trialChallengesUsed ?? 0)
+          : quota.challengesLimit - quota.challengesGenerated;
 
         console.log(
           `[AIGeneration] ✅ Returning cached challenge matching goals: ${randomCachedChallenge.title}`
@@ -632,7 +650,7 @@ export const generateChallengesAI = functions.https.onCall(async (data: any, con
           success: true,
           challenges: [randomCachedChallenge],
           cached: true,
-          quotaRemaining: quota.challengesLimit - quota.challengesGenerated,
+          quotaRemaining: trialRemaining,
         };
       }
     } else {
@@ -789,6 +807,9 @@ console.error(`[AIGeneration] Parse error (attempt ${i + 1}):`, (e as Error).mes
     const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
 
     quota.challengesGenerated += 1;
+    if (tier === "FREE") {
+      quota.trialChallengesUsed = (quota.trialChallengesUsed ?? 0) + 1;
+    }
     await db.collection("ai_quotas").doc(userId).set(quota);
 
     await db.collection("ai_usage").add({
@@ -802,6 +823,10 @@ console.error(`[AIGeneration] Parse error (attempt ${i + 1}):`, (e as Error).mes
       timestamp: admin.firestore.Timestamp.now(),
     });
 
+    const trialRemaining = tier === "FREE"
+      ? (quota.trialChallengeLimit ?? 2) - (quota.trialChallengesUsed ?? 0)
+      : quota.challengesLimit - quota.challengesGenerated;
+
     console.log(
       `[AIGeneration] ✅ CHALLENGE GENERATION COMPLETE - Generated and cached ${challenges.length} challenges. Returning: ${randomChallenge.title}. Quota: ${quota.challengesGenerated}/${quota.challengesLimit}`
     );
@@ -810,7 +835,7 @@ console.error(`[AIGeneration] Parse error (attempt ${i + 1}):`, (e as Error).mes
       success: true,
       challenges: [randomChallenge],
       cached: false,
-      quotaRemaining: quota.challengesLimit - quota.challengesGenerated,
+      quotaRemaining: trialRemaining,
     };
   } catch (error: any) {
     console.error("[AIGeneration] ❌ CHALLENGE GENERATION FAILED - Error:", error.message);
@@ -858,6 +883,10 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
       challengesLimit: tier === "FREE" ? 0 : tier === "PRO" ? 5 : 50,
       plansGenerated: 0,
       plansLimit: tier === "PRO" ? 3 : tier === "PREMIUM" ? 10 : 0,
+      trialChallengesUsed: 0,
+      trialChallengeLimit: 2,
+      trialPlansUsed: 0,
+      trialPlanLimit: 2,
       resetDate: admin.firestore.Timestamp.now(),
     };
 
@@ -868,14 +897,22 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
       quota.tasksGenerated = 0;
       quota.challengesGenerated = 0;
       quota.plansGenerated = 0;
+      quota.trialChallengesUsed = 0;
+      quota.trialPlansUsed = 0;
       quota.resetDate = admin.firestore.Timestamp.now();
     }
 
     if (tier === "FREE") {
-      throw new functions.https.HttpsError(
-        "permission-denied",
-        "Daily plan generation requires PRO tier"
-      );
+      // Check trial prompts for daily plans
+      const trialUsed = quota.trialPlansUsed ?? 0;
+      const trialLimit = quota.trialPlanLimit ?? 2;  // Default 2 trial prompts
+      if (trialUsed >= trialLimit) {
+        throw new functions.https.HttpsError(
+          "permission-denied",
+          "Daily plan trial prompts exhausted. Upgrade to Pro for unlimited access!"
+        );
+      }
+      console.log(`[DailyPlan] FREE tier trial plan: ${trialUsed + 1}/${trialLimit}`);
     }
 
     const plansLimit = quota.plansLimit ?? (tier === "PRO" ? 3 : 10);
@@ -905,12 +942,18 @@ export const generateDailyPlanAI = functions.https.onCall(async (data: any, cont
       const planData = cachedPlan.docs[0].data().plan;
       console.log(`[DailyPlan] ✅ Returning cached plan`);
       quota.plansGenerated = (quota.plansGenerated ?? 0) + 1;
+      if (tier === "FREE") {
+        quota.trialPlansUsed = (quota.trialPlansUsed ?? 0) + 1;
+      }
       await db.collection("ai_quotas").doc(userId).set(quota);
+      const trialRemaining = tier === "FREE"
+        ? (quota.trialPlanLimit ?? 2) - (quota.trialPlansUsed ?? 0)
+        : plansLimit - quota.plansGenerated;
       return {
         success: true,
         plan: planData,
         cached: true,
-        quotaRemaining: plansLimit - quota.plansGenerated,
+        quotaRemaining: trialRemaining,
       };
     }
 
@@ -1013,6 +1056,9 @@ Return ONLY a valid JSON object matching the OUTPUT SCHEMA.`;
 
     // 8. UPDATE QUOTA
     quota.plansGenerated = (quota.plansGenerated ?? 0) + 1;
+    if (tier === "FREE") {
+      quota.trialPlansUsed = (quota.trialPlansUsed ?? 0) + 1;
+    }
     await db.collection("ai_quotas").doc(userId).set(quota);
 
     await db.collection("ai_usage").add({
@@ -1026,13 +1072,17 @@ Return ONLY a valid JSON object matching the OUTPUT SCHEMA.`;
       timestamp: admin.firestore.Timestamp.now(),
     });
 
+    const trialRemaining = tier === "FREE"
+      ? (quota.trialPlanLimit ?? 2) - (quota.trialPlansUsed ?? 0)
+      : plansLimit - quota.plansGenerated;
+
     console.log(`[DailyPlan] ✅ Plan generated: "${plan.theme}", ${plan.tasks.length} tasks, ${plan.totalXp} XP`);
 
     return {
       success: true,
       plan,
       cached: false,
-      quotaRemaining: plansLimit - quota.plansGenerated,
+      quotaRemaining: trialRemaining,
     };
 
   } catch (error: any) {
