@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -152,7 +154,10 @@ fun ChildMainScreen(
                     onStoryArcClick        = { innerNavController.navigate("story_arc") },
                     onWalletClick          = { innerNavController.navigate("wallet") },
                     onSkillTreeClick       = { innerNavController.navigate("skill_tree") },
-                    onRitualsClick         = { innerNavController.navigate("rituals") }
+                    onRitualsClick         = { innerNavController.navigate("rituals") },
+                    onChallengeDetailClick = { challenge ->
+                        parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
+                    }
                 )
             }
 
@@ -168,6 +173,21 @@ fun ChildMainScreen(
                     onViewDetailClick     = { challenge ->
                         parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
                     }
+                )
+            }
+
+            composable("fun_zone") {
+                currentRoute = "fun_zone"
+                FunZoneFullScreen(
+                    onBackClick       = { innerNavController.navigate("daily") },
+                    onPetClick        = { innerNavController.navigate("pet") },
+                    onBossBattleClick = { innerNavController.navigate("boss_battle") },
+                    onSpinWheelClick  = { innerNavController.navigate("spin_wheel") },
+                    onEventsClick     = { innerNavController.navigate("events") },
+                    onStoryArcClick   = { innerNavController.navigate("story_arc") },
+                    onWalletClick     = { innerNavController.navigate("wallet") },
+                    onSkillTreeClick  = { innerNavController.navigate("skill_tree") },
+                    onRitualsClick    = { innerNavController.navigate("rituals") }
                 )
             }
 
@@ -326,7 +346,7 @@ fun ChildMainScreen(
             currentUser             = currentUser,
             hideOverlayButtons      = worldDetailShowing,
             onDailyClick            = { innerNavController.navigate("daily")         { popUpTo("daily") } },
-            onChallengesClick       = { innerNavController.navigate("challenges")    { popUpTo("daily") } },
+            onChallengesClick       = { innerNavController.navigate("fun_zone")      { popUpTo("daily") } },
             onLeaderboardClick      = { innerNavController.navigate("leaderboard")   { popUpTo("daily") } },
             onWorldClick            = { innerNavController.navigate("world")         { popUpTo("daily") } },
             onAchievementsClick     = { innerNavController.navigate("achievements")  { popUpTo("daily") } },
@@ -397,7 +417,7 @@ private fun PersistentNavBar(
     data class NavItem(val route: String, val icon: ImageVector, val label: String, val onClick: () -> Unit)
     val items = listOf(
         NavItem("daily",       Icons.Default.Home,         "Daily",       onDailyClick),
-        NavItem("challenges",  Icons.Default.EmojiEvents,  "Challenges",  onChallengesClick),
+        NavItem("fun_zone",    Icons.Default.SportsEsports,"Fun Zone",    onChallengesClick),
         NavItem("leaderboard", Icons.Default.BarChart,     "Leaderboard", onLeaderboardClick),
         NavItem("world",       Icons.Default.Language,     "World",       onWorldClick),
         NavItem("rewards",     Icons.Default.CardGiftcard, "Rewards",     onRewardsClick)
@@ -539,6 +559,327 @@ private fun PersistentNavBar(
                     Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fun Zone Full Screen — attractive feature discovery hub
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun FunZoneFullScreen(
+    onBackClick: () -> Unit,
+    onPetClick: () -> Unit,
+    onBossBattleClick: () -> Unit,
+    onSpinWheelClick: () -> Unit,
+    onEventsClick: () -> Unit,
+    onStoryArcClick: () -> Unit,
+    onWalletClick: () -> Unit,
+    onSkillTreeClick: () -> Unit,
+    onRitualsClick: () -> Unit
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "funZoneGlow")
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue  = 0.4f,
+        targetValue   = 0.8f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label         = "funGlow"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFFF8F0))
+    ) {
+        // ── Header ─────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+                    )
+                )
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Column {
+                Text(
+                    text       = "🎮 Fun Zone",
+                    style      = MaterialTheme.typography.headlineLarge,
+                    color      = Color.White,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize   = 32.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text  = "Your playground of awesome activities!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
+        }
+
+        // ── Content ────────────────────────────────────────────────────
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Companion & Care
+            Text(
+                text       = "🐾 Companion & Care",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF2D3436),
+                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+
+            FunZoneFeatureCard(
+                emoji       = "🐾",
+                title       = "My Pet",
+                description = "Feed, play, and watch your companion grow! Your pet's happiness depends on you.",
+                accentColor = Color(0xFF06D6A0),
+                onClick     = onPetClick,
+                badge       = "🌟 Popular"
+            )
+
+            // Action & Adventure
+            Text(
+                text       = "⚔️ Action & Adventure",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF2D3436),
+                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FunZoneCompactCard(
+                    emoji       = "⚔️",
+                    title       = "Boss Battle",
+                    description = "Team up to defeat weekly bosses!",
+                    accentColor = Color(0xFFEF476F),
+                    onClick     = onBossBattleClick,
+                    modifier    = Modifier.weight(1f)
+                )
+                FunZoneCompactCard(
+                    emoji       = "🎡",
+                    title       = "Daily Spin",
+                    description = "Spin the wheel for surprise rewards!",
+                    accentColor = Color(0xFFFF9F1C),
+                    onClick     = onSpinWheelClick,
+                    modifier    = Modifier.weight(1f)
+                )
+            }
+
+            // Explore & Discover
+            Text(
+                text       = "🌍 Explore & Discover",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF2D3436),
+                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+
+            FunZoneFeatureCard(
+                emoji       = "📖",
+                title       = "Story Arcs",
+                description = "Embark on multi-day narrative adventures. Complete chapters to unlock the story!",
+                accentColor = Color(0xFF8B5CF6),
+                onClick     = onStoryArcClick
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FunZoneCompactCard(
+                    emoji       = "📅",
+                    title       = "Events",
+                    description = "Limited-time seasonal fun!",
+                    accentColor = Color(0xFF4361EE),
+                    onClick     = onEventsClick,
+                    modifier    = Modifier.weight(1f)
+                )
+                FunZoneCompactCard(
+                    emoji       = "🌳",
+                    title       = "Skill Tree",
+                    description = "Unlock new abilities & skills!",
+                    accentColor = Color(0xFF667EEA),
+                    onClick     = onSkillTreeClick,
+                    modifier    = Modifier.weight(1f)
+                )
+            }
+
+            // Money & Mindfulness
+            Text(
+                text       = "💫 Money & Mindfulness",
+                fontSize   = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color      = Color(0xFF2D3436),
+                modifier   = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                FunZoneCompactCard(
+                    emoji       = "💰",
+                    title       = "My Wallet",
+                    description = "Savings goals & financial smarts!",
+                    accentColor = Color(0xFF11998E),
+                    onClick     = onWalletClick,
+                    modifier    = Modifier.weight(1f)
+                )
+                FunZoneCompactCard(
+                    emoji       = "🙏",
+                    title       = "Rituals",
+                    description = "Family gratitude & bonding!",
+                    accentColor = Color(0xFF9B5DE5),
+                    onClick     = onRitualsClick,
+                    modifier    = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(Modifier.height(140.dp))
+        }
+    }
+}
+
+@Composable
+private fun FunZoneFeatureCard(
+    emoji: String,
+    title: String,
+    description: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    badge: String? = null
+) {
+    Card(
+        modifier  = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape     = RoundedCornerShape(20.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp),
+        border    = BorderStroke(1.5.dp, accentColor.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Big emoji circle
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape    = CircleShape,
+                color    = accentColor.copy(alpha = 0.12f),
+                border   = BorderStroke(2.dp, accentColor.copy(alpha = 0.3f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(emoji, fontSize = 28.sp)
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text       = title,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize   = 16.sp,
+                        color      = Color(0xFF2D3436)
+                    )
+                    if (badge != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = accentColor.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                badge,
+                                fontSize   = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color      = accentColor,
+                                modifier   = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text     = description,
+                    fontSize = 12.sp,
+                    color    = Color.Gray,
+                    maxLines = 2
+                )
+            }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint     = accentColor.copy(alpha = 0.6f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FunZoneCompactCard(
+    emoji: String,
+    title: String,
+    description: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier  = modifier
+            .clickable(onClick = onClick),
+        shape     = RoundedCornerShape(16.dp),
+        colors    = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(3.dp),
+        border    = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape    = RoundedCornerShape(12.dp),
+                color    = accentColor.copy(alpha = 0.12f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(emoji, fontSize = 20.sp)
+                }
+            }
+            Text(
+                text       = title,
+                fontWeight = FontWeight.Bold,
+                fontSize   = 13.sp,
+                color      = Color(0xFF2D3436)
+            )
+            Text(
+                text     = description,
+                fontSize = 10.sp,
+                color    = Color.Gray,
+                maxLines = 2,
+                lineHeight = 14.sp
+            )
         }
     }
 }

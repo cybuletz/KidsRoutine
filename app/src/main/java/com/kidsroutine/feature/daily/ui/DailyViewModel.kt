@@ -19,12 +19,14 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import com.kidsroutine.feature.generation.data.GeneratedTask
 import com.kidsroutine.feature.generation.data.TaskSaveRepository
+import com.kidsroutine.feature.challenges.data.ChallengeRepository
 
 data class DailyUiState(
     val isLoading: Boolean = true,
     val dailyState: DailyStateModel = DailyStateModel(),
     val currentUser: UserModel = UserModel(),
     val activeStoryArc: StoryArc? = null,
+    val activeChallenges: List<Pair<ChallengeModel, ChallengeProgress>> = emptyList(),
     val error: String? = null
 )
 
@@ -36,6 +38,7 @@ class DailyViewModel @Inject constructor(
     private val storyArcRepository: StoryArcRepository,
     private val taskSaveRepository: TaskSaveRepository,
     private val dailyRepository: DailyRepository,
+    private val challengeRepository: ChallengeRepository,
     private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
@@ -95,7 +98,10 @@ class DailyViewModel @Inject constructor(
         // Step 5: Story arc
         loadActiveStoryArc(user.familyId)
 
-        // Step 6: Live Firestore listener for newly assigned tasks — fires ONLY on real changes
+        // Step 6: Load active challenges
+        loadActiveChallenges(user.userId, user.familyId)
+
+        // Step 7: Live Firestore listener for newly assigned tasks — fires ONLY on real changes
         listenForNewAssignments(user, today)
     }
 
@@ -183,6 +189,24 @@ class DailyViewModel @Inject constructor(
                 _uiState.update { it.copy(activeStoryArc = arc) }
             } catch (e: Exception) {
                 Log.e("DailyViewModel", "Error loading story arc", e)
+            }
+        }
+    }
+
+    private fun loadActiveChallenges(userId: String, familyId: String) {
+        viewModelScope.launch {
+            try {
+                val today = DateUtils.todayString()
+                val progressList = challengeRepository.getActiveChallenges(userId, familyId)
+                    .filter { it.lastCompletedDate != today }
+                val pairs = progressList.mapNotNull { progress ->
+                    val challenge = challengeRepository.getChallenge(progress.challengeId)
+                    if (challenge != null) Pair(challenge, progress) else null
+                }
+                _uiState.update { it.copy(activeChallenges = pairs) }
+                Log.d("DailyViewModel", "✅ Challenges loaded: ${pairs.size}")
+            } catch (e: Exception) {
+                Log.e("DailyViewModel", "Error loading challenges", e)
             }
         }
     }

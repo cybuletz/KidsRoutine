@@ -68,7 +68,7 @@ fun DailyScreen(
     onProfileClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit = {},
-    onWorldClick: () -> Unit = {},           // ← NEW: for "X XP away" nudge tap
+    onWorldClick: () -> Unit = {},
     onPetClick: () -> Unit = {},
     onBossBattleClick: () -> Unit = {},
     onSpinWheelClick: () -> Unit = {},
@@ -77,6 +77,7 @@ fun DailyScreen(
     onWalletClick: () -> Unit = {},
     onSkillTreeClick: () -> Unit = {},
     onRitualsClick: () -> Unit = {},
+    onChallengeDetailClick: (ChallengeModel) -> Unit = {},
     viewModel: DailyViewModel = hiltViewModel(),
     ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -120,6 +121,7 @@ fun DailyScreen(
                 onWalletClick          = onWalletClick,
                 onSkillTreeClick       = onSkillTreeClick,
                 onRitualsClick         = onRitualsClick,
+                onChallengeDetailClick = onChallengeDetailClick,
                 viewModel = viewModel
             )
         }
@@ -149,6 +151,7 @@ private fun DailyContent(
     onWalletClick: () -> Unit,
     onSkillTreeClick: () -> Unit,
     onRitualsClick: () -> Unit,
+    onChallengeDetailClick: (ChallengeModel) -> Unit = {},
     viewModel: DailyViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -238,7 +241,7 @@ private fun DailyContent(
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                             Text(
-                                "We need to sync your tasks. Check your connection and try again.",
+                                "We need to sync your quests. Check your connection and try again.",
                                 fontSize = 12.sp,
                                 color = Color.Gray,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -266,7 +269,7 @@ private fun DailyContent(
                         ) {
                             Text("🎉", fontSize = 48.sp)
                             Text(
-                                "All tasks completed!",
+                                "All quests completed!",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = OrangePrimary
@@ -290,6 +293,29 @@ private fun DailyContent(
                     instance = instance,
                     onClick  = { onTaskClick(instance) }
                 )
+            }
+
+            // ── Challenges Section ────────────────────────────────────────
+            if (uiState.activeChallenges.isNotEmpty()) {
+                item {
+                    Text(
+                        text       = "🌳 Active Challenges",
+                        style      = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier   = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                    )
+                }
+
+                items(
+                    items = uiState.activeChallenges,
+                    key   = { it.first.challengeId }
+                ) { (challenge, progress) ->
+                    ChallengeQuickCard(
+                        challenge = challenge,
+                        progress  = progress,
+                        onClick   = { onChallengeDetailClick(challenge) }
+                    )
+                }
             }
 
             // ── Fun Zone — feature discovery cards ────────────────────────
@@ -424,7 +450,7 @@ private fun ProgressSection(
                                 fontWeight = FontWeight.SemiBold,
                                 color      = Color(0xFF4B2DA0)
                             )
-                            Text("Complete tasks to get there →", fontSize = 11.sp, color = Color.Gray)
+                            Text("Complete quests to get there →", fontSize = 11.sp, color = Color.Gray)
                         }
                     }
                 }
@@ -778,7 +804,7 @@ private fun DailyLoadingScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             CircularProgressIndicator(color = OrangePrimary, strokeWidth = 4.dp)
-            Text("Loading your tasks…", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+            Text("Loading your quests…", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
         }
     }
 }
@@ -1013,4 +1039,107 @@ private fun FunZoneTile(
             )
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ChallengeQuickCard — compact challenge card for DailyScreen
+// ─────────────────────────────────────────────────────────────────────────────
+@Composable
+private fun ChallengeQuickCard(
+    challenge: ChallengeModel,
+    progress: ChallengeProgress,
+    onClick: () -> Unit
+) {
+    val accentColor = Color(0xFF6C5CE7)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(3.dp),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Category emoji
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(accentColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(challengeCategoryEmoji(challenge.category), fontSize = 22.sp)
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text       = challenge.title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize   = 14.sp,
+                    color      = TextDark,
+                    maxLines   = 1,
+                    overflow   = TextOverflow.Ellipsis
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🔥 ${progress.currentStreak} streak",
+                        fontSize   = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color(0xFFC62828)
+                    )
+                    Text(
+                        "Day ${progress.currentDay}/${progress.totalDays}",
+                        fontSize = 11.sp,
+                        color    = Color.Gray
+                    )
+                }
+            }
+
+            // XP badge
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFFE8F5E9)
+            ) {
+                Text(
+                    "⭐ +${challenge.dailyXpReward}",
+                    fontSize   = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = Color(0xFF2E7D32),
+                    modifier   = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint     = Color.LightGray,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+private fun challengeCategoryEmoji(category: TaskCategory): String = when (category) {
+    TaskCategory.MORNING_ROUTINE -> "🌅"
+    TaskCategory.LEARNING        -> "📚"
+    TaskCategory.CHORES          -> "🧹"
+    TaskCategory.HEALTH          -> "🏃"
+    TaskCategory.CREATIVITY      -> "🎨"
+    TaskCategory.SOCIAL          -> "👥"
+    TaskCategory.FAMILY          -> "👨‍👩‍👧"
+    TaskCategory.OUTDOOR         -> "🌳"
+    TaskCategory.SLEEP           -> "😴"
+    TaskCategory.SCREEN_TIME     -> "📱"
 }
