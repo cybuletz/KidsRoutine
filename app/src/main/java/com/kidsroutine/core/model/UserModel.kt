@@ -26,5 +26,13 @@ data class UserModel(
     val createdAt: Long = 0L,
     val lastActiveAt: Long = 0L,
     val lastActiveDate: String = "",   // ← ADD: "yyyy-MM-dd" string for streak logic
-    val age: Int = 8                   // ← ADD: child age, default 8
+    val age: Int = 8,                  // ← ADD: child age, default 8
+
+    // ── NEW: Competitive feature fields ─────────────────────────────
+    val ageGroup: AgeGroup = AgeGroup.fromAge(8),   // computed from age
+    val league: League = League.BRONZE,               // current league tier
+    val weeklyXp: Int = 0,                            // XP earned this week (for leagues)
+    val petId: String = "",                            // companion pet ID
+    val darkModeEnabled: Boolean = false,              // user preference for dark mode
+    val comebackStreakSaved: Int = 0                   // streak value saved by comeback system
 )

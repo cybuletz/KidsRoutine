@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kidsroutine.core.common.util.SoundManager
+import com.kidsroutine.core.model.AgeGroup
 import kotlinx.coroutines.delay
 
 /**
@@ -26,25 +27,74 @@ import kotlinx.coroutines.delay
  * - Random math problems (addition, subtraction, multiplication)
  * - Staggered option reveal animations
  * - Correct answer glow
- * - Progressive difficulty
+ * - Age-adaptive difficulty: basic arithmetic → fractions → algebra
  */
 @Composable
 fun LogicGameBlock(
+    ageGroup: AgeGroup = AgeGroup.EXPLORER,
     onSuccess: () -> Unit
 ) {
-    data class Problem(val a: Int, val b: Int, val op: Char, val answer: Int)
+    data class Problem(val a: Int, val b: Int, val op: Char, val answer: Int, val display: String = "")
 
-    fun generateProblem(): Problem {
-        val a = (1..10).random()
-        val b = (1..10).random()
-        val op = listOf('+', '-', '*').random()
-        val answer = when (op) {
-            '+' -> a + b
-            '-' -> a - b
-            '*' -> a * b
-            else -> 0
+    fun generateProblem(): Problem = when (ageGroup) {
+        AgeGroup.SPROUT -> {
+            // Simple addition only, numbers 1-5
+            val a = (1..5).random()
+            val b = (1..5).random()
+            Problem(a, b, '+', a + b, "$a + $b = ?")
         }
-        return Problem(a, b, op, answer)
+        AgeGroup.EXPLORER -> {
+            // Addition, subtraction, multiplication with numbers 1-12
+            val a = (1..12).random()
+            val b = (1..12).random()
+            val op = listOf('+', '-', '×').random()
+            val answer = when (op) {
+                '+' -> a + b
+                '-' -> a - b
+                '×' -> a * b
+                else -> 0
+            }
+            Problem(a, b, op, answer, "$a $op $b = ?")
+        }
+        AgeGroup.TRAILBLAZER -> {
+            // Harder: larger numbers, division, multi-step
+            val a = (10..50).random()
+            val b = (2..15).random()
+            val ops = listOf('+', '-', '×', '÷')
+            val op = ops.random()
+            val (answer, display) = when (op) {
+                '÷' -> {
+                    val divisor = (2..10).random()
+                    val dividend = divisor * (2..15).random()
+                    Pair(dividend / divisor, "$dividend ÷ $divisor = ?")
+                }
+                '×' -> Pair(a * b, "$a × $b = ?")
+                '-' -> Pair(a - b, "$a - $b = ?")
+                else -> Pair(a + b, "$a + $b = ?")
+            }
+            Problem(a, b, op, answer, display)
+        }
+        AgeGroup.LEGEND -> {
+            // Advanced: exponents, percentages, real-world math
+            val type = (0..2).random()
+            when (type) {
+                0 -> { // Percentage
+                    val base = listOf(50, 100, 150, 200, 250).random()
+                    val pct = listOf(10, 15, 20, 25, 50).random()
+                    Problem(base, pct, '%', base * pct / 100, "$pct% of $base = ?")
+                }
+                1 -> { // Square
+                    val n = (2..15).random()
+                    Problem(n, 2, '^', n * n, "$n² = ?")
+                }
+                else -> { // Multi-step
+                    val a = (5..20).random()
+                    val b = (2..10).random()
+                    val c = (1..5).random()
+                    Problem(a, b, '+', a * b + c, "$a × $b + $c = ?")
+                }
+            }
+        }
     }
 
     var problem by remember { mutableStateOf(generateProblem()) }
@@ -94,7 +144,7 @@ fun LogicGameBlock(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "${problem.a} ${problem.op} ${problem.b} = ?",
+                problem.display.ifEmpty { "${problem.a} ${problem.op} ${problem.b} = ?" },
                 fontSize = 36.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFFFF6B35),
