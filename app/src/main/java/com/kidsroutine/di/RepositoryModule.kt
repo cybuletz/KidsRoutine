@@ -6,6 +6,8 @@ import com.kidsroutine.core.network.FeatureFlagRepository
 import com.kidsroutine.core.network.FeatureFlagRepositoryImpl
 import com.kidsroutine.feature.achievements.data.AchievementRepository
 import com.kidsroutine.feature.achievements.data.AchievementRepositoryImpl
+import com.kidsroutine.feature.boss.data.BossRepository
+import com.kidsroutine.feature.boss.data.BossRepositoryImpl
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import com.kidsroutine.feature.challenges.data.ChallengeRepositoryImpl
 import com.kidsroutine.feature.community.data.CommunityRepository
@@ -82,6 +84,9 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindPetRepository(impl: PetRepositoryImpl): PetRepository
+
+    @Binds @Singleton
+    abstract fun bindBossRepository(impl: BossRepositoryImpl): BossRepository
 
     companion object {
 
