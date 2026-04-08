@@ -98,7 +98,7 @@ class GenerationViewModel @Inject constructor(
                 Log.d("GenerationVM", "Generating tasks for age $childAge...")
 
                 // Load entitlements (cached after first call)
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 _uiState.value = _uiState.value.copy(entitlements = entitlements)
 
                 if (_uiState.value.quotaRemaining <= 0) {
@@ -173,7 +173,7 @@ class GenerationViewModel @Inject constructor(
                 Log.d("GenerationVM", "Generating challenges...")
 
                 // Load entitlements
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 _uiState.value = _uiState.value.copy(entitlements = entitlements)
 
                 // Gate: challenges require PRO or above, but FREE users get trial prompts
@@ -239,7 +239,7 @@ class GenerationViewModel @Inject constructor(
                 generatedStoryArc = null
             )
             try {
-                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId)
+                val entitlements = entitlementsRepository.getEntitlements(currentUser.userId, currentUser.familyId)
                 val tier = entitlements.planType.name
                 val result = repository.generateStoryArc(
                     familyId = currentUser.familyId,

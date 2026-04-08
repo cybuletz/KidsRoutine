@@ -1137,13 +1137,26 @@ export const generateWeeklyPlanAI = functions.https.onCall(async (data: any, con
   try {
     console.log(`[WeeklyPlan] Generating weekly plan for ${children.length} child(ren), theme=${weekTheme}`);
 
-    // 1. CHECK ENTITLEMENTS — read from user_entitlements (falls back to ai_quotas)
+    // 1. CHECK ENTITLEMENTS — read from user_entitlements → family subscription → ai_quotas
     const entitlementsDoc = await db.collection("user_entitlements").doc(userId).get();
     const quotaDoc        = await db.collection("ai_quotas").doc(userId).get();
 
-    const planTier = entitlementsDoc.exists
-      ? (entitlementsDoc.data()?.planType || tier)
-      : (quotaDoc.data()?.tier || tier);
+    let planTier = "FREE";
+
+    if (entitlementsDoc.exists && entitlementsDoc.data()?.planType && entitlementsDoc.data()?.planType !== "FREE") {
+      planTier = entitlementsDoc.data()?.planType;
+    } else if (familyId) {
+      // Family-level subscription fallback — any parent's purchase covers the whole family
+      const familySubDoc = await db.collection("families").doc(familyId)
+        .collection("subscription").doc("current").get();
+      if (familySubDoc.exists && familySubDoc.data()?.planType && familySubDoc.data()?.planType !== "FREE") {
+        planTier = familySubDoc.data()?.planType;
+      } else {
+        planTier = quotaDoc.data()?.tier || tier;
+      }
+    } else {
+      planTier = quotaDoc.data()?.tier || tier;
+    }
 
     if (planTier === "FREE") {
       throw new functions.https.HttpsError(

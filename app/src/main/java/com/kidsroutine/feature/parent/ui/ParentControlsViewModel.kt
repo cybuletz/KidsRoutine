@@ -51,7 +51,7 @@ class ParentControlsViewModel @Inject constructor(
                 val settings = parentControlRepository.getControlSettings(familyId, childId)
                 val loans = parentControlRepository.getActiveLoans(familyId, childId)
                 val allLoans = parentControlRepository.getAllFamilyLoans(familyId)
-                val entitlements = entitlementsRepository.getEntitlements(parentUserId)
+                val entitlements = entitlementsRepository.getEntitlements(parentUserId, familyId)
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

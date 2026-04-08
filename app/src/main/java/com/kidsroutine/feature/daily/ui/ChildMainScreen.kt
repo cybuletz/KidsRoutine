@@ -168,20 +168,9 @@ fun ChildMainScreen(
                         ritualsEnabled    = data["ritualsEnabled"] as? Boolean ?: true
                     )
                 }
-                // Load entitlements — find the parent's entitlements (family-level billing)
-                val usersSnap = db.collection("users")
-                    .whereEqualTo("familyId", currentUser.familyId)
-                    .whereEqualTo("role", "PARENT")
-                    .get().await()
-                val parentId = usersSnap.documents.firstOrNull()?.id
-                if (parentId != null) {
-                    val entDoc = db.collection("user_entitlements").document(parentId).get().await()
-                    if (entDoc.exists()) {
-                        val planStr = entDoc.data?.get("planType") as? String ?: "FREE"
-                        val planType = try { com.kidsroutine.core.model.PlanType.valueOf(planStr) } catch (_: Exception) { com.kidsroutine.core.model.PlanType.FREE }
-                        entitlements = planType.defaultEntitlements(parentId)
-                    }
-                }
+                // Load entitlements — family-aware: checks user doc → family subscription → FREE
+                val entitlementsRepo = com.kidsroutine.core.model.EntitlementsRepository(db)
+                entitlements = entitlementsRepo.getEntitlements(currentUser.userId, currentUser.familyId)
             } catch (_: Exception) { /* Use defaults */ }
         }
     }

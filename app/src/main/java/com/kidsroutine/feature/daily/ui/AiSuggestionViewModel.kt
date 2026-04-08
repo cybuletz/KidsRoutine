@@ -42,7 +42,7 @@ class AiSuggestionViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val entitlements = entitlementsRepository.getEntitlements(child.userId)
+                val entitlements = entitlementsRepository.getEntitlements(child.userId, child.familyId)
                 val tier = entitlements.planType.name
 
                 val result = generationRepository.generateTasks(

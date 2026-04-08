@@ -46,7 +46,7 @@ fun UpgradeScreen(
 
     // Initialise billing client when screen opens
     LaunchedEffect(currentUser.userId) {
-        viewModel.init(currentUser.userId)
+        viewModel.init(currentUser.userId, currentUser.familyId)
     }
 
     // React to purchase outcome
@@ -82,6 +82,18 @@ fun UpgradeScreen(
 
             UpgradeHero()
             Spacer(Modifier.height(24.dp))
+
+            // ── Family Already Subscribed Banner ─────────────────────────
+            val existingSub = uiState.existingFamilySubscription
+            if (existingSub != null && existingSub.planType != PlanType.FREE) {
+                FamilySubscribedBanner(
+                    planType    = existingSub.planType,
+                    parentName  = uiState.billingParentName,
+                    isSelf      = existingSub.billingParentId == currentUser.userId,
+                    modifier    = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+            }
 
             // ── Current Free Plan ────────────────────────────────────────
             FreePlanCard(
@@ -646,4 +658,56 @@ private fun UpgradeCta(
             }
         }
     }
+}
+
+// ─── Family Already Subscribed Banner ────────────────────────────────────────
+
+@Composable
+private fun FamilySubscribedBanner(
+    planType: PlanType,
+    parentName: String,
+    isSelf: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A3A2A))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("✅", fontSize = 20.sp)
+                Text(
+                    "Family Subscribed — ${planType.displayName} ${planType.emoji}",
+                    fontSize   = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color      = GreenAccent
+                )
+            }
+            Text(
+                if (isSelf) {
+                    "You are the billing parent for this family. Your ${planType.displayName} plan is active for all family members — parents and kids alike."
+                } else {
+                    "This family's ${planType.displayName} plan is managed by $parentName. All family members (parents & kids) share the benefits."
+                },
+                fontSize   = 12.sp,
+                color      = Color.White.copy(alpha = 0.7f),
+                lineHeight = 18.sp
+            )
+            if (!isSelf) {
+                Text(
+                    "To upgrade or change the plan, ask $parentName (the billing parent).",
+                    fontSize = 11.sp,
+                    color    = Color.White.copy(alpha = 0.5f)
+                )
+            }
+        }
+    }
+}
 }
