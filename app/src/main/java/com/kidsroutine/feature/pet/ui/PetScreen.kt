@@ -288,7 +288,56 @@ private fun PetDisplay(
 
         Spacer(Modifier.height(16.dp))
 
-        // Stats bars
+        // Available XP balance card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+            elevation = CardDefaults.cardElevation(4.dp),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFFFD700).copy(alpha = 0.4f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("⭐", fontSize = 24.sp)
+                    Column {
+                        Text(
+                            text = "Available XP",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF7B6B3A)
+                        )
+                        Text(
+                            text = "$currentXp XP",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFB8860B)
+                        )
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (currentXp >= PetUiState.FEED_COST) HappinessGreen.copy(alpha = 0.15f) else Color(0xFFFFCDD2)
+                ) {
+                    Text(
+                        text = if (currentXp >= PetUiState.FEED_COST) "Ready to spend!" else "Earn more XP!",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (currentXp >= PetUiState.FEED_COST) HappinessGreen else Color(0xFFD32F2F),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -659,8 +708,9 @@ private fun PetShopSection(
             // Items in selected category
             val categoryItems = PetUiState.SHOP_ITEMS.filter { it.category == selectedCategory }
             categoryItems.forEach { accessory ->
-                val isOwned = accessory.id in ownedAccessoryIds
-                val isEquipped = accessory.id == equippedAccessoryId
+                // Consumable items (SNACKs) can always be re-purchased
+                val isOwned = accessory.isPermanent && accessory.id in ownedAccessoryIds
+                val isEquipped = accessory.isPermanent && accessory.id == equippedAccessoryId
                 val canAfford = currentXp >= accessory.xpCost
 
                 ShopItemCard(
@@ -742,6 +792,23 @@ private fun ShopItemCard(
                             text = "⚡+${accessory.energyBoost}",
                             fontSize = 11.sp,
                             color = EnergyBlue
+                        )
+                    }
+                    if (!accessory.isPermanent) {
+                        val durationText = if (accessory.durationMinutes >= 60)
+                            "${accessory.durationMinutes / 60}h"
+                        else
+                            "${accessory.durationMinutes}m"
+                        Text(
+                            text = "⏱️$durationText",
+                            fontSize = 11.sp,
+                            color = Color(0xFFE67E22)
+                        )
+                    } else {
+                        Text(
+                            text = "♾️",
+                            fontSize = 11.sp,
+                            color = Accent
                         )
                     }
                 }
