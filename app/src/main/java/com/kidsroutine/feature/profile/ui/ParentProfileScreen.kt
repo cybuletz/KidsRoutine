@@ -48,7 +48,8 @@ fun ParentProfileScreen(
             .background(BgLight)
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 140.dp)
         ) {
             // Header
             item {

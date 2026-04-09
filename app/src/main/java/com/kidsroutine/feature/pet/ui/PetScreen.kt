@@ -146,6 +146,12 @@ fun PetScreen(
                         ownedAccessoryIds = uiState.ownedAccessoryIds,
                         onFeed = { viewModel.feedPet() },
                         onInteract = viewModel::interactWithPet,
+                        onTrain = { viewModel.trainPet() },
+                        onGroom = viewModel::groomPet,
+                        onAdventure = { viewModel.adventureWithPet() },
+                        onNap = viewModel::napPet,
+                        onTreat = { viewModel.treatPet() },
+                        onTreasureHunt = { viewModel.treasureHuntWithPet() },
                         onShopClick = viewModel::toggleShop,
                         onPurchase = viewModel::purchaseAccessory,
                         onEquip = viewModel::equipAccessory
@@ -183,6 +189,12 @@ private fun PetDisplay(
     ownedAccessoryIds: List<String> = emptyList(),
     onFeed: () -> Unit,
     onInteract: () -> Unit,
+    onTrain: () -> Unit = {},
+    onGroom: () -> Unit = {},
+    onAdventure: () -> Unit = {},
+    onNap: () -> Unit = {},
+    onTreat: () -> Unit = {},
+    onTreasureHunt: () -> Unit = {},
     onShopClick: () -> Unit = {},
     onPurchase: (PetAccessory) -> Unit = {},
     onEquip: (String) -> Unit = {}
@@ -244,6 +256,33 @@ private fun PetDisplay(
 
                 // Mood indicator
                 MoodIndicator(mood = pet.mood)
+
+                // Currently equipped accessory display
+                pet.accessoryId?.let { accId ->
+                    val equipped = PetUiState.SHOP_ITEMS.find { it.id == accId }
+                    if (equipped != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Accent.copy(alpha = 0.08f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Accent.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(equipped.emoji, fontSize = 16.sp)
+                                Text(
+                                    text = "Wearing: ${equipped.name}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Accent
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -290,7 +329,7 @@ private fun PetDisplay(
 
         Spacer(Modifier.height(16.dp))
 
-        // Action buttons
+        // Action buttons — primary row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -345,6 +384,136 @@ private fun PetDisplay(
                         fontSize = 10.sp,
                         color = Color.White.copy(alpha = 0.8f)
                     )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Action buttons — secondary row (new activities)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    bouncing = true
+                    onGroom()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3498DB))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Groom 🛁", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Free", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onTrain()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.TRAIN_COST) Color(0xFFE67E22) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.TRAIN_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Train 🏋️", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.TRAIN_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onAdventure()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.ADVENTURE_COST) Color(0xFF8E44AD) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.ADVENTURE_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Adventure 🗺️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.ADVENTURE_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Action buttons — third row (new activities)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    bouncing = true
+                    onNap()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1ABC9C))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Nap 😴", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Free", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onTreat()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.TREAT_COST) Color(0xFFE74C3C) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.TREAT_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Treat 🍪", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.TREAT_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onTreasureHunt()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.TREASURE_HUNT_COST) Color(0xFFF1C40F) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.TREASURE_HUNT_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Treasure 🗝️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.TREASURE_HUNT_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
         }
@@ -631,7 +800,13 @@ private fun ShopItemCard(
 private fun AnimatedPetEmoji(pet: PetModel) {
     val infiniteTransition = rememberInfiniteTransition(label = "petMoodAnim")
 
-    when (pet.mood) {
+    // Find equipped accessory for visual display
+    val equippedAccessory = pet.accessoryId?.let { id ->
+        PetUiState.SHOP_ITEMS.find { it.id == id }
+    }
+
+    Box(contentAlignment = Alignment.Center) {
+        when (pet.mood) {
         PetMood.ECSTATIC -> {
             // Bouncy excited animation
             val bounce by infiniteTransition.animateFloat(
@@ -806,6 +981,45 @@ private fun AnimatedPetEmoji(pet: PetModel) {
                             translationX = 10f
                         }
                 )
+            }
+            }
+        }
+
+        // Equipped accessory visual overlay
+        if (equippedAccessory != null) {
+            val accessoryBounce by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -3f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(800),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "accessoryBounce"
+            )
+            // Position accessory based on category
+            val alignment = when (equippedAccessory.category) {
+                PetAccessoryCategory.HAT     -> Alignment.TopCenter
+                PetAccessoryCategory.COLLAR  -> Alignment.CenterEnd
+                PetAccessoryCategory.TOY     -> Alignment.BottomEnd
+                PetAccessoryCategory.BED     -> Alignment.BottomCenter
+                PetAccessoryCategory.SNACK   -> Alignment.CenterStart
+            }
+            Box(
+                modifier = Modifier
+                    .align(alignment)
+                    .graphicsLayer {
+                        translationY = accessoryBounce
+                    }
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Accent.copy(alpha = 0.15f),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text(equippedAccessory.emoji, fontSize = 20.sp)
+                    }
+                }
             }
         }
     }

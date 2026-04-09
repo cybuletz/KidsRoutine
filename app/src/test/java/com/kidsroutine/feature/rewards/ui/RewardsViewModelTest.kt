@@ -43,7 +43,6 @@ class RewardsViewModelTest {
         every { mockDocRef.update(any<String>(), any()) } returns mockTask
         every { mockDocRef.set(any()) } returns mockTask
         every { mockDocRef.delete() } returns mockTask
-        coEvery { mockTask.await() } returns null
 
         // Query chain mocks
         val mockQuery = mockk<Query>(relaxed = true)

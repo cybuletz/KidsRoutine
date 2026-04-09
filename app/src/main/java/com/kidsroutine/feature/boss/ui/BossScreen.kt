@@ -688,6 +688,8 @@ private fun VictoryScreen(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
                     )
                 }
+
+                Spacer(Modifier.height(140.dp))
             }
         }
     }

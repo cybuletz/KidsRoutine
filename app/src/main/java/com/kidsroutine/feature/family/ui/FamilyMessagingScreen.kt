@@ -138,7 +138,7 @@ fun FamilyMessagingScreen(
                         .padding(horizontal = 16.dp),
                     state = listState,
                     reverseLayout = true,
-                    contentPadding = PaddingValues(vertical = 16.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 140.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(

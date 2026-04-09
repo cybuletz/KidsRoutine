@@ -47,7 +47,8 @@ fun ChildProfileScreen(
             .background(BgLight)
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 140.dp)
         ) {
             // Header with gradient background
             item {

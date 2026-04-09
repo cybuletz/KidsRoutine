@@ -79,7 +79,6 @@ class CompleteTaskUseCaseTest {
         every { mockDocRef.set(any()) } returns mockTask
         every { mockDocRef.delete() } returns mockTask
         every { mockDocRef.update(any<Map<String, Any>>()) } returns mockTask
-        coEvery { mockTask.await() } returns null
 
         // Default stubs
         every { streakCalculator.computeStreak(any(), any(), any()) } returns 1

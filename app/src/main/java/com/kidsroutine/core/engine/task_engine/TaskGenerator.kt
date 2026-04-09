@@ -49,16 +49,19 @@ class TaskGenerator @Inject constructor() {
         val logicNeeded  = (MIN_LOGIC_OR_LEARNING - result.count {
             it.task.type == TaskType.LOGIC || it.task.type == TaskType.LEARNING }).coerceAtLeast(0)
 
+        val pickedIds = result.map { it.templateId }.toMutableSet()
+
         fun pickFirst(predicate: (TaskTemplate) -> Boolean): TaskInstance? =
-            eligible.firstOrNull(predicate)?.toInstance(context.userId, context.date)
+            eligible.firstOrNull { it.templateId !in pickedIds && predicate(it) }
+                ?.also { pickedIds.add(it.templateId) }
+                ?.toInstance(context.userId, context.date)
 
         repeat(coopNeeded)    { pickFirst { it.baseTask.requiresCoop }?.let { result.add(it) } }
         repeat(realLifeNeeded){ pickFirst { it.baseTask.type == TaskType.REAL_LIFE && !it.baseTask.requiresCoop }?.let { result.add(it) } }
         repeat(logicNeeded)   { pickFirst { it.baseTask.type == TaskType.LOGIC || it.baseTask.type == TaskType.LEARNING }?.let { result.add(it) } }
 
         // fill remainder with any eligible not already added
-        val usedIds = result.map { it.templateId }.toSet()
-        eligible.filter { it.templateId !in usedIds }.forEach {
+        eligible.filter { it.templateId !in pickedIds }.forEach {
             if (result.size < DAILY_TASK_LIMIT) result.add(it.toInstance(context.userId, context.date))
         }
 

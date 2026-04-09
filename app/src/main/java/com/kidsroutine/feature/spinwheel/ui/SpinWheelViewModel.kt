@@ -116,6 +116,12 @@ class SpinWheelViewModel @Inject constructor(
                 // Non-fatal: state was already computed locally
             }
 
+            // Award immediate XP bonus from spin result (e.g. +25 XP or +100 XP)
+            val xpBonus = rewardEngine.immediateXpBonus(result)
+            if (xpBonus > 0) {
+                userRepository.updateUserXp(current.currentUserId, xpBonus)
+            }
+
             // Wait for the spin animation to finish (matches Animatable duration)
             delay(SPIN_DURATION_MS)
 

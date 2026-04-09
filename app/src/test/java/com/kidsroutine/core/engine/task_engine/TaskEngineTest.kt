@@ -29,9 +29,10 @@ class TaskEngineTest {
         val injected = listOf(TaskInstance(instanceId = "i1"))
         val context = GenerationContext(
             userId = "u1",
-            familyId = "f1",
             date = "2026-01-01",
-            ageGroup = AgeGroup.EXPLORER
+            recentTemplateIds = emptyList(),
+            activeChallengeTaskIds = emptyList(),
+            userPreferences = UserPreferences()
         )
         val expected = listOf(TaskInstance(instanceId = "gen1"))
 
@@ -47,9 +48,10 @@ class TaskEngineTest {
     fun `generateDailyTasks returns empty when generator returns empty`() {
         val context = GenerationContext(
             userId = "u1",
-            familyId = "f1",
             date = "2026-01-01",
-            ageGroup = AgeGroup.EXPLORER
+            recentTemplateIds = emptyList(),
+            activeChallengeTaskIds = emptyList(),
+            userPreferences = UserPreferences()
         )
         every { generator.generate(any(), any(), any()) } returns emptyList()
 

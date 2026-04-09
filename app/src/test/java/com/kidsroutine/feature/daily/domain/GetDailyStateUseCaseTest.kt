@@ -39,7 +39,7 @@ class GetDailyStateUseCaseTest {
     @Test
     fun `returns flow from repository`() = runTest {
         val state1 = DailyStateModel(userId = "u1")
-        val state2 = DailyStateModel(userId = "u1", streak = 5)
+        val state2 = DailyStateModel(userId = "u1", completedCount = 5)
         every {
             repository.observeDailyState("f1", "u1", "2026-01-01")
         } returns flowOf(state1, state2)

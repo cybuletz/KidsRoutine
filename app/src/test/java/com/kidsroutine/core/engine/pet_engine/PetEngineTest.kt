@@ -138,7 +138,7 @@ class PetEngineTest {
         val pet = createPet(energy = 50)
         val bonused = engine.applyStreakBonus(pet, streakDays = 2)
         assertEquals(52, bonused.energy)
-        assertEquals(50, bonused.happiness) // no happiness bonus for short streaks
+        assertEquals(80, bonused.happiness) // no happiness bonus for short streaks (default is 80)
     }
 
     @Test
@@ -226,6 +226,107 @@ class PetEngineTest {
     @Test
     fun `pet mood is SLEEPING at under 10 happiness`() {
         assertEquals(PetMood.SLEEPING, createPet(happiness = 5).mood)
+    }
+
+    // ── napPet ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `napPet restores energy significantly`() {
+        val pet = createPet(energy = 50)
+        val napped = engine.napPet(pet)
+        assertEquals(62, napped.energy)  // +12 energy
+    }
+
+    @Test
+    fun `napPet gives small happiness boost`() {
+        val pet = createPet(happiness = 50, energy = 50)
+        val napped = engine.napPet(pet)
+        assertEquals(52, napped.happiness)  // +2 happiness
+    }
+
+    @Test
+    fun `napPet clamps energy to 100`() {
+        val pet = createPet(energy = 95)
+        val napped = engine.napPet(pet)
+        assertEquals(100, napped.energy)
+    }
+
+    @Test
+    fun `napPet updates lastInteractedAt`() {
+        val pet = createPet(lastInteractedAt = 0L)
+        val napped = engine.napPet(pet)
+        assertTrue(napped.lastInteractedAt > 0)
+    }
+
+    // ── treatPet ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `treatPet increases happiness by 6`() {
+        val pet = createPet(happiness = 50)
+        val treated = engine.treatPet(pet)
+        assertEquals(56, treated.happiness)
+    }
+
+    @Test
+    fun `treatPet increases energy by 4`() {
+        val pet = createPet(energy = 50)
+        val treated = engine.treatPet(pet)
+        assertEquals(54, treated.energy)
+    }
+
+    @Test
+    fun `treatPet clamps happiness to 100`() {
+        val pet = createPet(happiness = 98)
+        val treated = engine.treatPet(pet)
+        assertEquals(100, treated.happiness)
+    }
+
+    @Test
+    fun `treatPet updates lastInteractedAt`() {
+        val pet = createPet(lastInteractedAt = 0L)
+        val treated = engine.treatPet(pet)
+        assertTrue(treated.lastInteractedAt > 0)
+    }
+
+    // ── treasureHuntWithPet ──────────────────────────────────────────────
+
+    @Test
+    fun `treasureHuntWithPet boosts happiness more when happiness is lower`() {
+        val pet = createPet(happiness = 30, energy = 70)
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertEquals(42, hunted.happiness)  // +12 (lower stat gets bigger boost)
+        assertEquals(75, hunted.energy)     // +5
+    }
+
+    @Test
+    fun `treasureHuntWithPet boosts energy more when energy is lower`() {
+        val pet = createPet(happiness = 70, energy = 30)
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertEquals(78, hunted.happiness)  // +8
+        assertEquals(40, hunted.energy)     // +10 (lower stat gets bigger boost)
+    }
+
+    @Test
+    fun `treasureHuntWithPet equal stats boosts happiness more`() {
+        val pet = createPet(happiness = 50, energy = 50)
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertEquals(62, hunted.happiness)  // +12 (happiness <= energy → boostLower = true)
+        assertEquals(55, hunted.energy)     // +5
+    }
+
+    @Test
+    fun `treasureHuntWithPet clamps stats to 100`() {
+        val pet = createPet(happiness = 95, energy = 96)
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertTrue(hunted.happiness <= 100)
+        assertTrue(hunted.energy <= 100)
+    }
+
+    @Test
+    fun `treasureHuntWithPet updates lastInteractedAt`() {
+        val pet = createPet(lastInteractedAt = 0L)
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertTrue(hunted.lastInteractedAt > 0)
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
