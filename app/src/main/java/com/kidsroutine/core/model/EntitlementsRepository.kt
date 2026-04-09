@@ -82,11 +82,32 @@ class EntitlementsRepository @Inject constructor(
             val entitlements = planType.defaultEntitlements(userId)
             cache[userId] = entitlements
             Log.d(TAG, "Fallback to ai_quotas tier=$tierStr for $userId")
+
+            // Auto-create the entitlements doc so it can be edited in Firestore Console
+            ensureEntitlementsDocExists(userId, entitlements)
+
             entitlements
 
         } catch (e: Exception) {
             Log.e(TAG, "Error loading entitlements for $userId: ${e.message}")
             freeFallback(userId)
+        }
+    }
+
+    /**
+     * Ensure a user_entitlements document exists in Firestore.
+     * Called during fallback so the doc can be manually edited for testing.
+     */
+    private suspend fun ensureEntitlementsDocExists(userId: String, entitlements: UserEntitlements) {
+        try {
+            val docRef = firestore.collection("user_entitlements").document(userId)
+            val doc = docRef.get().await()
+            if (!doc.exists()) {
+                docRef.set(entitlementsToMap(entitlements)).await()
+                Log.d(TAG, "Auto-created user_entitlements doc for $userId (${entitlements.planType})")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not auto-create entitlements doc for $userId: ${e.message}")
         }
     }
 

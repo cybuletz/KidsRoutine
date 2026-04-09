@@ -807,7 +807,7 @@ private fun FunZoneFullScreen(
                             accentColor        = Color(0xFFFF9F1C),
                             onClick            = onSpinWheelClick,
                             modifier           = Modifier.weight(1f),
-                            requiredLevel      = 2,
+                            requiredLevel      = 1,
                             userLevel          = userLevel,
                             subscriptionLocked = isSubscriptionLocked("daily_spin"),
                             requiredPlan       = requiredPlan("daily_spin")
@@ -1081,7 +1081,7 @@ private fun FunZoneFeatureCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text     = when {
-                        subscriptionLocked -> "$description\n🌟 Coming soon with Pro!"
+                        subscriptionLocked -> "$description\n⭐ Upgrade to ${requiredPlan?.displayName ?: "Pro"} to unlock!"
                         isLevelLocked      -> "Reach level $requiredLevel to unlock!"
                         else               -> description
                     },
@@ -1232,7 +1232,7 @@ private fun FunZoneCompactCard(
             )
             Text(
                 text     = when {
-                    subscriptionLocked -> "🌟 Coming soon!"
+                    subscriptionLocked -> "⭐ ${requiredPlan?.displayName ?: "Pro"}"
                     isLevelLocked      -> "Reach Lvl $requiredLevel"
                     else               -> description
                 },

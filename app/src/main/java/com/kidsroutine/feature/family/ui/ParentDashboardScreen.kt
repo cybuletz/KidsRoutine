@@ -884,7 +884,7 @@ private fun ParentDiscoverTab(
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             FamilyFeaturePreviewCard("🐾", "Companion Pet",     "Kids adopt & care for a virtual pet using earned XP.",       Color(0xFF06D6A0), "Free")
             FamilyFeaturePreviewCard("🎡", "Daily Spin Wheel",  "A daily reward spin for fun surprises.",                     Color(0xFFFF9F1C), "Free")
-            FamilyFeaturePreviewCard("🙏", "Family Rituals",    "Gratitude circles, family meetings & bonding moments.",      Color(0xFF9B5DE5), "Free")
+            FamilyFeaturePreviewCard("🙏", "Family Rituals",    "Gratitude circles, family meetings & bonding moments.",      Color(0xFF9B5DE5), "Pro")
             FamilyFeaturePreviewCard("⚔️", "Boss Battles",      "Weekly cooperative boss battles for bonus rewards.",         Color(0xFFEF476F), "Pro")
             FamilyFeaturePreviewCard("📖", "Story Arcs",        "Multi-day narrative adventures that unfold with tasks.",     Color(0xFF8B5CF6), "Pro")
             FamilyFeaturePreviewCard("📅", "Timed Events",      "Seasonal limited-time challenges & exclusive rewards.",      Color(0xFF4361EE), "Pro")
