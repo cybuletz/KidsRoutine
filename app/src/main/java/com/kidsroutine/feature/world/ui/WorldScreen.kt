@@ -260,6 +260,7 @@ private fun WorldMapCanvas(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .padding(bottom = 140.dp)
     ) {
         val canvasW = maxWidth
 

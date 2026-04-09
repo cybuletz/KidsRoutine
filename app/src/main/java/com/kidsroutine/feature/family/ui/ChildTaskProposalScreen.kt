@@ -298,6 +298,8 @@ fun ChildTaskProposalScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(140.dp))
         }
     }
 }
