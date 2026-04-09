@@ -77,6 +77,7 @@ import kotlinx.coroutines.tasks.await
 private val OrangePrimary = Color(0xFFFF6B35)
 private val BgLight       = Color(0xFFFFFBF0)
 private val PinkPropose   = Color(0xFFFF6B9D)
+private val NavBarHeight  = 76.dp   // 72dp nav bar + 4dp spacing
 
 @Composable
 fun SeasonalBanner(themeManager: SeasonalThemeManager) {
@@ -610,7 +611,7 @@ private fun PersistentNavBar(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(bottom = 76.dp, start = 12.dp, end = 12.dp)
+                    .padding(bottom = NavBarHeight, start = 12.dp, end = 12.dp)
                     .zIndex(10f),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
