@@ -436,20 +436,6 @@ fun ChildMainScreen(
             onProposeTaskClick      = { innerNavController.navigate("child_task_proposal") }
         )
 
-        // ── Persistent XP Balance Widget ──────────────────────────────
-        // Visible across all child screens, positioned at top-center
-        if (!worldDetailShowing) {
-            XpBalanceWidget(
-                xp = currentUser.xp,
-                level = currentUser.level,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .offset(y = 2.dp)
-                    .zIndex(20f)
-            )
-        }
-
         // ── Weekly XP Summary Overlay ────────────────────────────────────
         if (showWeeklySummary) {
             WeeklyXpSummaryOverlay(
@@ -617,46 +603,39 @@ private fun PersistentNavBar(
             }
         }
 
-        // Propose Task FAB — hidden when world node detail is open
+        // Propose Task & Chat FABs — compact pills anchored just above nav bar
         if (!hideOverlayButtons) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = 16.dp, y = (-90).dp)
-                    .zIndex(10f)
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
                     .navigationBarsPadding()
+                    .padding(bottom = 76.dp, start = 12.dp, end = 12.dp)
+                    .zIndex(10f),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Propose Task mini-FAB
                 Button(
                     onClick        = onProposeTaskClick,
-                    modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-                    shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 2.dp, bottomEnd = 16.dp),
+                    modifier       = Modifier.size(width = 44.dp, height = 44.dp),
+                    shape          = CircleShape,
                     colors         = ButtonDefaults.buttonColors(containerColor = PinkPropose),
                     contentPadding = PaddingValues(0.dp),
-                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Text("👶", fontSize = 22.sp)
+                    Text("👶", fontSize = 18.sp)
                 }
-            }
-        }
 
-        // Chat FAB — hidden when world node detail is open
-        if (!hideOverlayButtons) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = (-16).dp, y = (-90).dp)
-                    .zIndex(10f)
-                    .navigationBarsPadding()
-            ) {
+                // Chat mini-FAB
                 Button(
                     onClick        = onChatClick,
-                    modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-                    shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
+                    modifier       = Modifier.size(width = 44.dp, height = 44.dp),
+                    shape          = CircleShape,
                     colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
                     contentPadding = PaddingValues(0.dp),
-                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                    elevation      = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
-                    Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -1101,7 +1080,7 @@ private fun FunZoneFeatureCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text     = when {
-                        subscriptionLocked -> "$description\n✨ Ask your parents to upgrade!"
+                        subscriptionLocked -> "$description\n🌟 Coming soon with Pro!"
                         isLevelLocked      -> "Reach level $requiredLevel to unlock!"
                         else               -> description
                     },
@@ -1252,7 +1231,7 @@ private fun FunZoneCompactCard(
             )
             Text(
                 text     = when {
-                    subscriptionLocked -> "✨ Ask parents to upgrade!"
+                    subscriptionLocked -> "🌟 Coming soon!"
                     isLevelLocked      -> "Reach Lvl $requiredLevel"
                     else               -> description
                 },
