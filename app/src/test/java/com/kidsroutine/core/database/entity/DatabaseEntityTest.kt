@@ -108,6 +108,13 @@ class DatabaseEntityTest {
             happiness = 60,
             energy = 40,
             totalFed = 100,
+            totalPlayed = 50,
+            totalTrained = 20,
+            totalGroomed = 15,
+            totalAdventures = 10,
+            totalNaps = 25,
+            totalTreats = 30,
+            totalTreasureHunts = 8,
             daysAlive = 30,
             longestHappyStreak = 15,
             isPremium = true,
@@ -117,6 +124,13 @@ class DatabaseEntityTest {
         assertEquals("Fido", entity.name)
         assertEquals("TEEN", entity.stage)
         assertEquals(100, entity.totalFed)
+        assertEquals(50, entity.totalPlayed)
+        assertEquals(20, entity.totalTrained)
+        assertEquals(15, entity.totalGroomed)
+        assertEquals(10, entity.totalAdventures)
+        assertEquals(25, entity.totalNaps)
+        assertEquals(30, entity.totalTreats)
+        assertEquals(8, entity.totalTreasureHunts)
         assertEquals("acc_hat", entity.accessoryId)
     }
 

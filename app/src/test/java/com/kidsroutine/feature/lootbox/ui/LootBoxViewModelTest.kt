@@ -5,6 +5,7 @@ import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.LootBox
+import com.kidsroutine.feature.daily.data.UserRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,6 +21,7 @@ class LootBoxViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var firestore: FirebaseFirestore
+    private lateinit var userRepository: UserRepository
     private lateinit var viewModel: LootBoxViewModel
 
     @Before
@@ -27,6 +29,7 @@ class LootBoxViewModelTest {
         Dispatchers.setMain(testDispatcher)
         mockkStatic("kotlinx.coroutines.tasks.TasksKt")
         firestore = mockk(relaxed = true)
+        userRepository = mockk(relaxed = true)
 
         val mockCollectionRef = mockk<CollectionReference>(relaxed = true)
         val mockDocRef = mockk<DocumentReference>(relaxed = true)
@@ -41,7 +44,7 @@ class LootBoxViewModelTest {
         every { mockCollectionRef.add(any()) } returns mockAddTask
         coEvery { mockAddTask.await() } returns mockDocRef
 
-        viewModel = LootBoxViewModel(firestore)
+        viewModel = LootBoxViewModel(firestore, userRepository)
     }
 
     @After
