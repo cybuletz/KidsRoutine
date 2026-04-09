@@ -33,7 +33,7 @@ class WorldViewModelTest {
     private lateinit var userRepository: UserRepository
     private lateinit var viewModel: WorldViewModel
 
-    private val testUser = UserModel(userId = "u1", xp = 100)
+    private val testUser = UserModel(userId = "u1", xp = 100, totalXpEarned = 100)
     private val testWorld = WorldModel(worldId = "w1", nodes = listOf(WorldNode(nodeId = "n1")))
     private val testNode = WorldNode(nodeId = "n1")
 

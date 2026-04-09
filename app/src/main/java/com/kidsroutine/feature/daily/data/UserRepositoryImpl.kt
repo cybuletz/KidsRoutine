@@ -1,6 +1,7 @@
 package com.kidsroutine.feature.daily.data
 
 import android.util.Log
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.database.dao.UserDao
 import com.kidsroutine.core.model.UserModel
@@ -22,35 +23,31 @@ class UserRepositoryImpl @Inject constructor(
         try {
             Log.d("UserRepository", ">>> START updateUserXp: userId=$userId, xpGained=$xpGained")
 
-            // Get current user from local database
+            val userRef = firestore.collection("users").document(userId)
+
+            // ── Firestore is the single source of truth ──
+            // Atomic increment: always update spendable `xp`
+            // Only increment `totalXpEarned` when earning (positive), never decrement it
+            val updates = mutableMapOf<String, Any>(
+                "xp" to FieldValue.increment(xpGained.toLong())
+            )
+            if (xpGained > 0) {
+                updates["totalXpEarned"] = FieldValue.increment(xpGained.toLong())
+            }
+            userRef.update(updates).await()
+            Log.d("UserRepository", "✓ Firestore atomic update successful: xpGained=$xpGained")
+
+            // Read back authoritative values from Firestore
+            val snapshot = userRef.get().await()
+            val newXp = (snapshot.getLong("xp") ?: 0).toInt()
+            val newTotalXpEarned = (snapshot.getLong("totalXpEarned") ?: 0).toInt()
+            Log.d("UserRepository", "✓ Read back from Firestore: xp=$newXp, totalXpEarned=$newTotalXpEarned")
+
+            // Sync Firestore → Room (local cache)
             val currentUser = userDao.getUserSync(userId)
-            Log.d("UserRepository", "getCurrentUser result: $currentUser")
-
             if (currentUser != null) {
-                Log.d("UserRepository", "Found user in local DB: ${currentUser.displayName}, current xp=${currentUser.xp}")
-
-                // Add XP locally
-                val newXp = currentUser.xp + xpGained
-                val updatedUser = currentUser.copy(xp = newXp)
-                Log.d("UserRepository", "Created updated user entity: xp=$newXp")
-
-                userDao.upsert(updatedUser)
-                Log.d("UserRepository", "✓ Updated local Room DB: new XP = $newXp")
-
-                // Sync to Firestore
-                Log.d("UserRepository", "Syncing to Firestore: users/$userId with xp=$newXp")
-                try {
-                    firestore.collection("users").document(userId)
-                        .update("xp", newXp)
-                        .await()
-                    Log.d("UserRepository", "✓ Firestore update successful!")
-                } catch (updateError: Exception) {
-                    Log.w("UserRepository", "Update failed, trying set with merge...", updateError)
-                    firestore.collection("users").document(userId)
-                        .set(mapOf("xp" to newXp), com.google.firebase.firestore.SetOptions.merge())
-                        .await()
-                    Log.d("UserRepository", "✓ Firestore set successful!")
-                }
+                userDao.upsert(currentUser.copy(xp = newXp, totalXpEarned = newTotalXpEarned))
+                Log.d("UserRepository", "✓ Synced to Room: xp=$newXp, totalXpEarned=$newTotalXpEarned")
             } else {
                 Log.e("UserRepository", "ERROR: User not found in local DB: $userId")
             }
@@ -65,7 +62,7 @@ class UserRepositoryImpl @Inject constructor(
         return userDao.getUser(userId)
             .filterNotNull()
             .map { entity ->
-                Log.d("UserRepository", "observeUser emitting: xp=${entity.xp}")
+                Log.d("UserRepository", "observeUser emitting: xp=${entity.xp}, totalXpEarned=${entity.totalXpEarned}")
                 UserModel(
                     userId = entity.userId,
                     role = Role.valueOf(entity.role),
@@ -74,7 +71,8 @@ class UserRepositoryImpl @Inject constructor(
                     xp = entity.xp,
                     level = entity.level,
                     streak = entity.streak,
-                    lastActiveAt = entity.lastActiveAt
+                    lastActiveAt = entity.lastActiveAt,
+                    totalXpEarned = entity.totalXpEarned
                 )
             }
     }

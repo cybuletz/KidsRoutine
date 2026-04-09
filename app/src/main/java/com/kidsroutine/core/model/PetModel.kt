@@ -103,8 +103,13 @@ data class PetAccessory(
     val xpCost: Int,
     val category: PetAccessoryCategory,
     val happinessBoost: Int = 0,
-    val energyBoost: Int = 0
-)
+    val energyBoost: Int = 0,
+    /** Duration in minutes for consumable items (0 = permanent accessory) */
+    val durationMinutes: Int = 0
+) {
+    /** Whether this is a permanent accessory (not a consumable) */
+    val isPermanent: Boolean get() = durationMinutes == 0
+}
 
 enum class PetAccessoryCategory(val emoji: String, val label: String) {
     HAT("🎩", "Hats"),

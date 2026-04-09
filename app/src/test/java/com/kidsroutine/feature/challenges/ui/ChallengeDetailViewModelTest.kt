@@ -41,7 +41,7 @@ class ChallengeDetailViewModelTest {
     @Test
     fun `loadChallengeDetail success sets challenge and progress`() = runTest {
         val challenge = ChallengeModel(challengeId = "ch1", title = "Read")
-        val progress = ChallengeProgress(challengeId = "ch1", userId = "u1", familyId = "fam1")
+        val progress = ChallengeProgress(challengeId = "ch1", userId = "u1")
         coEvery { challengeRepository.getChallenge("ch1") } returns challenge
         coEvery { challengeRepository.getChallengeProgress("u1", "fam1", "ch1") } returns progress
         viewModel.loadChallengeDetail("u1", "fam1", "ch1")

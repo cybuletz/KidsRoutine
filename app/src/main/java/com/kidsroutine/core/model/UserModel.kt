@@ -34,5 +34,6 @@ data class UserModel(
     val weeklyXp: Int = 0,                            // XP earned this week (for leagues)
     val petId: String = "",                            // companion pet ID
     val darkModeEnabled: Boolean = false,              // user preference for dark mode
-    val comebackStreakSaved: Int = 0                   // streak value saved by comeback system
+    val comebackStreakSaved: Int = 0,                  // streak value saved by comeback system
+    val totalXpEarned: Int = 0                         // lifetime XP earned (never decremented — used for World progression)
 )

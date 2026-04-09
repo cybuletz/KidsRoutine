@@ -51,7 +51,7 @@ class ParentControlsViewModelTest {
         viewModel.loadForChild("fam1", "c1", "p1")
         advanceUntilIdle()
         assertFalse(viewModel.uiState.value.isLoading)
-        assertNotNull(viewModel.uiState.value.settings)
+        assertNotNull(viewModel.uiState.value.controlSettings)
     }
 
     @Test

@@ -30,6 +30,7 @@ data class PetUiState(
         const val FEED_COST = 5
 
         val SHOP_ITEMS = listOf(
+            // Permanent accessories (cost more)
             PetAccessory("hat_crown", "Royal Crown", "👑", "A crown fit for royalty!", 25, PetAccessoryCategory.HAT, happinessBoost = 5),
             PetAccessory("hat_wizard", "Wizard Hat", "🧙", "Magical style!", 20, PetAccessoryCategory.HAT, happinessBoost = 3),
             PetAccessory("collar_star", "Star Collar", "⭐", "Shine bright!", 15, PetAccessoryCategory.COLLAR, happinessBoost = 2),
@@ -37,8 +38,9 @@ data class PetUiState(
             PetAccessory("toy_ball", "Bouncy Ball", "🎾", "Hours of fun!", 8, PetAccessoryCategory.TOY, happinessBoost = 3),
             PetAccessory("toy_bone", "Chew Bone", "🦴", "Yummy to chew!", 12, PetAccessoryCategory.TOY, energyBoost = 3),
             PetAccessory("bed_cloud", "Cloud Bed", "☁️", "Fluffy dreams!", 30, PetAccessoryCategory.BED, energyBoost = 5),
-            PetAccessory("snack_cookie", "Magic Cookie", "🍪", "Instant energy!", 5, PetAccessoryCategory.SNACK, energyBoost = 2),
-            PetAccessory("snack_cake", "Birthday Cake", "🎂", "Party time!", 15, PetAccessoryCategory.SNACK, happinessBoost = 5, energyBoost = 3)
+            // Consumable treats (cheaper, temporary — lasts durationMinutes then disappears)
+            PetAccessory("snack_cookie", "Magic Cookie", "🍪", "Instant energy! (lasts 1 hour)", 3, PetAccessoryCategory.SNACK, energyBoost = 2, durationMinutes = 60),
+            PetAccessory("snack_cake", "Birthday Cake", "🎂", "Party time! (lasts 2 hours)", 8, PetAccessoryCategory.SNACK, happinessBoost = 5, energyBoost = 3, durationMinutes = 120)
         )
     }
 }

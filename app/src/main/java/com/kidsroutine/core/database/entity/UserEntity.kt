@@ -16,5 +16,6 @@ data class UserEntity(
     val level: Int = 1,
     val streak: Int = 0,
     val lastActiveAt: Long = 0L,
-    val createdAt: Long = 0L  // ADD THIS if missing
+    val createdAt: Long = 0L,  // ADD THIS if missing
+    val totalXpEarned: Int = 0   // lifetime XP earned (never decremented)
 )

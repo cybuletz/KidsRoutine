@@ -36,7 +36,7 @@ class ActiveChallengesViewModelTest {
 
     @Test
     fun `loadActiveChallenges success sets challenges`() = runTest {
-        val progress = ChallengeProgress(challengeId = "ch1", userId = "u1", familyId = "fam1", lastCompletedDate = "2020-01-01")
+        val progress = ChallengeProgress(challengeId = "ch1", userId = "u1", lastCompletedDate = "2020-01-01")
         val challenge = ChallengeModel(challengeId = "ch1", title = "Read daily")
         coEvery { challengeRepository.getActiveChallenges("u1", "fam1") } returns listOf(progress)
         coEvery { challengeRepository.getChallenge("ch1") } returns challenge

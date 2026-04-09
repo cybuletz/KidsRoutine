@@ -93,7 +93,7 @@ fun WorldScreen(
             uiState.world != null -> {
                 WorldMapCanvas(
                     world        = uiState.world!!,
-                    userXp       = uiState.currentUser.xp,
+                    userXp       = uiState.currentUser.totalXpEarned,
                     onNodeTapped = { node -> viewModel.onNodeTapped(node) }
                 )
             }
@@ -101,7 +101,7 @@ fun WorldScreen(
 
         WorldHud(
             displayName = currentUser.displayName,
-            userXp      = uiState.currentUser.xp,
+            userXp      = uiState.currentUser.totalXpEarned,
             totalXp     = uiState.world?.totalXpRequired ?: 1000,
             nodes       = uiState.world?.nodes ?: emptyList(),
             onBackClick = onBackClick
@@ -126,7 +126,7 @@ fun WorldScreen(
                 uiState.selectedNode?.let { node ->
                     NodeDetailCard(
                         node           = node,
-                        userXp         = uiState.currentUser.xp,
+                        userXp         = uiState.currentUser.totalXpEarned,
                         onLootBoxClick = onLootBoxClick,
                         onDismiss      = { viewModel.dismissNodeDetail() }
                     )
@@ -246,8 +246,11 @@ private fun WorldMapCanvas(
     val mapHeightPx = with(density) { mapHeightDp.toPx() }
 
     val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
+        .takeIf { it >= 0 }
+        ?: nodes.indexOfFirst { it.status == WorldNodeStatus.LOCKED }.takeIf { it >= 0 }
+        ?: (nodes.size - 1).coerceAtLeast(0)
     LaunchedEffect(firstUnlockedIndex) {
-        if (firstUnlockedIndex >= 0) {
+        if (firstUnlockedIndex >= 0 && nodes.isNotEmpty()) {
             val screenHeightPx = with(density) { 800.dp.toPx() }
             val node = nodes[firstUnlockedIndex]
             val targetPx = (node.positionY * mapHeightPx - screenHeightPx / 2)
