@@ -101,6 +101,46 @@ class PetEngine @Inject constructor() {
     }
 
     /**
+     * Put the pet down for a nap — restores energy, small happiness boost.
+     * Free activity, encourages kids to "care" for their pet's rest.
+     */
+    fun napPet(pet: PetModel): PetModel {
+        return pet.copy(
+            energy = (pet.energy + 12).coerceIn(0, 100),
+            happiness = (pet.happiness + 2).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Give the pet a treat — small quick snack.
+     * Cheap activity (3 XP), gives a modest boost.
+     */
+    fun treatPet(pet: PetModel): PetModel {
+        return pet.copy(
+            happiness = (pet.happiness + 6).coerceIn(0, 100),
+            energy = (pet.energy + 4).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Take pet on a treasure hunt — explore for hidden goodies.
+     * Medium cost (10 XP), gives a randomized bonus to either happiness or energy.
+     * Returns a bonus weighted toward the lower stat to help balance the pet.
+     */
+    fun treasureHuntWithPet(pet: PetModel): PetModel {
+        val boostLower = pet.happiness <= pet.energy
+        val happinessGain = if (boostLower) 12 else 8
+        val energyGain = if (boostLower) 5 else 10
+        return pet.copy(
+            happiness = (pet.happiness + happinessGain).coerceIn(0, 100),
+            energy = (pet.energy + energyGain).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
      * Apply streak bonus to pet.
      * Streak days increase energy, long streaks give happiness boost.
      */

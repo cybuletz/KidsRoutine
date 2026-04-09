@@ -209,6 +209,74 @@ class PetViewModel @Inject constructor(
         }
     }
 
+    fun napPet() {
+        val currentPet = _uiState.value.pet ?: return
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Putting pet '${currentPet.name}' down for a nap")
+                val nappedPet = petEngine.napPet(currentPet)
+                petRepository.savePet(nappedPet)
+                _uiState.value = _uiState.value.copy(pet = nappedPet)
+                Log.d(TAG, "Nap complete — energy: ${nappedPet.energy}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error napping pet", e)
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to nap pet")
+            }
+        }
+    }
+
+    fun treatPet(userId: String = currentUserId) {
+        val currentPet = _uiState.value.pet ?: return
+        val currentXp = _uiState.value.currentXp
+
+        if (currentXp < TREAT_COST) {
+            _uiState.value = _uiState.value.copy(
+                error = "Not enough XP! You need $TREAT_COST XP for a treat. (You have $currentXp XP)"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Giving pet '${currentPet.name}' a treat — costing $TREAT_COST XP")
+                userRepository.updateUserXp(userId, -TREAT_COST)
+                val treatedPet = petEngine.treatPet(currentPet)
+                petRepository.savePet(treatedPet)
+                _uiState.value = _uiState.value.copy(pet = treatedPet)
+                Log.d(TAG, "Treat given — happiness: ${treatedPet.happiness}, energy: ${treatedPet.energy}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error treating pet", e)
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to give treat")
+            }
+        }
+    }
+
+    fun treasureHuntWithPet(userId: String = currentUserId) {
+        val currentPet = _uiState.value.pet ?: return
+        val currentXp = _uiState.value.currentXp
+
+        if (currentXp < TREASURE_HUNT_COST) {
+            _uiState.value = _uiState.value.copy(
+                error = "Not enough XP! You need $TREASURE_HUNT_COST XP for a treasure hunt. (You have $currentXp XP)"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Treasure hunting with pet '${currentPet.name}' — costing $TREASURE_HUNT_COST XP")
+                userRepository.updateUserXp(userId, -TREASURE_HUNT_COST)
+                val huntPet = petEngine.treasureHuntWithPet(currentPet)
+                petRepository.savePet(huntPet)
+                _uiState.value = _uiState.value.copy(pet = huntPet)
+                Log.d(TAG, "Treasure hunt complete — happiness: ${huntPet.happiness}, energy: ${huntPet.energy}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error on treasure hunt", e)
+                _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to treasure hunt")
+            }
+        }
+    }
+
     fun selectSpecies(species: PetSpecies) {
         _uiState.value = _uiState.value.copy(selectedSpecies = species)
     }
@@ -290,5 +358,7 @@ class PetViewModel @Inject constructor(
         private const val TAG = "PetViewModel"
         const val TRAIN_COST = 8
         const val ADVENTURE_COST = 15
+        const val TREAT_COST = 3
+        const val TREASURE_HUNT_COST = 10
     }
 }

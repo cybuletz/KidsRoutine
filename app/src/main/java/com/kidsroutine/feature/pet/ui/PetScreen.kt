@@ -149,6 +149,9 @@ fun PetScreen(
                         onTrain = { viewModel.trainPet() },
                         onGroom = viewModel::groomPet,
                         onAdventure = { viewModel.adventureWithPet() },
+                        onNap = viewModel::napPet,
+                        onTreat = { viewModel.treatPet() },
+                        onTreasureHunt = { viewModel.treasureHuntWithPet() },
                         onShopClick = viewModel::toggleShop,
                         onPurchase = viewModel::purchaseAccessory,
                         onEquip = viewModel::equipAccessory
@@ -189,6 +192,9 @@ private fun PetDisplay(
     onTrain: () -> Unit = {},
     onGroom: () -> Unit = {},
     onAdventure: () -> Unit = {},
+    onNap: () -> Unit = {},
+    onTreat: () -> Unit = {},
+    onTreasureHunt: () -> Unit = {},
     onShopClick: () -> Unit = {},
     onPurchase: (PetAccessory) -> Unit = {},
     onEquip: (String) -> Unit = {}
@@ -443,6 +449,71 @@ private fun PetDisplay(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Adventure 🗺️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Text("${PetViewModel.ADVENTURE_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Action buttons — third row (new activities)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = {
+                    bouncing = true
+                    onNap()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1ABC9C))
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Nap 😴", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Free", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onTreat()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.TREAT_COST) Color(0xFFE74C3C) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.TREAT_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Treat 🍪", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.TREAT_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                }
+            }
+
+            Button(
+                onClick = {
+                    bouncing = true
+                    onTreasureHunt()
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (currentXp >= PetViewModel.TREASURE_HUNT_COST) Color(0xFFF1C40F) else Color.Gray
+                ),
+                enabled = currentXp >= PetViewModel.TREASURE_HUNT_COST
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Treasure 🗝️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("${PetViewModel.TREASURE_HUNT_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
         }
