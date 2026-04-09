@@ -946,7 +946,7 @@ private fun FunZoneFeatureCard(
     subscriptionLocked: Boolean = false,
     requiredPlan: PlanType = PlanType.PRO
 ) {
-    val isLevelLocked = userLevel < requiredLevel
+    val isLevelLocked = requiredLevel > 1 && userLevel < requiredLevel
     val isLocked = isLevelLocked || subscriptionLocked
 
     Card(
@@ -1081,8 +1081,8 @@ private fun FunZoneFeatureCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text     = when {
-                        subscriptionLocked -> "$description\n⭐ Upgrade to ${requiredPlan?.displayName ?: PlanType.PRO.displayName} to unlock!"
-                        isLevelLocked      -> "Reach level $requiredLevel to unlock!"
+                        subscriptionLocked -> "$description\n⭐ Available in ${requiredPlan?.displayName ?: PlanType.PRO.displayName}!"
+                        isLevelLocked      -> "🔒 Unlocks at Level $requiredLevel!"
                         else               -> description
                     },
                     fontSize = 12.sp,
@@ -1123,7 +1123,7 @@ private fun FunZoneCompactCard(
     subscriptionLocked: Boolean = false,
     requiredPlan: PlanType = PlanType.PRO
 ) {
-    val isLevelLocked = userLevel < requiredLevel
+    val isLevelLocked = requiredLevel > 1 && userLevel < requiredLevel
     val isLocked = isLevelLocked || subscriptionLocked
 
     Card(
@@ -1232,8 +1232,8 @@ private fun FunZoneCompactCard(
             )
             Text(
                 text     = when {
-                    subscriptionLocked -> "⭐ ${requiredPlan?.displayName ?: PlanType.PRO.displayName}"
-                    isLevelLocked      -> "Reach Lvl $requiredLevel"
+                    subscriptionLocked -> "⭐ Available in ${requiredPlan?.displayName ?: PlanType.PRO.displayName}!"
+                    isLevelLocked      -> "🔒 Unlocks at Lvl $requiredLevel"
                     else               -> description
                 },
                 fontSize = 10.sp,
