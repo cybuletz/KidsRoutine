@@ -3,6 +3,7 @@ package com.kidsroutine.feature.family.ui
 import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -877,19 +878,52 @@ private fun ParentDiscoverTab(
 
         Spacer(Modifier.height(24.dp))
 
-        // ── Family Features ────────────────────────────────────────────
-        Text("Family Features", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
-        Text("Activities your children enjoy in the Fun Zone", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 20.dp))
+        // ── Fun Zone Overview ────────────────────────────────────────────
+        Text("🎮 Fun Zone Overview", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
+        Text("Feature status & engagement insights", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(Modifier.height(8.dp))
-        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            FamilyFeaturePreviewCard("🐾", "Companion Pet",     "Kids adopt & care for a virtual pet using earned XP.",       Color(0xFF06D6A0), "Free")
-            FamilyFeaturePreviewCard("🎡", "Daily Spin Wheel",  "A daily reward spin for fun surprises.",                     Color(0xFFFF9F1C), "Free")
-            FamilyFeaturePreviewCard("🙏", "Family Rituals",    "Gratitude circles, family meetings & bonding moments.",      Color(0xFF9B5DE5), "Pro")
-            FamilyFeaturePreviewCard("⚔️", "Boss Battles",      "Weekly cooperative boss battles for bonus rewards.",         Color(0xFFEF476F), "Pro")
-            FamilyFeaturePreviewCard("📖", "Story Arcs",        "Multi-day narrative adventures that unfold with tasks.",     Color(0xFF8B5CF6), "Pro")
-            FamilyFeaturePreviewCard("📅", "Timed Events",      "Seasonal limited-time challenges & exclusive rewards.",      Color(0xFF4361EE), "Pro")
-            FamilyFeaturePreviewCard("🌳", "Skill Trees",       "Visual skill progression & ability unlocks.",               Color(0xFF667EEA), "Pro")
-            FamilyFeaturePreviewCard("💰", "Family Wallet",     "Savings goals & financial literacy for kids.",               Color(0xFF11998E), "Premium")
+
+        // Compact 2-column grid of feature status tiles
+        Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Row 1: Free features
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FunZoneFeatureTile("🐾", "Pet", "Virtual companion", Color(0xFF06D6A0), isActive = true, tier = "Free", modifier = Modifier.weight(1f))
+                FunZoneFeatureTile("🎡", "Spin Wheel", "Daily rewards", Color(0xFFFF9F1C), isActive = true, tier = "Free", modifier = Modifier.weight(1f))
+            }
+            // Row 2: Pro features
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FunZoneFeatureTile("⚔️", "Boss Battle", "Weekly co-op fights", Color(0xFFEF476F), isActive = false, tier = "Pro", modifier = Modifier.weight(1f))
+                FunZoneFeatureTile("📖", "Story Arcs", "Narrative adventures", Color(0xFF8B5CF6), isActive = false, tier = "Pro", modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FunZoneFeatureTile("📅", "Events", "Seasonal challenges", Color(0xFF4361EE), isActive = false, tier = "Pro", modifier = Modifier.weight(1f))
+                FunZoneFeatureTile("🌳", "Skill Tree", "Ability progression", Color(0xFF667EEA), isActive = false, tier = "Pro", modifier = Modifier.weight(1f))
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FunZoneFeatureTile("🙏", "Rituals", "Family bonding", Color(0xFF9B5DE5), isActive = false, tier = "Pro", modifier = Modifier.weight(1f))
+                FunZoneFeatureTile("💰", "Wallet", "Financial literacy", Color(0xFF11998E), isActive = false, tier = "Premium", modifier = Modifier.weight(1f))
+            }
+
+            // Upgrade prompt if on Free tier
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E8FF)),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onUpgradeClick).padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("🚀", fontSize = 24.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Unlock all Fun Zone features", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7C3AED))
+                        Text("Upgrade to Pro for boss battles, stories & more!", fontSize = 12.sp, color = Color(0xFF7C3AED).copy(alpha = 0.7f))
+                    }
+                    Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(18.dp))
+                }
+            }
         }
         Spacer(Modifier.height(140.dp))
     }
@@ -1250,6 +1284,82 @@ private fun FamilyFeaturePreviewCard(emoji: String, title: String, description: 
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun FunZoneFeatureTile(
+    emoji: String,
+    title: String,
+    description: String,
+    color: Color,
+    isActive: Boolean,
+    tier: String,
+    modifier: Modifier = Modifier
+) {
+    val tierColor = when (tier) {
+        "Free"    -> Color(0xFF4CAF50)
+        "Pro"     -> Color(0xFF7C3AED)
+        "Premium" -> Color(0xFFFF9800)
+        else      -> Color.Gray
+    }
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) Color.White else Color(0xFFF5F5F5)
+        ),
+        elevation = CardDefaults.cardElevation(if (isActive) 3.dp else 1.dp),
+        border = if (isActive) BorderStroke(1.dp, color.copy(alpha = 0.3f)) else null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = color.copy(alpha = if (isActive) 0.15f else 0.08f)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Text(emoji, fontSize = 16.sp)
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isActive) Color(0xFFE8F5E9) else tierColor.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = if (isActive) "✓ Active" else tier,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isActive) Color(0xFF2E7D32) else tierColor,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            Text(
+                title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                color = if (isActive) TextDark else Color.Gray
+            )
+            Text(
+                description,
+                fontSize = 10.sp,
+                color = Color.Gray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
