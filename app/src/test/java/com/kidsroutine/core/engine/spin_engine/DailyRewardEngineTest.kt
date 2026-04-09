@@ -65,20 +65,6 @@ class DailyRewardEngineTest {
         assertEquals(1, updated.results.size)
     }
 
-    @Test
-    fun `spin activates doubleXP when DOUBLE_XP reward`() {
-        // We test the logic with a pre-set state
-        val state = DailySpinState(
-            userId = "user1", date = "2026-04-09", spinsUsed = 0, maxSpins = 2
-        )
-        // Spin multiple times to find DOUBLE_XP (probabilistic, so check logic)
-        val (updated, result) = engine.spin(state)
-        if (result.reward == SpinRewardType.DOUBLE_XP) {
-            assertTrue(updated.hasDoubleXpActive)
-            assertTrue(updated.doubleXpExpiresAt > 0)
-        }
-    }
-
     // ── canSpin ─────────────────────────────────────────────────────────
 
     @Test
@@ -91,49 +77,6 @@ class DailyRewardEngineTest {
     fun `canSpin is false when all spins used`() {
         val state = DailySpinState(spinsUsed = 1, maxSpins = 1)
         assertFalse(state.canSpin)
-    }
-
-    // ── isDoubleXpActive ────────────────────────────────────────────────
-
-    @Test
-    fun `isDoubleXpActive returns false when not activated`() {
-        val state = DailySpinState(hasDoubleXpActive = false)
-        assertFalse(engine.isDoubleXpActive(state))
-    }
-
-    @Test
-    fun `isDoubleXpActive returns true when active and not expired`() {
-        val state = DailySpinState(
-            hasDoubleXpActive = true,
-            doubleXpExpiresAt = System.currentTimeMillis() + 60_000
-        )
-        assertTrue(engine.isDoubleXpActive(state))
-    }
-
-    @Test
-    fun `isDoubleXpActive returns false when expired`() {
-        val state = DailySpinState(
-            hasDoubleXpActive = true,
-            doubleXpExpiresAt = System.currentTimeMillis() - 1
-        )
-        assertFalse(engine.isDoubleXpActive(state))
-    }
-
-    // ── xpMultiplier ────────────────────────────────────────────────────
-
-    @Test
-    fun `xpMultiplier returns 1x when no double XP`() {
-        val state = DailySpinState(hasDoubleXpActive = false)
-        assertEquals(1.0f, engine.xpMultiplier(state))
-    }
-
-    @Test
-    fun `xpMultiplier returns 2x when double XP active`() {
-        val state = DailySpinState(
-            hasDoubleXpActive = true,
-            doubleXpExpiresAt = System.currentTimeMillis() + 60_000
-        )
-        assertEquals(2.0f, engine.xpMultiplier(state))
     }
 
     // ── immediateXpBonus ────────────────────────────────────────────────
@@ -151,8 +94,38 @@ class DailyRewardEngineTest {
     }
 
     @Test
-    fun `immediateXpBonus returns 0 for non-XP rewards`() {
-        val result = SpinWheelResult(reward = SpinRewardType.PET_TREAT)
+    fun `immediateXpBonus returns 200 for jackpot`() {
+        val result = SpinWheelResult(reward = SpinRewardType.XP_JACKPOT)
+        assertEquals(200, engine.immediateXpBonus(result))
+    }
+
+    @Test
+    fun `immediateXpBonus returns 50 for medium XP boost`() {
+        val result = SpinWheelResult(reward = SpinRewardType.XP_BOOST_MEDIUM)
+        assertEquals(50, engine.immediateXpBonus(result))
+    }
+
+    @Test
+    fun `immediateXpBonus returns 10 for mini XP boost`() {
+        val result = SpinWheelResult(reward = SpinRewardType.XP_BOOST_MINI)
+        assertEquals(10, engine.immediateXpBonus(result))
+    }
+
+    @Test
+    fun `immediateXpBonus returns 5 for tiny XP boost`() {
+        val result = SpinWheelResult(reward = SpinRewardType.XP_BOOST_TINY)
+        assertEquals(5, engine.immediateXpBonus(result))
+    }
+
+    @Test
+    fun `immediateXpBonus returns 0 for FREE_SPIN`() {
+        val result = SpinWheelResult(reward = SpinRewardType.FREE_SPIN)
+        assertEquals(0, engine.immediateXpBonus(result))
+    }
+
+    @Test
+    fun `immediateXpBonus returns 0 for NOTHING`() {
+        val result = SpinWheelResult(reward = SpinRewardType.NOTHING)
         assertEquals(0, engine.immediateXpBonus(result))
     }
 
