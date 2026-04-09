@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.kidsroutine.core.engine.spin_engine.DailyRewardEngine
 import com.kidsroutine.core.model.DailySpinState
 import com.kidsroutine.core.model.PlanType
+import com.kidsroutine.core.model.SpinRewardType
 import com.kidsroutine.core.model.SpinWheelResult
 import com.kidsroutine.feature.daily.data.UserRepository
 import com.kidsroutine.feature.spinwheel.data.SpinWheelRepository
@@ -116,10 +117,15 @@ class SpinWheelViewModel @Inject constructor(
                 // Non-fatal: state was already computed locally
             }
 
-            // Award immediate XP bonus from spin result (e.g. +25 XP or +100 XP)
+            // Award immediate XP bonus from spin result (e.g. +25 XP, +100 XP, +200 XP, etc.)
             val xpBonus = rewardEngine.immediateXpBonus(result)
             if (xpBonus > 0) {
                 userRepository.updateUserXp(current.currentUserId, xpBonus)
+            }
+
+            // FREE_SPIN: refund the spin cost so it's effectively free
+            if (result.reward == SpinRewardType.FREE_SPIN) {
+                userRepository.updateUserXp(current.currentUserId, SPIN_COST)
             }
 
             // Wait for the spin animation to finish (matches Animatable duration)

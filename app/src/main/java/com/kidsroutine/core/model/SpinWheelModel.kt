@@ -4,59 +4,63 @@ import kotlin.random.Random
 
 /**
  * Daily Spin Wheel / Mystery Bonus system.
- * Variable reward schedule — the most addictive mechanic in gaming.
+ * Variable reward schedule — every segment on the wheel delivers exactly what it promises.
  * Once per day after first task completion.
  */
 
 enum class SpinRewardType(
     val displayName: String,
     val emoji: String,
-    val probability: Float  // sum must = 1.0
+    val xpValue: Int,            // actual XP awarded (0 for non-XP rewards)
+    val probability: Float       // sum must = 1.0
 ) {
-    DOUBLE_XP(
-        displayName = "2x XP",
+    XP_JACKPOT(
+        displayName = "+200 XP",
+        emoji = "🌟",
+        xpValue = 200,
+        probability = 0.02f
+    ),
+    XP_BOOST_BIG(
+        displayName = "+100 XP",
         emoji = "⚡",
-        probability = 0.15f
+        xpValue = 100,
+        probability = 0.05f
     ),
-    BONUS_AVATAR_ITEM(
-        displayName = "Avatar Item",
-        emoji = "👕",
+    XP_BOOST_MEDIUM(
+        displayName = "+50 XP",
+        emoji = "🔥",
+        xpValue = 50,
         probability = 0.10f
-    ),
-    PET_TREAT(
-        displayName = "Pet Treat",
-        emoji = "🦴",
-        probability = 0.15f
-    ),
-    STREAK_SHIELD(
-        displayName = "Streak Shield",
-        emoji = "🛡️",
-        probability = 0.08f
     ),
     XP_BOOST_SMALL(
         displayName = "+25 XP",
         emoji = "✨",
-        probability = 0.20f
+        xpValue = 25,
+        probability = 0.18f
     ),
-    XP_BOOST_BIG(
-        displayName = "+100 XP",
-        emoji = "🌟",
-        probability = 0.05f
+    XP_BOOST_MINI(
+        displayName = "+10 XP",
+        emoji = "💫",
+        xpValue = 10,
+        probability = 0.22f
     ),
-    LEAGUE_SHIELD(
-        displayName = "League Shield",
-        emoji = "🏅",
-        probability = 0.05f
+    XP_BOOST_TINY(
+        displayName = "+5 XP",
+        emoji = "🍀",
+        xpValue = 5,
+        probability = 0.15f
     ),
-    ROO_EMOJI(
-        displayName = "Roo Sticker",
-        emoji = "🦘",
-        probability = 0.12f
+    FREE_SPIN(
+        displayName = "Free Spin!",
+        emoji = "🎰",
+        xpValue = 0,              // XP refund handled in ViewModel
+        probability = 0.10f
     ),
     NOTHING(
         displayName = "Try Again!",
         emoji = "💨",
-        probability = 0.10f
+        xpValue = 0,
+        probability = 0.18f
     );
 
     companion object {
@@ -87,9 +91,7 @@ data class DailySpinState(
     val date: String = "",
     val spinsUsed: Int = 0,
     val maxSpins: Int = 1,         // 1 for free, 2 for premium
-    val results: List<SpinWheelResult> = emptyList(),
-    val hasDoubleXpActive: Boolean = false,
-    val doubleXpExpiresAt: Long = 0L
+    val results: List<SpinWheelResult> = emptyList()
 ) {
     val canSpin: Boolean get() = spinsUsed < maxSpins
 }

@@ -47,42 +47,15 @@ class DailyRewardEngine @Inject constructor() {
 
         val updatedState = state.copy(
             spinsUsed = state.spinsUsed + 1,
-            results = state.results + result,
-            hasDoubleXpActive = reward == SpinRewardType.DOUBLE_XP || state.hasDoubleXpActive,
-            doubleXpExpiresAt = if (reward == SpinRewardType.DOUBLE_XP) {
-                System.currentTimeMillis() + DOUBLE_XP_DURATION_MS
-            } else {
-                state.doubleXpExpiresAt
-            }
+            results = state.results + result
         )
 
         return Pair(updatedState, result)
     }
 
     /**
-     * Check if double XP is currently active.
-     */
-    fun isDoubleXpActive(state: DailySpinState): Boolean {
-        return state.hasDoubleXpActive && System.currentTimeMillis() < state.doubleXpExpiresAt
-    }
-
-    /**
-     * Get XP multiplier based on current spin rewards.
-     */
-    fun xpMultiplier(state: DailySpinState): Float {
-        return if (isDoubleXpActive(state)) 2.0f else 1.0f
-    }
-
-    /**
      * Get immediate XP bonus from spin result.
+     * Returns the xpValue defined on each SpinRewardType.
      */
-    fun immediateXpBonus(result: SpinWheelResult): Int = when (result.reward) {
-        SpinRewardType.XP_BOOST_SMALL -> 25
-        SpinRewardType.XP_BOOST_BIG -> 100
-        else -> 0
-    }
-
-    companion object {
-        const val DOUBLE_XP_DURATION_MS = 30 * 60 * 1000L  // 30 minutes
-    }
+    fun immediateXpBonus(result: SpinWheelResult): Int = result.reward.xpValue
 }
