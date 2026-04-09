@@ -1317,12 +1317,12 @@ private fun ActivityProgressRow(
     milestone: Int,
     color: Color
 ) {
+    if (milestone <= 0) return
+
     // Calculate which milestone tier we're in (repeating milestones)
     val currentTierStart = (count / milestone) * milestone
     val nextMilestone = currentTierStart + milestone
-    val progress = if (milestone > 0) {
-        ((count - currentTierStart).toFloat() / milestone).coerceIn(0f, 1f)
-    } else 0f
+    val progress = ((count - currentTierStart).toFloat() / milestone).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = spring(
