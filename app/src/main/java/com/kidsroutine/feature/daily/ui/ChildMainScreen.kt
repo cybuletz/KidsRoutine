@@ -605,7 +605,8 @@ private fun PersistentNavBar(
         }
 
         // Propose Task & Chat FABs — compact pills anchored just above nav bar
-        if (!hideOverlayButtons) {
+        // Only show on the Daily tab
+        if (!hideOverlayButtons && currentRoute == "daily") {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
