@@ -10,7 +10,7 @@ class StoryModelsTest {
 
     @Test
     fun `success response with arc`() {
-        val arc = StoryArc(arcId = "arc1", title = "The Dragon Quest")
+        val arc = StoryArc(arcId = "arc1", arcTitle = "The Dragon Quest")
         val response = GeneratedStoryResponse(
             success = true,
             arc = arc,
@@ -19,7 +19,7 @@ class StoryModelsTest {
         )
         assertTrue(response.success)
         assertNotNull(response.arc)
-        assertEquals("The Dragon Quest", response.arc!!.title)
+        assertEquals("The Dragon Quest", response.arc!!.arcTitle)
         assertFalse(response.cached)
         assertEquals(5, response.quotaRemaining)
     }

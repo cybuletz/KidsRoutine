@@ -36,7 +36,6 @@ class LootBoxViewModelTest {
         every { mockDocRef.collection(any()) } returns mockCollectionRef
         every { mockDocRef.update(any<String>(), any()) } returns mockTask
         every { mockDocRef.set(any()) } returns mockTask
-        coEvery { mockTask.await() } returns null
 
         val mockAddTask = mockk<Task<DocumentReference>>(relaxed = true)
         every { mockCollectionRef.add(any()) } returns mockAddTask
