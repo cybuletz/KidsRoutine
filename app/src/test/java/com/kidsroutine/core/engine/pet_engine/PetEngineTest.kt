@@ -138,7 +138,7 @@ class PetEngineTest {
         val pet = createPet(energy = 50)
         val bonused = engine.applyStreakBonus(pet, streakDays = 2)
         assertEquals(52, bonused.energy)
-        assertEquals(50, bonused.happiness) // no happiness bonus for short streaks
+        assertEquals(80, bonused.happiness) // no happiness bonus for short streaks (default is 80)
     }
 
     @Test

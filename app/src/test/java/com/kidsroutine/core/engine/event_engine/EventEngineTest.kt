@@ -160,7 +160,7 @@ class EventEngineTest {
     @Test
     fun `timeRemainingSeconds calculates correctly`() {
         val event = createEvent(endTimestamp = 10_000_000L) // 10000 seconds from epoch
-        assertEquals(7, engine.timeRemainingSeconds(event, 3_000_000L)) // (10000-3000)/1000
+        assertEquals(7000, engine.timeRemainingSeconds(event, 3_000_000L)) // (10_000_000-3_000_000)/1000
     }
 
     @Test
