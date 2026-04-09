@@ -31,6 +31,7 @@ data class StoryArc(
     val startDate: String = "",  // "2026-03-24"  (day 1 date)
     val currentDay: Int = 1,     // 1, 2, or 3
     val isComplete: Boolean = false,
+    val totalDays: Int = 3,
     val createdAt: Long = 0L
 )
 

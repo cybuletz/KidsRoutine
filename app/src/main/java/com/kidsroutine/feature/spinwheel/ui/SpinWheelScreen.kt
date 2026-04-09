@@ -4,7 +4,6 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.toRadians
 import kotlin.random.Random
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -472,7 +471,7 @@ private fun DrawScope.drawWheel(rewards: List<SpinRewardType>, sweepAngle: Float
         )
 
         // Segment divider line
-        val lineAngleRad = startAngle.toDouble().toRadians()
+        val lineAngleRad = Math.toRadians(startAngle.toDouble())
         drawLine(
             color = Color.White.copy(alpha = 0.4f),
             start = center,
@@ -484,7 +483,7 @@ private fun DrawScope.drawWheel(rewards: List<SpinRewardType>, sweepAngle: Float
         )
 
         // Text (emoji + label) drawn via native canvas for rotation
-        val textAngleRad = (startAngle + sweepAngle / 2f).toDouble().toRadians()
+        val textAngleRad = Math.toRadians((startAngle + sweepAngle / 2f).toDouble())
         val textRadius = radius * 0.62f
 
         val emojiPaint = Paint().apply {

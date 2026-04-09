@@ -1008,7 +1008,6 @@ private fun FamilyMemberRow(child: UserModel) {
     }
 }
 
-@Composable
 // ─────────────────────────────────────────────────────────────────────────────
 // Fun Zone Analytics Card — shows XP economy per child
 // ─────────────────────────────────────────────────────────────────────────────
