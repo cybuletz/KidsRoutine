@@ -58,14 +58,14 @@ class PetEngineTest {
     @Test
     fun `feedPet happiness gain is clamped between 5 and 20`() {
         // Very small XP → minimum gain of 5
-        val petSmall = createPet(happiness = 50)
-        val fedSmall = engine.feedPet(petSmall, xpEarned = 5)
-        assertEquals(55, fedSmall.happiness) // 5/5 = 1 → coerced to 5
+        val petLowXp = createPet(happiness = 50)
+        val fedLowXp = engine.feedPet(petLowXp, xpEarned = 5)
+        assertEquals(55, fedLowXp.happiness) // 5/5 = 1 → coerced to 5
 
         // Very large XP → maximum gain of 20
-        val petBig = createPet(happiness = 50)
-        val fedBig = engine.feedPet(petBig, xpEarned = 500)
-        assertEquals(70, fedBig.happiness) // 500/5 = 100 → coerced to 20
+        val petHighXp = createPet(happiness = 50)
+        val fedHighXp = engine.feedPet(petHighXp, xpEarned = 500)
+        assertEquals(70, fedHighXp.happiness) // 500/5 = 100 → coerced to 20
     }
 
     // ── applyDailyDecay ─────────────────────────────────────────────────

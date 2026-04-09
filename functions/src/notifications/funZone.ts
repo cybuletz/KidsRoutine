@@ -4,6 +4,11 @@ import * as admin from "firebase-admin";
 const db = admin.firestore();
 const messaging = admin.messaging();
 
+const DEFAULT_STAT = 100;
+const HAPPINESS_LOW_THRESHOLD = 40;
+const ENERGY_LOW_THRESHOLD = 30;
+const NEGLECT_THRESHOLD = 20;
+
 /**
  * Pet Feeding Reminder — triggered when pet stats are updated.
  * If happiness or energy drops below threshold, sends a nudge to the child.
@@ -22,16 +27,16 @@ export const notifyPetNeedsAttention = functions.firestore
     }
 
     const userId = after.userId;
-    const happiness = after.happiness ?? 100;
-    const energy = after.energy ?? 100;
-    const prevHappiness = before?.happiness ?? 100;
-    const prevEnergy = before?.energy ?? 100;
+    const happiness = after.happiness ?? DEFAULT_STAT;
+    const energy = after.energy ?? DEFAULT_STAT;
+    const prevHappiness = before?.happiness ?? DEFAULT_STAT;
+    const prevEnergy = before?.energy ?? DEFAULT_STAT;
     const petName = after.name || "Your pet";
 
     // Only notify when stats drop BELOW thresholds (not on every update)
-    const happinessDropped = prevHappiness >= 40 && happiness < 40;
-    const energyDropped = prevEnergy >= 30 && energy < 30;
-    const isNeglected = happiness < 20 && energy < 20;
+    const happinessDropped = prevHappiness >= HAPPINESS_LOW_THRESHOLD && happiness < HAPPINESS_LOW_THRESHOLD;
+    const energyDropped = prevEnergy >= ENERGY_LOW_THRESHOLD && energy < ENERGY_LOW_THRESHOLD;
+    const isNeglected = happiness < NEGLECT_THRESHOLD && energy < NEGLECT_THRESHOLD;
 
     if (!happinessDropped && !energyDropped && !isNeglected) {
       return; // No notification needed
@@ -80,6 +85,7 @@ export const notifyPetNeedsAttention = functions.firestore
     } catch (error: any) {
       if (error?.code === "messaging/registration-token-not-registered") {
         await db.collection("users").doc(userId).update({ fcmToken: "" });
+        console.log(`[PetNotify] Cleared stale FCM token for user: ${userId}`);
       }
       console.error(`[PetNotify] Error: ${error.message}`);
     }
@@ -139,6 +145,7 @@ export const notifyDailySpinAvailable = functions.firestore
     } catch (error: any) {
       if (error?.code === "messaging/registration-token-not-registered") {
         await db.collection("users").doc(userId).update({ fcmToken: "" });
+        console.log(`[SpinNotify] Cleared stale FCM token for user: ${userId}`);
       }
       console.error(`[SpinNotify] Error: ${error.message}`);
     }

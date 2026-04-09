@@ -1081,7 +1081,7 @@ private fun FunZoneFeatureCard(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text     = when {
-                        subscriptionLocked -> "$description\n⭐ Upgrade to ${requiredPlan?.displayName ?: "Pro"} to unlock!"
+                        subscriptionLocked -> "$description\n⭐ Upgrade to ${requiredPlan?.displayName ?: PlanType.PRO.displayName} to unlock!"
                         isLevelLocked      -> "Reach level $requiredLevel to unlock!"
                         else               -> description
                     },
@@ -1232,7 +1232,7 @@ private fun FunZoneCompactCard(
             )
             Text(
                 text     = when {
-                    subscriptionLocked -> "⭐ ${requiredPlan?.displayName ?: "Pro"}"
+                    subscriptionLocked -> "⭐ ${requiredPlan?.displayName ?: PlanType.PRO.displayName}"
                     isLevelLocked      -> "Reach Lvl $requiredLevel"
                     else               -> description
                 },
