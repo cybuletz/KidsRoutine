@@ -1129,6 +1129,7 @@ private fun FunZoneCompactCard(
 
     Card(
         modifier  = modifier
+            .heightIn(min = 130.dp)
             .clickable(enabled = !isLocked, onClick = onClick),
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(

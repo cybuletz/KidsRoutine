@@ -65,6 +65,42 @@ class PetEngine @Inject constructor() {
     }
 
     /**
+     * Train the pet — teaches tricks and builds discipline.
+     * Moderate happiness and energy boost.
+     */
+    fun trainPet(pet: PetModel): PetModel {
+        return pet.copy(
+            happiness = (pet.happiness + 8).coerceIn(0, 100),
+            energy = (pet.energy + 5).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Groom the pet — bath time, brushing, tidying up.
+     * Small happiness boost, refreshing.
+     */
+    fun groomPet(pet: PetModel): PetModel {
+        return pet.copy(
+            happiness = (pet.happiness + 5).coerceIn(0, 100),
+            energy = (pet.energy + 3).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Take pet on an adventure — explore new places together.
+     * Large boost to both happiness and energy.
+     */
+    fun adventureWithPet(pet: PetModel): PetModel {
+        return pet.copy(
+            happiness = (pet.happiness + 15).coerceIn(0, 100),
+            energy = (pet.energy + 10).coerceIn(0, 100),
+            lastInteractedAt = System.currentTimeMillis()
+        )
+    }
+
+    /**
      * Apply streak bonus to pet.
      * Streak days increase energy, long streaks give happiness boost.
      */
