@@ -55,39 +55,6 @@ fun SettingsScreen(
     var showPasswordDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-// Display Name row:
-    SettingsRow(
-        icon = Icons.Default.Person,
-        iconColor = Color(0xFF4A90E2),
-        title = "Display Name",
-        subtitle = currentUser.displayName,
-        onClick = { showEditNameDialog = true }
-    )
-
-// Change Password row:
-    SettingsRow(
-        icon = Icons.Default.Lock,
-        iconColor = Color(0xFF2ECC71),
-        title = "Change Password",
-        subtitle = "Update your login password",
-        onClick = { showPasswordDialog = true }
-    )
-
-// Privacy Policy row:
-    SettingsRow(
-        icon = Icons.Default.Security,
-        iconColor = Color(0xFF3498DB),
-        title = "Privacy Policy",
-        subtitle = "How we protect your family's data",
-        onClick = {
-            val intent = android.content.Intent(
-                android.content.Intent.ACTION_VIEW,
-                android.net.Uri.parse("https://kidsroutine.app/privacy")
-            )
-            context.startActivity(intent)
-        }
-    )
-
     Column(
         modifier = modifier
             .fillMaxSize()

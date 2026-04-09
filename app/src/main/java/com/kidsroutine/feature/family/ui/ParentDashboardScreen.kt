@@ -66,14 +66,7 @@ import com.kidsroutine.feature.settings.ui.SettingsScreen
 import com.kidsroutine.feature.tasks.ui.TaskDetailsScreen
 import com.kidsroutine.feature.tasks.ui.TaskListScreen
 import com.kidsroutine.feature.tasks.ui.TaskManagementViewModel
-import com.kidsroutine.feature.rituals.ui.RitualsScreen
-import com.kidsroutine.feature.wallet.ui.WalletScreen
-import com.kidsroutine.feature.events.ui.EventScreen
-import com.kidsroutine.feature.pet.ui.PetScreen
-import com.kidsroutine.feature.boss.ui.BossScreen
-import com.kidsroutine.feature.spinwheel.ui.SpinWheelScreen
-import com.kidsroutine.feature.storyarc.ui.StoryArcScreen
-import com.kidsroutine.feature.skilltree.ui.SkillTreeScreen
+import com.kidsroutine.feature.notifications.ui.NotificationsScreen
 
 private val OrangePrimary = Color(0xFFFF6B35)
 private val GradientStart = Color(0xFFFF6B35)
@@ -208,15 +201,7 @@ fun ParentDashboardScreen(
                     onMarketplaceClick  = { innerNav.navigate("marketplace") },
                     onPublishClick      = { innerNav.navigate("publish") },
                     onContentPacksClick = onContentPacksClick,
-                    onModerationClick   = { innerNav.navigate("moderation") },
-                    onRitualsClick      = { innerNav.navigate("parent_rituals") },
-                    onWalletClick       = { innerNav.navigate("parent_wallet") },
-                    onEventsClick       = { innerNav.navigate("parent_events") },
-                    onPetClick          = { innerNav.navigate("parent_pet") },
-                    onBossClick         = { innerNav.navigate("parent_boss") },
-                    onSpinClick         = { innerNav.navigate("parent_spin") },
-                    onStoryClick        = { innerNav.navigate("parent_story") },
-                    onSkillsClick       = { innerNav.navigate("parent_skills") }
+                    onModerationClick   = { innerNav.navigate("moderation") }
                 )
             }
             composable("settings") {
@@ -254,62 +239,6 @@ fun ParentDashboardScreen(
             composable("privilege_approvals") {
                 currentTab = "home"
                 ParentPrivilegeApprovalsScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_rituals") {
-                currentTab = "discover"
-                RitualsScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_wallet") {
-                currentTab = "discover"
-                WalletScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_events") {
-                currentTab = "discover"
-                EventScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_pet") {
-                currentTab = "discover"
-                PetScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_boss") {
-                currentTab = "discover"
-                BossScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_spin") {
-                currentTab = "discover"
-                SpinWheelScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_story") {
-                currentTab = "discover"
-                StoryArcScreen(
-                    currentUser = currentUser,
-                    onBackClick = { innerNav.popBackStack() }
-                )
-            }
-            composable("parent_skills") {
-                currentTab = "discover"
-                SkillTreeScreen(
                     currentUser = currentUser,
                     onBackClick = { innerNav.popBackStack() }
                 )
@@ -924,15 +853,7 @@ private fun ParentDiscoverTab(
     onMarketplaceClick: () -> Unit,
     onPublishClick: () -> Unit,
     onContentPacksClick: () -> Unit = {},
-    onModerationClick: () -> Unit = {},
-    onRitualsClick: () -> Unit = {},
-    onWalletClick: () -> Unit = {},
-    onEventsClick: () -> Unit = {},
-    onPetClick: () -> Unit = {},
-    onBossClick: () -> Unit = {},
-    onSpinClick: () -> Unit = {},
-    onStoryClick: () -> Unit = {},
-    onSkillsClick: () -> Unit = {}
+    onModerationClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().background(BgLight).verticalScroll(rememberScrollState())) {
         Box(modifier = Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(GradientStart, GradientEnd))).statusBarsPadding().padding(horizontal = 20.dp, vertical = 20.dp)) {
@@ -958,17 +879,17 @@ private fun ParentDiscoverTab(
 
         // ── Family Features ────────────────────────────────────────────
         Text("Family Features", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.padding(horizontal = 20.dp))
-        Text("Fun activities available to your children", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 20.dp))
+        Text("Activities your children enjoy in the Fun Zone", fontSize = 13.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 20.dp))
         Spacer(Modifier.height(8.dp))
         Column(modifier = Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            DiscoverCard("🙏", "Family Rituals",    "Gratitude circle, family meetings & bonding",     Color(0xFF9B5DE5), onRitualsClick)
-            DiscoverCard("💰", "Family Wallet",     "Savings goals & financial literacy for kids",      Color(0xFF11998E), onWalletClick)
-            DiscoverCard("📅", "Timed Events",      "Seasonal limited-time challenges & rewards",       Color(0xFF4361EE), onEventsClick)
-            DiscoverCard("🐾", "Companion Pet",     "Your child's virtual pet companion",               Color(0xFF06D6A0), onPetClick)
-            DiscoverCard("⚔️", "Boss Battles",      "Weekly family boss battles for bonus rewards",     Color(0xFFEF476F), onBossClick)
-            DiscoverCard("🎡", "Daily Spin Wheel",  "Daily reward spin for fun surprises",              Color(0xFFFF9F1C), onSpinClick)
-            DiscoverCard("📖", "Story Arcs",        "Multi-day narrative adventures for your children",  Color(0xFF8B5CF6), onStoryClick)
-            DiscoverCard("🌳", "Skill Trees",       "Visual skill progression & unlocks",                Color(0xFF667EEA), onSkillsClick)
+            FamilyFeaturePreviewCard("🐾", "Companion Pet",     "Kids adopt & care for a virtual pet using earned XP.",       Color(0xFF06D6A0), "Free")
+            FamilyFeaturePreviewCard("🎡", "Daily Spin Wheel",  "A daily reward spin for fun surprises.",                     Color(0xFFFF9F1C), "Free")
+            FamilyFeaturePreviewCard("🙏", "Family Rituals",    "Gratitude circles, family meetings & bonding moments.",      Color(0xFF9B5DE5), "Pro")
+            FamilyFeaturePreviewCard("⚔️", "Boss Battles",      "Weekly cooperative boss battles for bonus rewards.",         Color(0xFFEF476F), "Pro")
+            FamilyFeaturePreviewCard("📖", "Story Arcs",        "Multi-day narrative adventures that unfold with tasks.",     Color(0xFF8B5CF6), "Pro")
+            FamilyFeaturePreviewCard("📅", "Timed Events",      "Seasonal limited-time challenges & exclusive rewards.",      Color(0xFF4361EE), "Pro")
+            FamilyFeaturePreviewCard("🌳", "Skill Trees",       "Visual skill progression & ability unlocks.",               Color(0xFF667EEA), "Pro")
+            FamilyFeaturePreviewCard("💰", "Family Wallet",     "Savings goals & financial literacy for kids.",               Color(0xFF11998E), "Premium")
         }
         Spacer(Modifier.height(140.dp))
     }
@@ -1281,6 +1202,54 @@ private fun DiscoverCard(emoji: String, title: String, subtitle: String, color: 
                 Text(subtitle, fontSize = 12.sp, color = Color.Gray)
             }
             Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun FamilyFeaturePreviewCard(emoji: String, title: String, description: String, color: Color, tier: String) {
+    val tierColor = when (tier) {
+        "Free"    -> Color(0xFF4CAF50)
+        "Pro"     -> Color(0xFF7C3AED)
+        "Premium" -> Color(0xFFFF9800)
+        else      -> Color.Gray
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(46.dp),
+                shape = RoundedCornerShape(13.dp),
+                color = color.copy(alpha = 0.12f)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text(emoji, fontSize = 22.sp)
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
+                Text(description, fontSize = 12.sp, color = Color.Gray)
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = tierColor.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    tier,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = tierColor,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }

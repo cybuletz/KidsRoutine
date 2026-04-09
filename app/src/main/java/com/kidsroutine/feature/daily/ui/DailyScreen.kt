@@ -113,14 +113,7 @@ fun DailyScreen(
                 onNotificationsClick   = onNotificationsClick,
                 onLootBoxClick         = onLootBoxClick,
                 onWorldClick           = onWorldClick,
-                onPetClick             = onPetClick,
-                onBossBattleClick      = onBossBattleClick,
-                onSpinWheelClick       = onSpinWheelClick,
-                onEventsClick          = onEventsClick,
                 onStoryArcClick        = onStoryArcClick,
-                onWalletClick          = onWalletClick,
-                onSkillTreeClick       = onSkillTreeClick,
-                onRitualsClick         = onRitualsClick,
                 onChallengeDetailClick = onChallengeDetailClick,
                 viewModel = viewModel
             )
@@ -143,14 +136,7 @@ private fun DailyContent(
     onNotificationsClick: () -> Unit,
     onLootBoxClick: () -> Unit,
     onWorldClick: () -> Unit,
-    onPetClick: () -> Unit,
-    onBossBattleClick: () -> Unit,
-    onSpinWheelClick: () -> Unit,
-    onEventsClick: () -> Unit,
     onStoryArcClick: () -> Unit,
-    onWalletClick: () -> Unit,
-    onSkillTreeClick: () -> Unit,
-    onRitualsClick: () -> Unit,
     onChallengeDetailClick: (ChallengeModel) -> Unit = {},
     viewModel: DailyViewModel
 ) {
@@ -322,33 +308,9 @@ private fun DailyContent(
                     ChallengeSiblingCard(onClick = onChallengesClick)
                 }
             }
-
-            // ── Fun Zone — feature discovery cards ────────────────────────
-            item {
-                FunZoneSection(
-                    onPetClick        = onPetClick,
-                    onBossBattleClick = onBossBattleClick,
-                    onSpinWheelClick  = onSpinWheelClick,
-                    onEventsClick     = onEventsClick,
-                    onStoryArcClick   = onStoryArcClick,
-                    onWalletClick     = onWalletClick,
-                    onSkillTreeClick  = onSkillTreeClick,
-                    onRitualsClick    = onRitualsClick
-                )
-            }
         }
 
-        // Chat bubble — positioned above the PersistentNavBar (80dp) + 12dp gap
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (-16).dp, y = (-94).dp)
-                .zIndex(10f)
-                .navigationBarsPadding()
-        ) {
-            ChatBubbleButton(onClick = onFamilyMessagingClick)
-        }
-        // ← No Surface / bottom nav bar here — removed entirely
+        // ← Chat button removed — now in PersistentNavBar
     }
 }
 
@@ -728,20 +690,6 @@ private fun DifficultyStars(difficulty: DifficultyLevel, isDone: Boolean) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ChatBubbleButton(onClick: () -> Unit) {
-    Button(
-        onClick        = onClick,
-        modifier       = Modifier.size(width = 56.dp, height = 50.dp),
-        shape          = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 2.dp),
-        colors         = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC407A)),
-        contentPadding = PaddingValues(0.dp),
-        elevation      = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-    ) {
-        Icon(Icons.Default.Message, contentDescription = "Chat", tint = Color.White, modifier = Modifier.size(24.dp))
-    }
-}
-
-@Composable
 private fun TaskChip(label: String, color: Color) {
     Box(
         modifier = Modifier
@@ -994,106 +942,6 @@ fun taskTypeIcon(type: TaskType): ImageVector = when (type) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fun Zone — scrollable feature discovery tiles
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun FunZoneSection(
-    onPetClick: () -> Unit,
-    onBossBattleClick: () -> Unit,
-    onSpinWheelClick: () -> Unit,
-    onEventsClick: () -> Unit,
-    onStoryArcClick: () -> Unit,
-    onWalletClick: () -> Unit,
-    onSkillTreeClick: () -> Unit,
-    onRitualsClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-    ) {
-        Text(
-            text       = "🎮 Fun Zone",
-            style      = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier   = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-        )
-        Text(
-            text     = "Explore, play & grow!",
-            fontSize = 13.sp,
-            color    = Color.Gray,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 0.dp)
-        )
-        Spacer(Modifier.height(12.dp))
-
-        // First row — 4 tiles
-        Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            FunZoneTile("🐾", "My Pet",       Color(0xFF06D6A0), onPetClick,        Modifier.weight(1f))
-            FunZoneTile("🎡", "Daily Spin",   Color(0xFFFF9F1C), onSpinWheelClick,  Modifier.weight(1f))
-            FunZoneTile("⚔️", "Boss Battle",  Color(0xFFEF476F), onBossBattleClick, Modifier.weight(1f))
-            FunZoneTile("📅", "Events",       Color(0xFF4361EE), onEventsClick,     Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(10.dp))
-
-        // Second row — 4 tiles
-        Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            FunZoneTile("📖", "Story Arc",     Color(0xFF8B5CF6), onStoryArcClick,  Modifier.weight(1f))
-            FunZoneTile("💰", "My Wallet",     Color(0xFF11998E), onWalletClick,    Modifier.weight(1f))
-            FunZoneTile("🌳", "Skill Tree",    Color(0xFF667EEA), onSkillTreeClick, Modifier.weight(1f))
-            FunZoneTile("🙏", "Rituals",       Color(0xFF9B5DE5), onRitualsClick,   Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun FunZoneTile(
-    emoji: String,
-    label: String,
-    accentColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier  = modifier
-            .aspectRatio(1f)
-            .clickable(onClick = onClick),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.10f)),
-        elevation = CardDefaults.cardElevation(2.dp),
-        border    = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier            = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(emoji, fontSize = 26.sp)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text       = label,
-                fontSize   = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = accentColor,
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ChallengeSiblingCard — "Challenge a Sibling!" invite button
 // ─────────────────────────────────────────────────────────────────────────────

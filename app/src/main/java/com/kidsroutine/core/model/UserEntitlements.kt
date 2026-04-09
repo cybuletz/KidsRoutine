@@ -64,11 +64,11 @@ data class UserEntitlements(
 
         /** Fun Zone features available per billing tier */
         val FREE_FUN_ZONE_FEATURES = setOf(
-            "pet", "daily_spin", "rituals"
+            "pet", "daily_spin"
         )
         val PRO_FUN_ZONE_FEATURES = setOf(
-            "pet", "daily_spin", "rituals",
-            "boss_battle", "story_arcs", "events", "skill_tree"
+            "pet", "daily_spin",
+            "boss_battle", "story_arcs", "events", "skill_tree", "rituals"
         )
         /** All possible Fun Zone feature keys */
         val ALL_FUN_ZONE_FEATURE_KEYS = setOf(

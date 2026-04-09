@@ -56,6 +56,10 @@ export const notifyXpLoanCreated = notifications.notifyXpLoanCreated;
 export const notifyXpLoanUpdate = notifications.notifyXpLoanUpdate;
 export const notifyParentControlUpdate = notifications.notifyParentControlUpdate;
 
+// Fun Zone
+export const notifyPetNeedsAttention = notifications.notifyPetNeedsAttention;
+export const notifyDailySpinAvailable = notifications.notifyDailySpinAvailable;
+
 // ===== EXPORT CONTENT PACK FUNCTIONS =====
 export const applyContentPack = contentPacks.applyContentPack;
 
