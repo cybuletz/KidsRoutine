@@ -322,15 +322,16 @@ private fun PetDisplay(
                         )
                     }
                 }
+                val minItemCost = PetUiState.SHOP_ITEMS.minOf { it.xpCost }
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = if (currentXp >= PetUiState.FEED_COST) HappinessGreen.copy(alpha = 0.15f) else Color(0xFFFFCDD2)
+                    color = if (currentXp >= minItemCost) HappinessGreen.copy(alpha = 0.15f) else Color(0xFFFFCDD2)
                 ) {
                     Text(
-                        text = if (currentXp >= PetUiState.FEED_COST) "Ready to spend!" else "Earn more XP!",
+                        text = if (currentXp >= minItemCost) "Ready to spend!" else "Earn more XP!",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (currentXp >= PetUiState.FEED_COST) HappinessGreen else Color(0xFFD32F2F),
+                        color = if (currentXp >= minItemCost) HappinessGreen else Color(0xFFD32F2F),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
@@ -795,10 +796,13 @@ private fun ShopItemCard(
                         )
                     }
                     if (!accessory.isPermanent) {
-                        val durationText = if (accessory.durationMinutes >= 60)
-                            "${accessory.durationMinutes / 60}h"
-                        else
-                            "${accessory.durationMinutes}m"
+                        val hours = accessory.durationMinutes / 60
+                        val mins = accessory.durationMinutes % 60
+                        val durationText = when {
+                            hours > 0 && mins > 0 -> "${hours}h ${mins}m"
+                            hours > 0 -> "${hours}h"
+                            else -> "${mins}m"
+                        }
                         Text(
                             text = "⏱️$durationText",
                             fontSize = 11.sp,
