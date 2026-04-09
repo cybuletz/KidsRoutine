@@ -246,8 +246,11 @@ private fun WorldMapCanvas(
     val mapHeightPx = with(density) { mapHeightDp.toPx() }
 
     val firstUnlockedIndex = nodes.indexOfFirst { it.status == WorldNodeStatus.UNLOCKED }
+        .takeIf { it >= 0 }
+        ?: nodes.indexOfFirst { it.status == WorldNodeStatus.LOCKED }.takeIf { it >= 0 }
+        ?: (nodes.size - 1).coerceAtLeast(0)
     LaunchedEffect(firstUnlockedIndex) {
-        if (firstUnlockedIndex >= 0) {
+        if (firstUnlockedIndex >= 0 && nodes.isNotEmpty()) {
             val screenHeightPx = with(density) { 800.dp.toPx() }
             val node = nodes[firstUnlockedIndex]
             val targetPx = (node.positionY * mapHeightPx - screenHeightPx / 2)

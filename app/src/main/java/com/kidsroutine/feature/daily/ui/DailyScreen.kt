@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
@@ -78,6 +79,7 @@ fun DailyScreen(
     onSkillTreeClick: () -> Unit = {},
     onRitualsClick: () -> Unit = {},
     onChallengeDetailClick: (ChallengeModel) -> Unit = {},
+    lootBoxClaimedToday: Boolean = false,
     viewModel: DailyViewModel = hiltViewModel(),
     ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -115,6 +117,7 @@ fun DailyScreen(
                 onWorldClick           = onWorldClick,
                 onStoryArcClick        = onStoryArcClick,
                 onChallengeDetailClick = onChallengeDetailClick,
+                lootBoxClaimedToday    = lootBoxClaimedToday,
                 viewModel = viewModel
             )
         }
@@ -138,6 +141,7 @@ private fun DailyContent(
     onWorldClick: () -> Unit,
     onStoryArcClick: () -> Unit,
     onChallengeDetailClick: (ChallengeModel) -> Unit = {},
+    lootBoxClaimedToday: Boolean = false,
     viewModel: DailyViewModel
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -156,10 +160,11 @@ private fun DailyContent(
 
             item {
                 ProgressSection(
-                    state          = uiState.dailyState,
-                    currentUser    = uiState.currentUser,
-                    onLootBoxClick = onLootBoxClick,
-                    onWorldClick   = onWorldClick
+                    state               = uiState.dailyState,
+                    currentUser         = uiState.currentUser,
+                    onLootBoxClick      = onLootBoxClick,
+                    onWorldClick        = onWorldClick,
+                    lootBoxClaimedToday = uiState.lootBoxClaimedToday
                 )
             }
 
@@ -322,7 +327,8 @@ private fun ProgressSection(
     state: DailyStateModel,
     currentUser: UserModel,
     onLootBoxClick: () -> Unit,
-    onWorldClick: () -> Unit
+    onWorldClick: () -> Unit,
+    lootBoxClaimedToday: Boolean = false
 ) {
     // ✅ FIX: Use backend-calculated completedCount + totalTasksAssigned
     val totalTasks = state.totalTasksAssigned  // ← USE THIS: includes pending + completed
@@ -424,7 +430,7 @@ private fun ProgressSection(
             }
 
             // ── Loot box button when all done ─────────────────────────────
-            AnimatedVisibility(visible = allDone, enter = fadeIn() + expandVertically()) {
+            AnimatedVisibility(visible = allDone && !lootBoxClaimedToday, enter = fadeIn() + expandVertically()) {
                 Button(
                     onClick   = onLootBoxClick,
                     modifier  = Modifier.fillMaxWidth().height(52.dp),
@@ -439,6 +445,24 @@ private fun ProgressSection(
                         fontWeight = FontWeight.ExtraBold,
                         color      = Color(0xFF7B4F00),
                         fontSize   = 15.sp
+                    )
+                }
+            }
+
+            // ── Claimed badge when lootbox already opened ─────────────────
+            AnimatedVisibility(visible = allDone && lootBoxClaimedToday, enter = fadeIn()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFE8F5E9)
+                ) {
+                    Text(
+                        text       = "✅ Loot Box claimed! Come back tomorrow!",
+                        fontWeight = FontWeight.SemiBold,
+                        color      = Color(0xFF2E7D32),
+                        fontSize   = 13.sp,
+                        textAlign  = TextAlign.Center,
+                        modifier   = Modifier.padding(14.dp)
                     )
                 }
             }

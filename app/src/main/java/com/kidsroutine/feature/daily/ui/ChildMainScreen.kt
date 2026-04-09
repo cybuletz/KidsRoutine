@@ -203,6 +203,9 @@ fun ChildMainScreen(
 
     val themeManager = remember { SeasonalThemeManager() }
 
+    // Track daily lootbox claim to prevent endless re-access
+    var lootBoxClaimedToday by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         NavHost(
@@ -221,7 +224,7 @@ fun ChildMainScreen(
                     onStatsClick           = { innerNavController.navigate("leaderboard") },
                     onProfileClick         = { parentNavController.navigate(Routes.CHILD_PROFILE) },
                     onNotificationsClick   = { innerNavController.navigate("notifications") },
-                    onLootBoxClick         = { innerNavController.navigate("lootbox") },
+                    onLootBoxClick         = { if (!lootBoxClaimedToday) innerNavController.navigate("lootbox") },
                     onWorldClick           = { innerNavController.navigate("world") },
                     onPetClick             = { innerNavController.navigate("pet") },
                     onBossBattleClick      = { innerNavController.navigate("boss_battle") },
@@ -233,7 +236,8 @@ fun ChildMainScreen(
                     onRitualsClick         = { innerNavController.navigate("rituals") },
                     onChallengeDetailClick = { challenge ->
                         parentNavController.navigate(Routes.challengeDetail(challenge.challengeId))
-                    }
+                    },
+                    lootBoxClaimedToday    = lootBoxClaimedToday
                 )
             }
 
@@ -291,7 +295,7 @@ fun ChildMainScreen(
                 WorldScreen(
                     currentUser                  = currentUser,
                     onBackClick                  = { innerNavController.navigate("daily") },
-                    onLootBoxClick               = { innerNavController.navigate("lootbox") },
+                    onLootBoxClick               = { if (!lootBoxClaimedToday) innerNavController.navigate("lootbox") },
                     onNodeDetailVisibilityChange = { worldDetailShowing = it }
                 )
             }
@@ -349,6 +353,7 @@ fun ChildMainScreen(
                 // Navigate back after reward persists
                 LaunchedEffect(key1 = lootBoxUiState.phase) {
                     if (lootBoxUiState.phase == LootBoxPhase.DONE) {
+                        lootBoxClaimedToday = true
                         delay(3500)
                         innerNavController.popBackStack()
                     }
@@ -783,7 +788,7 @@ private fun FunZoneFullScreen(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (showBoss) {
@@ -793,7 +798,7 @@ private fun FunZoneFullScreen(
                             description        = "Team up to defeat weekly bosses!",
                             accentColor        = Color(0xFFEF476F),
                             onClick            = onBossBattleClick,
-                            modifier           = Modifier.weight(1f),
+                            modifier           = Modifier.weight(1f).fillMaxHeight(),
                             requiredLevel      = 5,
                             userLevel          = userLevel,
                             subscriptionLocked = isSubscriptionLocked("boss_battle"),
@@ -807,7 +812,7 @@ private fun FunZoneFullScreen(
                             description        = "Spin the wheel for surprise rewards!",
                             accentColor        = Color(0xFFFF9F1C),
                             onClick            = onSpinWheelClick,
-                            modifier           = Modifier.weight(1f),
+                            modifier           = Modifier.weight(1f).fillMaxHeight(),
                             requiredLevel      = 1,
                             userLevel          = userLevel,
                             subscriptionLocked = isSubscriptionLocked("daily_spin"),
@@ -847,7 +852,7 @@ private fun FunZoneFullScreen(
 
                 if (showEvents || showSkills) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (showEvents) {
@@ -857,7 +862,7 @@ private fun FunZoneFullScreen(
                                 description        = "Limited-time seasonal fun!",
                                 accentColor        = Color(0xFF4361EE),
                                 onClick            = onEventsClick,
-                                modifier           = Modifier.weight(1f),
+                                modifier           = Modifier.weight(1f).fillMaxHeight(),
                                 requiredLevel      = 4,
                                 userLevel          = userLevel,
                                 subscriptionLocked = isSubscriptionLocked("events"),
@@ -871,7 +876,7 @@ private fun FunZoneFullScreen(
                                 description        = "Unlock new abilities & skills!",
                                 accentColor        = Color(0xFF667EEA),
                                 onClick            = onSkillTreeClick,
-                                modifier           = Modifier.weight(1f),
+                                modifier           = Modifier.weight(1f).fillMaxHeight(),
                                 requiredLevel      = 3,
                                 userLevel          = userLevel,
                                 subscriptionLocked = isSubscriptionLocked("skill_tree"),
@@ -895,7 +900,7 @@ private fun FunZoneFullScreen(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (showWallet) {
@@ -905,7 +910,7 @@ private fun FunZoneFullScreen(
                             description        = "Savings goals & financial smarts!",
                             accentColor        = Color(0xFF11998E),
                             onClick            = onWalletClick,
-                            modifier           = Modifier.weight(1f),
+                            modifier           = Modifier.weight(1f).fillMaxHeight(),
                             requiredLevel      = 4,
                             userLevel          = userLevel,
                             subscriptionLocked = isSubscriptionLocked("wallet"),
@@ -919,7 +924,7 @@ private fun FunZoneFullScreen(
                             description        = "Family gratitude & bonding!",
                             accentColor        = Color(0xFF9B5DE5),
                             onClick            = onRitualsClick,
-                            modifier           = Modifier.weight(1f),
+                            modifier           = Modifier.weight(1f).fillMaxHeight(),
                             requiredLevel      = 2,
                             userLevel          = userLevel,
                             subscriptionLocked = isSubscriptionLocked("rituals"),

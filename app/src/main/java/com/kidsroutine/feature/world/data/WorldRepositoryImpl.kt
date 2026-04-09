@@ -16,12 +16,13 @@ class WorldRepositoryImpl @Inject constructor() : WorldRepository {
         // plus the next 3 locked nodes as "preview" — so the child can see what's coming
         val nodes = allLevels.map { def ->
             val status = when {
-                userXp >= def.requiredXp ->
-                    if (def.level == 1 || userXp >= WorldLevelData.xpForLevel(def.level))
-                        WorldNodeStatus.COMPLETED
-                    else
-                        WorldNodeStatus.UNLOCKED
-                userXp >= WorldLevelData.xpForLevel(maxOf(1, def.level - 1)) ->
+                // Level 1 is always at least UNLOCKED (entry point)
+                def.level == 1 && userXp >= def.requiredXp -> WorldNodeStatus.COMPLETED
+                def.level == 1 -> WorldNodeStatus.UNLOCKED
+                // Higher levels: COMPLETED if user has enough XP
+                userXp >= def.requiredXp -> WorldNodeStatus.COMPLETED
+                // UNLOCKED if user completed the previous level
+                userXp >= WorldLevelData.xpForLevel(def.level - 1) ->
                     WorldNodeStatus.UNLOCKED
                 else ->
                     WorldNodeStatus.LOCKED

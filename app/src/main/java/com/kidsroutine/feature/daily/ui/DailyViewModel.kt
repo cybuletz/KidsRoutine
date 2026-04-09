@@ -27,7 +27,8 @@ data class DailyUiState(
     val currentUser: UserModel = UserModel(),
     val activeStoryArc: StoryArc? = null,
     val activeChallenges: List<Pair<ChallengeModel, ChallengeProgress>> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val lootBoxClaimedToday: Boolean = false
 )
 
 @HiltViewModel
@@ -243,6 +244,10 @@ class DailyViewModel @Inject constructor(
                 Log.e("DailyViewModel", "❌ Error adding suggested task", e)
             }
         }
+    }
+
+    fun markLootBoxClaimed() {
+        _uiState.update { it.copy(lootBoxClaimedToday = true) }
     }
 
     override fun onCleared() {
