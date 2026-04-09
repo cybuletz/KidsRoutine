@@ -12,3 +12,6 @@ export { notifyChallengeAssignment } from "./challengeAssignment";
 // Parent Controls & XP Bank
 export { notifyXpLoanCreated, notifyXpLoanUpdate } from "./xpLoan";
 export { notifyParentControlUpdate } from "./parentControl";
+
+// Fun Zone
+export { notifyPetNeedsAttention, notifyDailySpinAvailable } from "./funZone";
