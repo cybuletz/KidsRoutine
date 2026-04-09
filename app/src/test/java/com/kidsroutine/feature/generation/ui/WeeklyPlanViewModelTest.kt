@@ -38,8 +38,8 @@ class WeeklyPlanViewModelTest {
 
     @Test
     fun `selectTheme updates theme`() {
-        viewModel.selectTheme(WeekTheme.SCIENCE)
-        assertEquals(WeekTheme.SCIENCE, viewModel.uiState.value.selectedTheme)
+        viewModel.selectTheme(WeekTheme.CREATIVITY)
+        assertEquals(WeekTheme.CREATIVITY, viewModel.uiState.value.selectedTheme)
     }
 
     @Test

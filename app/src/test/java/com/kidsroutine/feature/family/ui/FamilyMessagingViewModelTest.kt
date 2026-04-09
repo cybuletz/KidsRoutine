@@ -36,7 +36,7 @@ class FamilyMessagingViewModelTest {
 
     @Test
     fun `loadMessages success from flow`() = runTest {
-        val msg = FamilyMessage(messageId = "m1", familyId = "fam1", content = "Hello")
+        val msg = FamilyMessage(id = "m1", familyId = "fam1", content = "Hello")
         coEvery { messageRepository.observeFamilyMessages("fam1") } returns flowOf(listOf(msg))
         viewModel.loadMessages("fam1")
         advanceUntilIdle()

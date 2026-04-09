@@ -3,7 +3,7 @@ package com.kidsroutine.feature.daily.ui
 import com.kidsroutine.feature.challenges.data.ChallengeRepository
 import com.kidsroutine.feature.daily.data.DailyRepository
 import com.kidsroutine.feature.daily.data.StoryArcRepository
-import com.kidsroutine.feature.daily.data.TaskSaveRepository
+import com.kidsroutine.feature.generation.data.TaskSaveRepository
 import com.kidsroutine.feature.daily.data.UserRepository
 import com.kidsroutine.feature.daily.domain.GenerateDailyTasksUseCase
 import com.kidsroutine.feature.daily.domain.GetDailyStateUseCase
@@ -64,7 +64,7 @@ class DailyViewModelTest {
         val task = com.kidsroutine.core.model.TaskModel(id = "t1", title = "Test")
         viewModel.addSuggestedTask(task)
         advanceUntilIdle()
-        coVerify { taskSaveRepository.assignTaskToChild(any()) }
+        coVerify { taskSaveRepository.assignTaskToChild(any(), any(), any()) }
     }
 
     @Test

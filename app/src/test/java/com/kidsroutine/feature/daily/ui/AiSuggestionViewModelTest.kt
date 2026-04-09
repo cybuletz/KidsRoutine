@@ -49,7 +49,7 @@ class AiSuggestionViewModelTest {
         val child = UserModel(userId = "u1", familyId = "fam1")
         coEvery { entitlementsRepository.getEntitlements(any(), any()) } returns com.kidsroutine.core.model.UserEntitlements()
         coEvery { generationRepository.generateTasks(any(), any(), any(), any(), any(), any()) } returns Result.success(
-            com.kidsroutine.feature.generation.data.GeneratedTasksResponse(tasks = emptyList(), quotaRemaining = 1, cached = false)
+            com.kidsroutine.feature.generation.data.GeneratedTasksResponse(success = true, tasks = emptyList(), quotaRemaining = 1, cached = false)
         )
         viewModel.loadSuggestions(child)
         advanceUntilIdle()

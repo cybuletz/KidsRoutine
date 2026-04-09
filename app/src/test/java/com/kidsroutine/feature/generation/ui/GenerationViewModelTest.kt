@@ -2,7 +2,7 @@ package com.kidsroutine.feature.generation.ui
 
 import com.kidsroutine.core.model.EntitlementsRepository
 import com.kidsroutine.feature.daily.data.StoryArcRepository
-import com.kidsroutine.feature.daily.data.TaskSaveRepository
+import com.kidsroutine.feature.generation.data.TaskSaveRepository
 import com.kidsroutine.feature.generation.data.GenerationRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.*

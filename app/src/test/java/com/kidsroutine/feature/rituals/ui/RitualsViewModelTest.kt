@@ -19,7 +19,7 @@ class RitualsViewModelTest {
     private lateinit var ritualsRepository: RitualsRepository
     private lateinit var viewModel: RitualsViewModel
 
-    private val testRitual = FamilyRitual(ritualId = "r1", familyId = "fam1", title = "Bedtime story", type = RitualType.GRATITUDE, frequency = RitualFrequency.DAILY)
+    private val testRitual = FamilyRitual(ritualId = "r1", familyId = "fam1", title = "Bedtime story", type = RitualType.GRATITUDE_CIRCLE, frequency = RitualFrequency.DAILY)
 
     @Before
     fun setUp() {

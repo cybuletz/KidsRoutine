@@ -45,7 +45,7 @@ class AuthViewModelTest {
     @Test
     fun `signInAsGuest success sets Authenticated`() = runTest {
         coEvery { signInAnonymously() } returns testUser
-        viewModel.signInAsGuest()
+        viewModel.signInAnonymouslyClick()
         advanceUntilIdle()
         val state = viewModel.authState.value
         assertTrue(state is AuthState.Authenticated)
@@ -55,7 +55,7 @@ class AuthViewModelTest {
     @Test
     fun `signInAsGuest error sets Error state`() = runTest {
         coEvery { signInAnonymously() } throws RuntimeException("Network error")
-        viewModel.signInAsGuest()
+        viewModel.signInAnonymouslyClick()
         advanceUntilIdle()
         assertTrue(viewModel.authState.value is AuthState.Error)
     }
@@ -63,7 +63,7 @@ class AuthViewModelTest {
     @Test
     fun `loginWithEmail success sets Authenticated`() = runTest {
         coEvery { authRepository.signInWithEmail("a@b.com", "pass") } returns testUser
-        viewModel.loginWithEmail("a@b.com", "pass")
+        viewModel.signInWithEmail("a@b.com", "pass")
         advanceUntilIdle()
         assertTrue(viewModel.authState.value is AuthState.Authenticated)
     }
@@ -71,14 +71,14 @@ class AuthViewModelTest {
     @Test
     fun `loginWithEmail error sets Error state`() = runTest {
         coEvery { authRepository.signInWithEmail(any(), any()) } throws RuntimeException("Invalid")
-        viewModel.loginWithEmail("bad", "bad")
+        viewModel.signInWithEmail("bad", "bad")
         advanceUntilIdle()
         assertTrue(viewModel.authState.value is AuthState.Error)
     }
 
     @Test
     fun `logout calls repository signOut`() = runTest {
-        viewModel.logout()
+        viewModel.signOut()
         advanceUntilIdle()
         coVerify { authRepository.signOut() }
     }
