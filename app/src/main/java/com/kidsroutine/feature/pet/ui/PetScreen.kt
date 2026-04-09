@@ -339,6 +339,8 @@ private fun PetDisplay(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        // ── Main Stats Card ──────────────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -352,7 +354,7 @@ private fun PetDisplay(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Stats",
+                    text = "Vitals",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
@@ -372,8 +374,74 @@ private fun PetDisplay(
                     gradientColors = listOf(EnergyBlue, EnergyBlueLight)
                 )
 
+                StatBar(
+                    label = "Style",
+                    emoji = "✨",
+                    value = pet.style,
+                    gradientColors = listOf(Color(0xFFE91E63), Color(0xFFF48FB1))
+                )
+
+                StatBar(
+                    label = "Care Level",
+                    emoji = "💕",
+                    value = pet.careLevel,
+                    gradientColors = listOf(Color(0xFFFF6F00), Color(0xFFFFCA28))
+                )
+
                 // Evolution progress
                 EvolutionProgress(stage = pet.stage)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ── Activity Progression Card ────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Activity Log",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Accent.copy(alpha = 0.1f)
+                    ) {
+                        Text(
+                            text = "${pet.totalActivities} total",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Accent,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                // Activity progress rows — each shows count + a mini progress bar
+                ActivityProgressRow(emoji = "🍖", label = "Feeding", count = pet.totalFed, milestone = 20, color = HappinessGreen)
+                ActivityProgressRow(emoji = "🎾", label = "Playing", count = pet.totalPlayed, milestone = 30, color = Accent)
+                ActivityProgressRow(emoji = "🏋️", label = "Training", count = pet.totalTrained, milestone = 15, color = Color(0xFFE67E22))
+                ActivityProgressRow(emoji = "🛁", label = "Grooming", count = pet.totalGroomed, milestone = 15, color = Color(0xFF3498DB))
+                ActivityProgressRow(emoji = "🗺️", label = "Adventures", count = pet.totalAdventures, milestone = 10, color = Color(0xFF8E44AD))
+                ActivityProgressRow(emoji = "😴", label = "Naps", count = pet.totalNaps, milestone = 20, color = Color(0xFF1ABC9C))
+                ActivityProgressRow(emoji = "🍪", label = "Treats", count = pet.totalTreats, milestone = 15, color = Color(0xFFE74C3C))
+                ActivityProgressRow(emoji = "🗝️", label = "Treasure Hunts", count = pet.totalTreasureHunts, milestone = 10, color = Color(0xFFF1C40F))
             }
         }
 
@@ -624,8 +692,9 @@ private fun PetDisplay(
 
                 InfoRow(label = "Species", value = pet.species.displayName)
                 InfoRow(label = "Stage", value = "${pet.stage.emoji} ${pet.stage.displayName}")
+                InfoRow(label = "Mood", value = "${pet.mood.emoji} ${pet.mood.description}")
                 InfoRow(label = "Days Alive", value = "${pet.daysAlive}")
-                InfoRow(label = "Times Fed", value = "${pet.totalFed}")
+                InfoRow(label = "Total Activities", value = "${pet.totalActivities}")
                 InfoRow(label = "Best Streak", value = "${pet.longestHappyStreak} days")
             }
         }
@@ -1237,6 +1306,97 @@ private fun EvolutionProgress(stage: PetEvolutionStage) {
 }
 
 // ─── Info Row ───────────────────────────────────────────────────────────────────
+
+// ─── Activity Progress Row ──────────────────────────────────────────────────────
+
+@Composable
+private fun ActivityProgressRow(
+    emoji: String,
+    label: String,
+    count: Int,
+    milestone: Int,
+    color: Color
+) {
+    // Calculate which milestone tier we're in (repeating milestones)
+    val currentTierStart = (count / milestone) * milestone
+    val nextMilestone = currentTierStart + milestone
+    val progress = if (milestone > 0) {
+        ((count - currentTierStart).toFloat() / milestone).coerceIn(0f, 1f)
+    } else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "activityProgress_$label"
+    )
+    val tier = count / milestone  // How many milestones completed
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Emoji
+        Text(text = emoji, fontSize = 18.sp, modifier = Modifier.width(26.dp))
+
+        // Label + count
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = TextDark
+                )
+                Text(
+                    text = "$count / $nextMilestone",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(Modifier.height(3.dp))
+
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color(0xFFEEEEEE))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = animatedProgress)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(color)
+                )
+            }
+        }
+
+        // Tier badge (star count for milestones completed)
+        if (tier > 0) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = color.copy(alpha = 0.15f)
+            ) {
+                Text(
+                    text = "⭐$tier",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun InfoRow(label: String, value: String) {
