@@ -62,7 +62,8 @@ class AuthViewModel @Inject constructor(
                             streak = (userDoc.data?.get("streak") as? Number)?.toInt() ?: 0,
                             createdAt = (userDoc.data?.get("createdAt") as? Number)?.toLong() ?: 0L,
                             lastActiveAt = (userDoc.data?.get("lastActiveAt") as? Number)?.toLong()
-                                ?: 0L
+                                ?: 0L,
+                            totalXpEarned = (userDoc.data?.get("totalXpEarned") as? Number)?.toInt() ?: 0
                         )
                         // Sync Firestore → Room so observeUser() always has fresh data
                         userDao.upsert(com.kidsroutine.core.database.entity.UserEntity(
@@ -77,7 +78,8 @@ class AuthViewModel @Inject constructor(
                             level       = user.level,
                             streak      = user.streak,
                             createdAt   = user.createdAt,
-                            lastActiveAt = user.lastActiveAt
+                            lastActiveAt = user.lastActiveAt,
+                            totalXpEarned = user.totalXpEarned
                         ))
                         Log.d("AuthViewModel", "Session restored for user: ${user.displayName}")
                         _authState.value = AuthState.Authenticated(user)

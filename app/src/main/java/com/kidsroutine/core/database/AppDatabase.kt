@@ -140,6 +140,13 @@ val MIGRATION_11_TO_12 = object : Migration(11, 12) {
     }
 }
 
+// ── MIGRATION 12 → 13: Add totalXpEarned to users table ───────────────────────
+val MIGRATION_12_TO_13 = object : Migration(12, 13) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE `users` ADD COLUMN `totalXpEarned` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
@@ -148,7 +155,7 @@ val MIGRATION_11_TO_12 = object : Migration(11, 12) {
         AvatarEntity::class,
         PetEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 
@@ -180,7 +187,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_8_TO_9,
                         MIGRATION_9_TO_10,
                         MIGRATION_10_TO_11,
-                        MIGRATION_11_TO_12
+                        MIGRATION_11_TO_12,
+                        MIGRATION_12_TO_13
                     )
                     .build()
                     .also { instance = it }

@@ -38,13 +38,13 @@ class WorldViewModel @Inject constructor(
         // Apply fallback immediately — synchronous, no coroutine needed
         viewModelScope.launch {
             try {
-                val initialWorld = worldRepository.getWorld(fallbackUser.xp)
+                val initialWorld = worldRepository.getWorld(fallbackUser.totalXpEarned)
                 _uiState.update {
                     it.copy(currentUser = fallbackUser, world = initialWorld, isLoading = false)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 Log.w("WorldViewModel", "Initial world load cancelled — applying fallback")
-                val fallback = runCatching { worldRepository.getWorld(fallbackUser.xp) }.getOrNull()
+                val fallback = runCatching { worldRepository.getWorld(fallbackUser.totalXpEarned) }.getOrNull()
                 _uiState.update { it.copy(currentUser = fallbackUser, world = fallback, isLoading = false) }
             } catch (e: Exception) {
                 Log.e("WorldViewModel", "Failed to load world", e)
@@ -57,7 +57,7 @@ class WorldViewModel @Inject constructor(
             try {
                 userRepository.observeUser(userId).collect { user ->
                     if (user != null) {
-                        val world = worldRepository.getWorld(user.xp)
+                        val world = worldRepository.getWorld(user.totalXpEarned)
                         _uiState.update {
                             it.copy(currentUser = user, world = world, isLoading = false)
                         }
@@ -69,7 +69,7 @@ class WorldViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 Log.e("WorldViewModel", "Failed to observe user for world", e)
-                val fallbackWorld = runCatching { worldRepository.getWorld(fallbackUser.xp) }.getOrNull()
+                val fallbackWorld = runCatching { worldRepository.getWorld(fallbackUser.totalXpEarned) }.getOrNull()
                 _uiState.update { it.copy(error = e.message, isLoading = false, world = fallbackWorld ?: it.world) }
             }
         }

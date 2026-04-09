@@ -37,7 +37,8 @@ class AuthRepositoryImpl @Inject constructor(
             level = 1,
             streak = 0,
             createdAt = System.currentTimeMillis(),
-            lastActiveAt = System.currentTimeMillis()
+            lastActiveAt = System.currentTimeMillis(),
+            totalXpEarned = 0
         )
 
         userDao.upsert(userEntity)
@@ -56,7 +57,8 @@ class AuthRepositoryImpl @Inject constructor(
                 "streak" to 0,
                 "createdAt" to System.currentTimeMillis(),
                 "lastActiveAt" to System.currentTimeMillis(),
-                "isOnline" to true
+                "isOnline" to true,
+                "totalXpEarned" to 0
             ))
             .await()
 
@@ -129,7 +131,8 @@ class AuthRepositoryImpl @Inject constructor(
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
                 createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
-                lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
+                lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L,
+                totalXpEarned = (data["totalXpEarned"] as? Number)?.toInt() ?: 0
             )
             userDao.upsert(UserEntity(
                 userId = user.userId,
@@ -143,7 +146,8 @@ class AuthRepositoryImpl @Inject constructor(
                 level = user.level,
                 streak = user.streak,
                 createdAt = user.createdAt,
-                lastActiveAt = user.lastActiveAt
+                lastActiveAt = user.lastActiveAt,
+                totalXpEarned = user.totalXpEarned
             ))
             Log.d("AuthRepository", "Signed in existing user: $uid")
             user
@@ -179,7 +183,8 @@ class AuthRepositoryImpl @Inject constructor(
             level = 1,
             streak = 0,
             createdAt = now,
-            lastActiveAt = now
+            lastActiveAt = now,
+            totalXpEarned = 0
         )
 
         firestore.collection("users").document(uid)
@@ -196,7 +201,8 @@ class AuthRepositoryImpl @Inject constructor(
                 "streak" to 0,
                 "createdAt" to now,
                 "lastActiveAt" to now,
-                "isOnline" to true
+                "isOnline" to true,
+                "totalXpEarned" to 0
             ))
             .await()
 
@@ -265,7 +271,8 @@ class AuthRepositoryImpl @Inject constructor(
                 level = (data["level"] as? Number)?.toInt() ?: 1,
                 streak = (data["streak"] as? Number)?.toInt() ?: 0,
                 createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L,
-                lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L
+                lastActiveAt = (data["lastActiveAt"] as? Number)?.toLong() ?: 0L,
+                totalXpEarned = (data["totalXpEarned"] as? Number)?.toInt() ?: 0
             )
             userDao.upsert(
                 UserEntity(
@@ -280,7 +287,8 @@ class AuthRepositoryImpl @Inject constructor(
                     level = user.level,
                     streak = user.streak,
                     createdAt = user.createdAt,
-                    lastActiveAt = user.lastActiveAt
+                    lastActiveAt = user.lastActiveAt,
+                    totalXpEarned = user.totalXpEarned
                 )
             )
             Log.d("AuthRepository", "Google sign in - existing user: $uid")
@@ -300,7 +308,8 @@ class AuthRepositoryImpl @Inject constructor(
                 level = 1,
                 streak = 0,
                 createdAt = now,
-                lastActiveAt = now
+                lastActiveAt = now,
+                totalXpEarned = 0
             )
 
             firestore.collection("users").document(uid)
@@ -317,7 +326,8 @@ class AuthRepositoryImpl @Inject constructor(
                     "streak" to 0,
                     "createdAt" to now,
                     "lastActiveAt" to now,
-                    "isOnline" to true
+                    "isOnline" to true,
+                    "totalXpEarned" to 0
                 ))
                 .await()
 
@@ -389,6 +399,7 @@ class AuthRepositoryImpl @Inject constructor(
         level = level,
         streak = streak,
         createdAt = createdAt,  // ADD THIS
-        lastActiveAt = lastActiveAt
+        lastActiveAt = lastActiveAt,
+        totalXpEarned = totalXpEarned
     )
 }

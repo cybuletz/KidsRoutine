@@ -291,7 +291,8 @@ class DatabaseEntityTest {
             level = 15,
             streak = 30,
             lastActiveAt = 12345L,
-            createdAt = 67890L
+            createdAt = 67890L,
+            totalXpEarned = 8000
         )
         assertEquals("PARENT", entity.role)
         assertEquals("bob@example.com", entity.email)
@@ -299,5 +300,17 @@ class DatabaseEntityTest {
         assertEquals(5000, entity.xp)
         assertEquals(15, entity.level)
         assertEquals(30, entity.streak)
+        assertEquals(8000, entity.totalXpEarned)
+    }
+
+    @Test
+    fun `UserEntity default totalXpEarned is 0`() {
+        val entity = UserEntity(
+            userId = "u1",
+            role = "CHILD",
+            familyId = "f1",
+            displayName = "Alice"
+        )
+        assertEquals(0, entity.totalXpEarned)
     }
 }

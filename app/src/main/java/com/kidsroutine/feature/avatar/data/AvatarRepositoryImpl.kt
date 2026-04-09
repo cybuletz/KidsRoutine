@@ -86,15 +86,16 @@ class AvatarRepositoryImpl @Inject constructor(
 
     override suspend fun addUserXp(userId: String, amount: Int) {
         try {
-            val userDoc = firestore.collection("users").document(userId).get().await()
-            val currentXp = userDoc.getLong("xp")?.toInt() ?: 0
-            val newXp = currentXp + amount
+            val userRef = firestore.collection("users").document(userId)
+            val updates = mutableMapOf<String, Any>(
+                "xp" to FieldValue.increment(amount.toLong())
+            )
+            if (amount > 0) {
+                updates["totalXpEarned"] = FieldValue.increment(amount.toLong())
+            }
+            userRef.update(updates).await()
 
-            firestore.collection("users").document(userId)
-                .update("xp", newXp.toLong())
-                .await()
-
-            Log.d("AvatarRepository", "✅ Added $amount XP. New balance: $newXp")
+            Log.d("AvatarRepository", "✅ Added $amount XP (totalXpEarned also incremented)")
         } catch (e: Exception) {
             Log.e("AvatarRepository", "❌ Error adding XP: ${e.message}", e)
             throw Exception("Failed to add XP: ${e.message}")

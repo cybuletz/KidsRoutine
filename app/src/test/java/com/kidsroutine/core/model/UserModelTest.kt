@@ -86,6 +86,12 @@ class UserModelTest {
     }
 
     @Test
+    fun `default totalXpEarned is 0`() {
+        val user = UserModel()
+        assertEquals(0, user.totalXpEarned)
+    }
+
+    @Test
     fun `default activeChallengeIds is empty`() {
         val user = UserModel()
         assertTrue(user.activeChallengeIds.isEmpty())
@@ -111,7 +117,8 @@ class UserModelTest {
             streak = 7,
             age = 35,
             league = League.GOLD,
-            weeklyXp = 200
+            weeklyXp = 200,
+            totalXpEarned = 1500
         )
         assertEquals("u1", user.userId)
         assertEquals(Role.PARENT, user.role)
@@ -123,6 +130,7 @@ class UserModelTest {
         assertEquals(35, user.age)
         assertEquals(League.GOLD, user.league)
         assertEquals(200, user.weeklyXp)
+        assertEquals(1500, user.totalXpEarned)
     }
 
     // ── UserPreferences defaults ────────────────────────────────────
