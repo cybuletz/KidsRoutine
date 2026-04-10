@@ -1,5 +1,7 @@
 package com.kidsroutine.feature.auth.ui
 
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.kidsroutine.core.database.dao.UserDao
 import com.kidsroutine.core.model.AuthState
 import com.kidsroutine.core.model.UserModel
@@ -30,11 +32,21 @@ class AuthViewModelTest {
         signInAnonymously = mockk(relaxed = true)
         authRepository = mockk(relaxed = true)
         userDao = mockk(relaxed = true)
+
+        // Mock FirebaseAuth static — init block calls FirebaseAuth.getInstance()
+        mockkStatic(FirebaseAuth::class)
+        val mockAuth = mockk<FirebaseAuth>(relaxed = true)
+        every { FirebaseAuth.getInstance() } returns mockAuth
+        every { mockAuth.currentUser } returns null
+
         viewModel = AuthViewModel(signInAnonymously, authRepository, userDao)
     }
 
     @After
-    fun tearDown() { Dispatchers.resetMain() }
+    fun tearDown() {
+        Dispatchers.resetMain()
+        unmockkStatic(FirebaseAuth::class)
+    }
 
     @Test
     fun `initial state is Unauthenticated`() {

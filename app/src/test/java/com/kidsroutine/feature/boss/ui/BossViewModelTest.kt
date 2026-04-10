@@ -70,7 +70,9 @@ class BossViewModelTest {
         coEvery { bossRepository.getActiveBoss("fam1") } returns testBoss
 
         viewModel.loadBoss("fam1", "u1")
-        advanceUntilIdle()
+        // Don't call advanceUntilIdle() — the countdown loop would never finish
+        // because System.currentTimeMillis() doesn't advance with virtual time.
+        // UnconfinedTestDispatcher eagerly dispatches, so state is already set.
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -122,12 +124,13 @@ class BossViewModelTest {
             )
         } returns generatedBoss
 
-        // Load user XP first
+        // Load user XP first (no active boss → no countdown)
         viewModel.loadBoss("fam1", "u1")
         advanceUntilIdle()
 
         viewModel.generateNewBoss("fam1", 3)
-        advanceUntilIdle()
+        // Don't advanceUntilIdle — generateNewBoss starts a countdown loop.
+        // UnconfinedTestDispatcher eagerly dispatches, so state is already set.
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
@@ -161,7 +164,7 @@ class BossViewModelTest {
         advanceUntilIdle()
 
         viewModel.generateNewBoss("fam1", 3)
-        advanceUntilIdle()
+        // Don't advanceUntilIdle — countdown loop prevents idle.
 
         coVerify { userRepository.updateUserXp("u1", -BossViewModel.BOSS_ENTRY_COST) }
     }

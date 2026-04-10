@@ -188,7 +188,7 @@ class ContentPacksViewModelTest {
         val entitlements = UserEntitlements(userId = "user1", planType = PlanType.PRO)
         coEvery { entitlementsRepository.getEntitlements("user1", "family1") } returns entitlements
 
-        // Setup Firestore mock for loadUnlockedPacks
+        // Setup Firestore mock for loadUnlockedPacks — Task must appear completed
         val mockCollection = mockk<CollectionReference>(relaxed = true)
         val mockDoc = mockk<DocumentReference>(relaxed = true)
         val mockTask = mockk<Task<DocumentSnapshot>>(relaxed = true)
@@ -196,6 +196,11 @@ class ContentPacksViewModelTest {
         every { firestore.collection("user_content_packs") } returns mockCollection
         every { mockCollection.document("user1") } returns mockDoc
         every { mockDoc.get() } returns mockTask
+        // Make Task.await() work — it checks isComplete / result / exception
+        every { mockTask.isComplete } returns true
+        every { mockTask.isCanceled } returns false
+        every { mockTask.exception } returns null
+        every { mockTask.result } returns mockSnapshot
         every { mockSnapshot.data } returns mapOf("unlockedPackIds" to listOf("pack1"))
 
         viewModel.loadForUser("user1", userXp = 250, familyId = "family1")
