@@ -44,16 +44,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -67,7 +64,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kidsroutine.core.model.SpinRewardType
 import com.kidsroutine.core.model.UserModel
-import kotlinx.coroutines.delay
 
 // ── Segment colors ───────────────────────────────────────────────────────────
 private val segmentColors = listOf(
@@ -143,21 +139,6 @@ fun SpinWheelScreen(
             )
         } else {
             revealScale.snapTo(0f)
-        }
-    }
-
-    // ── Double XP countdown timer ────────────────────────────────────────
-    var doubleXpRemaining by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(uiState.dailyState.hasDoubleXpActive, uiState.dailyState.doubleXpExpiresAt) {
-        if (uiState.dailyState.hasDoubleXpActive && uiState.dailyState.doubleXpExpiresAt > 0L) {
-            while (true) {
-                val remaining = uiState.dailyState.doubleXpExpiresAt - System.currentTimeMillis()
-                doubleXpRemaining = if (remaining > 0) remaining else 0L
-                if (remaining <= 0) break
-                delay(1000L)
-            }
-        } else {
-            doubleXpRemaining = 0L
         }
     }
 
@@ -365,39 +346,6 @@ fun SpinWheelScreen(
             }
         }
 
-        // ── Double XP timer ──────────────────────────────────────────────
-        if (uiState.dailyState.hasDoubleXpActive && doubleXpRemaining > 0L) {
-            Spacer(Modifier.height(16.dp))
-            val minutes = (doubleXpRemaining / 60_000).toInt()
-            val seconds = ((doubleXpRemaining % 60_000) / 1000).toInt()
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF6C63FF), Color(0xFFFF6584))
-                        ),
-                        RoundedCornerShape(16.dp)
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "⚡ 2x XP Active!",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "%02d:%02d remaining".format(minutes, seconds),
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        }
-
         // ── No spins left banner ─────────────────────────────────────────
         if (!uiState.dailyState.canSpin && uiState.phase == SpinPhase.DONE) {
             Spacer(Modifier.height(16.dp))
@@ -523,13 +471,12 @@ private fun DrawScope.drawWheel(rewards: List<SpinRewardType>, sweepAngle: Float
 // ── Reward descriptions ──────────────────────────────────────────────────────
 
 private fun rewardDescription(reward: SpinRewardType): String = when (reward) {
-    SpinRewardType.DOUBLE_XP -> "All XP earned is doubled for 30 minutes!"
-    SpinRewardType.BONUS_AVATAR_ITEM -> "A new avatar item has been added to your wardrobe!"
-    SpinRewardType.PET_TREAT -> "Your pet will love this treat — feed them now!"
-    SpinRewardType.STREAK_SHIELD -> "Your streak is protected if you miss a day!"
-    SpinRewardType.XP_BOOST_SMALL -> "25 bonus XP added to your total!"
+    SpinRewardType.XP_JACKPOT -> "JACKPOT! 200 bonus XP — incredible luck!"
     SpinRewardType.XP_BOOST_BIG -> "100 bonus XP — that's a big boost!"
-    SpinRewardType.LEAGUE_SHIELD -> "You're protected from league demotion this week!"
-    SpinRewardType.ROO_EMOJI -> "A special Roo sticker for your collection!"
+    SpinRewardType.XP_BOOST_MEDIUM -> "50 bonus XP added to your total!"
+    SpinRewardType.XP_BOOST_SMALL -> "25 bonus XP added to your total!"
+    SpinRewardType.XP_BOOST_MINI -> "10 bonus XP — every bit helps!"
+    SpinRewardType.XP_BOOST_TINY -> "5 bonus XP — a little extra sparkle!"
+    SpinRewardType.FREE_SPIN -> "Your spin cost was refunded — this one's on the house!"
     SpinRewardType.NOTHING -> "No reward this time — spin again tomorrow!"
 }

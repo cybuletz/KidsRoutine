@@ -169,4 +169,48 @@ class PetModelTest {
             assertTrue(it.emoji.isNotEmpty())
         }
     }
+
+    // ── totalActivities ────────────────────────────────────────────
+
+    @Test
+    fun `totalActivities sums all activity counters`() {
+        val pet = PetModel(
+            totalFed = 5, totalPlayed = 3, totalTrained = 2,
+            totalGroomed = 4, totalAdventures = 1, totalNaps = 6,
+            totalTreats = 2, totalTreasureHunts = 1
+        )
+        assertEquals(24, pet.totalActivities)
+    }
+
+    @Test
+    fun `totalActivities is 0 for default pet`() {
+        assertEquals(0, PetModel().totalActivities)
+    }
+
+    // ── careLevel ───────────────────────────────────────────────────
+
+    @Test
+    fun `careLevel is 0 for default pet`() {
+        assertEquals(0, PetModel().careLevel)
+    }
+
+    @Test
+    fun `careLevel increases with activities`() {
+        val pet = PetModel(
+            totalFed = 10, totalPlayed = 10, totalTrained = 10,
+            totalGroomed = 10, totalAdventures = 10, totalNaps = 10,
+            totalTreats = 10, totalTreasureHunts = 10
+        )
+        assertTrue(pet.careLevel > 0)
+    }
+
+    @Test
+    fun `careLevel is clamped to 100`() {
+        val pet = PetModel(
+            totalFed = 9999, totalPlayed = 9999, totalTrained = 9999,
+            totalGroomed = 9999, totalAdventures = 9999, totalNaps = 9999,
+            totalTreats = 9999, totalTreasureHunts = 9999
+        )
+        assertTrue(pet.careLevel <= 100)
+    }
 }

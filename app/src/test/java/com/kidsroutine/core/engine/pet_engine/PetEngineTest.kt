@@ -118,6 +118,13 @@ class PetEngineTest {
     }
 
     @Test
+    fun `interactWithPet increments totalPlayed`() {
+        val pet = createPet()
+        val interacted = engine.interactWithPet(pet)
+        assertEquals(1, interacted.totalPlayed)
+    }
+
+    @Test
     fun `interactWithPet clamps happiness to 100`() {
         val pet = createPet(happiness = 99)
         val interacted = engine.interactWithPet(pet)
@@ -327,6 +334,50 @@ class PetEngineTest {
         val pet = createPet(lastInteractedAt = 0L)
         val hunted = engine.treasureHuntWithPet(pet)
         assertTrue(hunted.lastInteractedAt > 0)
+    }
+
+    // ── Activity counter tests ──────────────────────────────────────────
+
+    @Test
+    fun `trainPet increments totalTrained`() {
+        val pet = createPet()
+        val trained = engine.trainPet(pet)
+        assertEquals(1, trained.totalTrained)
+    }
+
+    @Test
+    fun `groomPet increments totalGroomed`() {
+        val pet = createPet()
+        val groomed = engine.groomPet(pet)
+        assertEquals(1, groomed.totalGroomed)
+    }
+
+    @Test
+    fun `adventureWithPet increments totalAdventures`() {
+        val pet = createPet()
+        val adventured = engine.adventureWithPet(pet)
+        assertEquals(1, adventured.totalAdventures)
+    }
+
+    @Test
+    fun `napPet increments totalNaps`() {
+        val pet = createPet()
+        val napped = engine.napPet(pet)
+        assertEquals(1, napped.totalNaps)
+    }
+
+    @Test
+    fun `treatPet increments totalTreats`() {
+        val pet = createPet()
+        val treated = engine.treatPet(pet)
+        assertEquals(1, treated.totalTreats)
+    }
+
+    @Test
+    fun `treasureHuntWithPet increments totalTreasureHunts`() {
+        val pet = createPet()
+        val hunted = engine.treasureHuntWithPet(pet)
+        assertEquals(1, hunted.totalTreasureHunts)
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

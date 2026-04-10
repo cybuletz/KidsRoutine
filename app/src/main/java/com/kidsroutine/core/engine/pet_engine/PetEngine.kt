@@ -60,6 +60,7 @@ class PetEngine @Inject constructor() {
     fun interactWithPet(pet: PetModel): PetModel {
         return pet.copy(
             happiness = (pet.happiness + 3).coerceIn(0, 100),
+            totalPlayed = pet.totalPlayed + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -72,6 +73,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             happiness = (pet.happiness + 8).coerceIn(0, 100),
             energy = (pet.energy + 5).coerceIn(0, 100),
+            totalTrained = pet.totalTrained + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -84,6 +86,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             happiness = (pet.happiness + 5).coerceIn(0, 100),
             energy = (pet.energy + 3).coerceIn(0, 100),
+            totalGroomed = pet.totalGroomed + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -96,6 +99,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             happiness = (pet.happiness + 15).coerceIn(0, 100),
             energy = (pet.energy + 10).coerceIn(0, 100),
+            totalAdventures = pet.totalAdventures + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -108,6 +112,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             energy = (pet.energy + 12).coerceIn(0, 100),
             happiness = (pet.happiness + 2).coerceIn(0, 100),
+            totalNaps = pet.totalNaps + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -120,6 +125,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             happiness = (pet.happiness + 6).coerceIn(0, 100),
             energy = (pet.energy + 4).coerceIn(0, 100),
+            totalTreats = pet.totalTreats + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }
@@ -136,6 +142,7 @@ class PetEngine @Inject constructor() {
         return pet.copy(
             happiness = (pet.happiness + happinessGain).coerceIn(0, 100),
             energy = (pet.energy + energyGain).coerceIn(0, 100),
+            totalTreasureHunts = pet.totalTreasureHunts + 1,
             lastInteractedAt = System.currentTimeMillis()
         )
     }

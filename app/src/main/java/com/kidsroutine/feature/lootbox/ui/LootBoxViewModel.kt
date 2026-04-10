@@ -3,12 +3,12 @@ package com.kidsroutine.feature.lootbox.ui
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.kidsroutine.core.model.LootBox
 import com.kidsroutine.core.model.LootBoxRarity
 import com.kidsroutine.core.model.LootBoxReward
 import com.kidsroutine.core.model.LootBoxRewardType
+import com.kidsroutine.feature.daily.data.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +29,8 @@ data class LootBoxUiState(
 
 @HiltViewModel
 class LootBoxViewModel @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LootBoxUiState())
@@ -93,8 +94,8 @@ class LootBoxViewModel @Inject constructor(
                 when (reward.type) {
                     LootBoxRewardType.XP_BOOST, LootBoxRewardType.MYSTERY -> {
                         if (reward.xpValue > 0) {
-                            userRef.update("xp", FieldValue.increment(reward.xpValue.toLong())).await()
-                            Log.d("LootBoxVM", "✓ XP persisted: +${reward.xpValue} for $userId")
+                            userRepository.updateUserXp(userId, reward.xpValue)
+                            Log.d("LootBoxVM", "✓ XP persisted: +${reward.xpValue} for $userId (Firestore + Room synced)")
                         }
                     }
                     LootBoxRewardType.STREAK_SHIELD -> {

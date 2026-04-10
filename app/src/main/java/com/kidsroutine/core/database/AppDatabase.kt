@@ -147,6 +147,19 @@ val MIGRATION_12_TO_13 = object : Migration(12, 13) {
     }
 }
 
+// ── MIGRATION 13 → 14: Add per-activity tracking columns to pets table ────────
+val MIGRATION_13_TO_14 = object : Migration(13, 14) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalPlayed` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalTrained` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalGroomed` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalAdventures` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalNaps` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalTreats` INTEGER NOT NULL DEFAULT 0")
+        database.execSQL("ALTER TABLE `pets` ADD COLUMN `totalTreasureHunts` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 @Database(
     entities = [
         TaskInstanceEntity::class,
@@ -155,7 +168,7 @@ val MIGRATION_12_TO_13 = object : Migration(12, 13) {
         AvatarEntity::class,
         PetEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 
@@ -188,7 +201,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_9_TO_10,
                         MIGRATION_10_TO_11,
                         MIGRATION_11_TO_12,
-                        MIGRATION_12_TO_13
+                        MIGRATION_12_TO_13,
+                        MIGRATION_13_TO_14
                     )
                     .build()
                     .also { instance = it }

@@ -55,9 +55,7 @@ class SpinWheelRepositoryImpl @Inject constructor(
                 date = snapshot.getString("date") ?: date,
                 spinsUsed = (snapshot.getLong("spinsUsed") ?: 0L).toInt(),
                 maxSpins = (snapshot.getLong("maxSpins") ?: 1L).toInt(),
-                results = results,
-                hasDoubleXpActive = snapshot.getBoolean("hasDoubleXpActive") ?: false,
-                doubleXpExpiresAt = snapshot.getLong("doubleXpExpiresAt") ?: 0L
+                results = results
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error loading daily spin state for $userId on $date", e)
@@ -76,9 +74,7 @@ class SpinWheelRepositoryImpl @Inject constructor(
                         "userId" to state.userId,
                         "date" to state.date,
                         "spinsUsed" to state.spinsUsed,
-                        "maxSpins" to state.maxSpins,
-                        "hasDoubleXpActive" to state.hasDoubleXpActive,
-                        "doubleXpExpiresAt" to state.doubleXpExpiresAt
+                        "maxSpins" to state.maxSpins
                     )
                 )
                 .await()

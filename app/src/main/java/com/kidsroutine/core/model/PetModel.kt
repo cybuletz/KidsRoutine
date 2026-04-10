@@ -55,6 +55,13 @@ data class PetModel(
 
     // Progression
     val totalFed: Int = 0,       // total task completions feeding pet
+    val totalPlayed: Int = 0,    // total play interactions
+    val totalTrained: Int = 0,   // total training sessions
+    val totalGroomed: Int = 0,   // total grooming sessions
+    val totalAdventures: Int = 0,// total adventures completed
+    val totalNaps: Int = 0,      // total nap sessions
+    val totalTreats: Int = 0,    // total treats given
+    val totalTreasureHunts: Int = 0, // total treasure hunts completed
     val daysAlive: Int = 0,
     val longestHappyStreak: Int = 0,
 
@@ -83,6 +90,29 @@ data class PetModel(
         val nextStage = PetEvolutionStage.entries.getOrNull(stage.ordinal + 1)
         return nextStage != null && userLevel >= nextStage.requiredLevel
     }
+
+    /** Total number of all activities performed with this pet */
+    val totalActivities: Int
+        get() = totalFed + totalPlayed + totalTrained + totalGroomed +
+                totalAdventures + totalNaps + totalTreats + totalTreasureHunts
+
+    /** Care level (0–100) based on overall activity engagement */
+    val careLevel: Int
+        get() {
+            // Each activity type contributes up to ~12.5 points (100 / 8 activities)
+            // Diminishing returns: first few of each type count more
+            fun activityScore(count: Int, maxScore: Float = 12.5f): Float {
+                if (count <= 0) return 0f
+                // ln(count+1) / ln(20) gives diminishing curve, capped at 1.0
+                val ratio = (kotlin.math.ln((count + 1).toFloat()) / kotlin.math.ln(20f)).coerceAtMost(1f)
+                return ratio * maxScore
+            }
+            return (activityScore(totalFed) + activityScore(totalPlayed) +
+                    activityScore(totalTrained) + activityScore(totalGroomed) +
+                    activityScore(totalAdventures) + activityScore(totalNaps) +
+                    activityScore(totalTreats) + activityScore(totalTreasureHunts))
+                .toInt().coerceIn(0, 100)
+        }
 
     /** Display emoji based on species + stage */
     val displayEmoji: String

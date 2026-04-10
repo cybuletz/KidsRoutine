@@ -36,13 +36,38 @@ class SpinWheelModelTest {
     }
 
     @Test
-    fun `STREAK_SHIELD has low probability`() {
-        assertTrue(SpinRewardType.STREAK_SHIELD.probability < 0.15f)
+    fun `XP_JACKPOT has lowest probability`() {
+        val jackpot = SpinRewardType.XP_JACKPOT
+        SpinRewardType.entries.filter { it != jackpot }.forEach { other ->
+            assertTrue(
+                "XP_JACKPOT (${jackpot.probability}) should be <= ${other.name} (${other.probability})",
+                jackpot.probability <= other.probability
+            )
+        }
     }
 
     @Test
-    fun `XP_BOOST_BIG has lowest XP boost probability`() {
+    fun `XP_BOOST_BIG has lower probability than XP_BOOST_SMALL`() {
         assertTrue(SpinRewardType.XP_BOOST_BIG.probability < SpinRewardType.XP_BOOST_SMALL.probability)
+    }
+
+    @Test
+    fun `all XP rewards have positive xpValue`() {
+        val xpRewards = SpinRewardType.entries.filter { it.name.startsWith("XP_") }
+        xpRewards.forEach { reward ->
+            assertTrue("${reward.name} should have positive xpValue", reward.xpValue > 0)
+        }
+    }
+
+    @Test
+    fun `FREE_SPIN and NOTHING have zero xpValue`() {
+        assertEquals(0, SpinRewardType.FREE_SPIN.xpValue)
+        assertEquals(0, SpinRewardType.NOTHING.xpValue)
+    }
+
+    @Test
+    fun `there are 8 reward types`() {
+        assertEquals(8, SpinRewardType.entries.size)
     }
 
     // ── DailySpinState.canSpin ──────────────────────────────────────
@@ -91,11 +116,5 @@ class SpinWheelModelTest {
     fun `default maxSpins is 1`() {
         val state = DailySpinState()
         assertEquals(1, state.maxSpins)
-    }
-
-    @Test
-    fun `default hasDoubleXpActive is false`() {
-        val state = DailySpinState()
-        assertFalse(state.hasDoubleXpActive)
     }
 }

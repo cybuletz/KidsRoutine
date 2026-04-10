@@ -1,7 +1,6 @@
 package com.kidsroutine.feature.avatar.data
 
 import android.util.Log
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.kidsroutine.core.database.dao.AvatarDao
@@ -70,14 +69,9 @@ class AvatarRepositoryImpl @Inject constructor(
      */
     override suspend fun deductUserXp(userId: String, amount: Int) {
         try {
-            Log.d("AvatarRepository", "Deducting $amount XP from $userId")
-
-            // Direct Firestore update instead of Cloud Function
-            firestore.collection("users").document(userId)
-                .update("xp", FieldValue.increment(-amount.toLong()))
-                .await()
-
-            Log.d("AvatarRepository", "✅ XP deducted successfully")
+            Log.d("AvatarRepository", "Deducting $amount XP from $userId via UserRepository")
+            userRepository.updateUserXp(userId, -amount)
+            Log.d("AvatarRepository", "✅ XP deducted successfully (Firestore + Room synced)")
         } catch (e: Exception) {
             Log.e("AvatarRepository", "❌ Error deducting XP: ${e.message}", e)
             throw Exception("Failed to deduct XP: ${e.message}")
@@ -86,16 +80,9 @@ class AvatarRepositoryImpl @Inject constructor(
 
     override suspend fun addUserXp(userId: String, amount: Int) {
         try {
-            val userRef = firestore.collection("users").document(userId)
-            val updates = mutableMapOf<String, Any>(
-                "xp" to FieldValue.increment(amount.toLong())
-            )
-            if (amount > 0) {
-                updates["totalXpEarned"] = FieldValue.increment(amount.toLong())
-            }
-            userRef.update(updates).await()
-
-            Log.d("AvatarRepository", "✅ Added $amount XP (totalXpEarned also incremented)")
+            Log.d("AvatarRepository", "Adding $amount XP to $userId via UserRepository")
+            userRepository.updateUserXp(userId, amount)
+            Log.d("AvatarRepository", "✅ Added $amount XP (Firestore + Room synced, totalXpEarned also incremented)")
         } catch (e: Exception) {
             Log.e("AvatarRepository", "❌ Error adding XP: ${e.message}", e)
             throw Exception("Failed to add XP: ${e.message}")
