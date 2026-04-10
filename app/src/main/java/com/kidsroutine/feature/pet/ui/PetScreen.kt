@@ -569,7 +569,7 @@ private fun PetDisplay(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Groom 🛁", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("Free ✨+Style", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("Free · ✨+Style", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
 

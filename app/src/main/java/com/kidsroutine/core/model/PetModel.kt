@@ -208,6 +208,7 @@ object MilestoneData {
             "treasure_hunts" -> TREASURE_TITLES
             else -> return "⭐ Tier $tier"
         }
+        if (tier < 1) return "⭐ Tier $tier"
         return titles.getOrElse(tier - 1) { titles.lastOrNull() ?: "⭐ Tier $tier" }
     }
 
