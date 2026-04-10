@@ -16,6 +16,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,6 +47,7 @@ import com.kidsroutine.core.model.PetAccessoryCategory
 import com.kidsroutine.core.model.PetModel
 import com.kidsroutine.core.model.PetMood
 import com.kidsroutine.core.model.PetSpecies
+import com.kidsroutine.core.model.MilestoneData
 import com.kidsroutine.core.model.UserModel
 import kotlinx.coroutines.delay
 
@@ -259,28 +261,59 @@ private fun PetDisplay(
                 // Mood indicator
                 MoodIndicator(mood = pet.mood)
 
-                // Currently equipped accessory display
-                pet.accessoryId?.let { accId ->
-                    val equipped = PetUiState.SHOP_ITEMS.find { it.id == accId }
-                    if (equipped != null) {
-                        Spacer(Modifier.height(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Accent.copy(alpha = 0.08f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Accent.copy(alpha = 0.2f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Currently equipped accessory display — Wardrobe strip
+                val ownedPermanent = PetUiState.SHOP_ITEMS.filter { it.isPermanent && it.id in ownedAccessoryIds }
+                if (ownedPermanent.isNotEmpty() || pet.accessoryId != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "👗 Wardrobe",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Accent,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ownedPermanent.forEach { acc ->
+                            val isEquipped = acc.id == pet.accessoryId
+                            Surface(
+                                modifier = Modifier
+                                    .clickable { onEquip(acc.id) },
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isEquipped) Accent.copy(alpha = 0.15f) else Color(0xFFF5F5F5),
+                                border = if (isEquipped) {
+                                    androidx.compose.foundation.BorderStroke(2.dp, Accent)
+                                } else {
+                                    androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+                                }
                             ) {
-                                Text(equipped.emoji, fontSize = 16.sp)
-                                Text(
-                                    text = "Wearing: ${equipped.name}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Accent
-                                )
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(acc.emoji, fontSize = 24.sp)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = acc.name,
+                                        fontSize = 9.sp,
+                                        fontWeight = if (isEquipped) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isEquipped) Accent else Color.Gray,
+                                        maxLines = 1
+                                    )
+                                    if (isEquipped) {
+                                        Text(
+                                            text = "Equipped",
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Accent
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -367,7 +400,9 @@ private fun PetDisplay(
                     emoji = "😊",
                     value = pet.happiness,
                     gradientColors = listOf(HappinessGreen, HappinessGreenLight),
-                    hint = "Feed, play, and do activities to keep happy"
+                    hint = if (pet.happiness >= 70) "✅ Happy Bonus active! Activities boost more"
+                           else if (pet.happiness < 30) "⚠️ Pet is sad — activities give reduced boosts"
+                           else "Feed, play, and do activities to keep happy"
                 )
 
                 StatBar(
@@ -375,7 +410,9 @@ private fun PetDisplay(
                     emoji = "⚡",
                     value = pet.energy,
                     gradientColors = listOf(EnergyBlue, EnergyBlueLight),
-                    hint = "Adventures, naps, and treats restore energy"
+                    hint = if (pet.energy < 15) "⚠️ Too tired! Nap or Treat to restore energy"
+                           else if (pet.energy < 25) "⚠️ Low energy — some activities unavailable"
+                           else "Needed for Train (15⚡), Treasure Hunt (20⚡), Adventure (25⚡)"
                 )
 
                 StatBar(
@@ -383,7 +420,7 @@ private fun PetDisplay(
                     emoji = "✨",
                     value = pet.style,
                     gradientColors = listOf(Color(0xFFE91E63), Color(0xFFF48FB1)),
-                    hint = "Buy accessories from the Pet Shop to increase"
+                    hint = "From grooming, training, accessories, milestones & care level"
                 )
 
                 StatBar(
@@ -391,11 +428,11 @@ private fun PetDisplay(
                     emoji = "💕",
                     value = pet.careLevel,
                     gradientColors = listOf(Color(0xFFFF6F00), Color(0xFFFFCA28)),
-                    hint = "Try all 8 activity types to max out care"
+                    hint = "Try all 8 activities! Needed for evolution: 20💕 → Juvenile, 45💕 → Adult, 70💕 → Majestic"
                 )
 
                 // Evolution progress
-                EvolutionProgress(stage = pet.stage, userLevel = userLevel)
+                EvolutionProgress(stage = pet.stage, userLevel = userLevel, pet = pet)
             }
         }
 
@@ -439,15 +476,15 @@ private fun PetDisplay(
                     }
                 }
 
-                // Activity progress rows — each shows count + a mini progress bar
-                ActivityProgressRow(emoji = "🍖", label = "Feeding", count = pet.totalFed, milestone = 20, color = HappinessGreen)
-                ActivityProgressRow(emoji = "🎾", label = "Playing", count = pet.totalPlayed, milestone = 30, color = Accent)
-                ActivityProgressRow(emoji = "🏋️", label = "Training", count = pet.totalTrained, milestone = 15, color = Color(0xFFE67E22))
-                ActivityProgressRow(emoji = "🛁", label = "Grooming", count = pet.totalGroomed, milestone = 15, color = Color(0xFF3498DB))
-                ActivityProgressRow(emoji = "🗺️", label = "Adventures", count = pet.totalAdventures, milestone = 10, color = Color(0xFF8E44AD))
-                ActivityProgressRow(emoji = "😴", label = "Naps", count = pet.totalNaps, milestone = 20, color = Color(0xFF1ABC9C))
-                ActivityProgressRow(emoji = "🍪", label = "Treats", count = pet.totalTreats, milestone = 15, color = Color(0xFFE74C3C))
-                ActivityProgressRow(emoji = "🗝️", label = "Treasure Hunts", count = pet.totalTreasureHunts, milestone = 10, color = Color(0xFFF1C40F))
+                // Activity progress rows — each shows count + a mini progress bar + milestone info
+                ActivityProgressRow(emoji = "🍖", label = "Feeding", activityKey = "feeding", count = pet.totalFed, milestone = 20, color = HappinessGreen)
+                ActivityProgressRow(emoji = "🎾", label = "Playing", activityKey = "playing", count = pet.totalPlayed, milestone = 30, color = Accent)
+                ActivityProgressRow(emoji = "🏋️", label = "Training", activityKey = "training", count = pet.totalTrained, milestone = 15, color = Color(0xFFE67E22))
+                ActivityProgressRow(emoji = "🛁", label = "Grooming", activityKey = "grooming", count = pet.totalGroomed, milestone = 15, color = Color(0xFF3498DB))
+                ActivityProgressRow(emoji = "🗺️", label = "Adventures", activityKey = "adventures", count = pet.totalAdventures, milestone = 10, color = Color(0xFF8E44AD))
+                ActivityProgressRow(emoji = "😴", label = "Naps", activityKey = "naps", count = pet.totalNaps, milestone = 20, color = Color(0xFF1ABC9C))
+                ActivityProgressRow(emoji = "🍪", label = "Treats", activityKey = "treats", count = pet.totalTreats, milestone = 15, color = Color(0xFFE74C3C))
+                ActivityProgressRow(emoji = "🗝️", label = "Treasure Hunts", activityKey = "treasure_hunts", count = pet.totalTreasureHunts, milestone = 10, color = Color(0xFFF1C40F))
             }
         }
 
@@ -532,7 +569,7 @@ private fun PetDisplay(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Groom 🛁", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("Free", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("Free · ✨+Style", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
 
@@ -546,13 +583,13 @@ private fun PetDisplay(
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (currentXp >= PetViewModel.TRAIN_COST) Color(0xFFE67E22) else Color.Gray
+                    containerColor = if (currentXp >= PetViewModel.TRAIN_COST && pet.energy >= 15) Color(0xFFE67E22) else Color.Gray
                 ),
-                enabled = currentXp >= PetViewModel.TRAIN_COST
+                enabled = currentXp >= PetViewModel.TRAIN_COST && pet.energy >= 15
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Train 🏋️", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text("${PetViewModel.TRAIN_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("${PetViewModel.TRAIN_COST} XP · 15⚡", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
 
@@ -566,13 +603,13 @@ private fun PetDisplay(
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (currentXp >= PetViewModel.ADVENTURE_COST) Color(0xFF8E44AD) else Color.Gray
+                    containerColor = if (currentXp >= PetViewModel.ADVENTURE_COST && pet.energy >= 25) Color(0xFF8E44AD) else Color.Gray
                 ),
-                enabled = currentXp >= PetViewModel.ADVENTURE_COST
+                enabled = currentXp >= PetViewModel.ADVENTURE_COST && pet.energy >= 25
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Adventure 🗺️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("${PetViewModel.ADVENTURE_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("${PetViewModel.ADVENTURE_COST} XP · 25⚡", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
         }
@@ -631,13 +668,13 @@ private fun PetDisplay(
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (currentXp >= PetViewModel.TREASURE_HUNT_COST) Color(0xFFF1C40F) else Color.Gray
+                    containerColor = if (currentXp >= PetViewModel.TREASURE_HUNT_COST && pet.energy >= 20) Color(0xFFF1C40F) else Color.Gray
                 ),
-                enabled = currentXp >= PetViewModel.TREASURE_HUNT_COST
+                enabled = currentXp >= PetViewModel.TREASURE_HUNT_COST && pet.energy >= 20
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Treasure 🗝️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("${PetViewModel.TREASURE_HUNT_COST} XP", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("${PetViewModel.TREASURE_HUNT_COST} XP · 20⚡", fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                 }
             }
         }
@@ -870,6 +907,13 @@ private fun ShopItemCard(
                             color = EnergyBlue
                         )
                     }
+                    if (accessory.isPermanent) {
+                        Text(
+                            text = "✨+7 Style",
+                            fontSize = 11.sp,
+                            color = Color(0xFFE91E63)
+                        )
+                    }
                     if (!accessory.isPermanent) {
                         val hours = accessory.durationMinutes / 60
                         val mins = accessory.durationMinutes % 60
@@ -945,11 +989,6 @@ private fun ShopItemCard(
 @Composable
 private fun AnimatedPetEmoji(pet: PetModel) {
     val infiniteTransition = rememberInfiniteTransition(label = "petMoodAnim")
-
-    // Find equipped accessory for visual display
-    val equippedAccessory = pet.accessoryId?.let { id ->
-        PetUiState.SHOP_ITEMS.find { it.id == id }
-    }
 
     Box(contentAlignment = Alignment.Center) {
         when (pet.mood) {
@@ -1130,44 +1169,6 @@ private fun AnimatedPetEmoji(pet: PetModel) {
             }
             }
         }
-
-        // Equipped accessory visual overlay
-        if (equippedAccessory != null) {
-            val accessoryBounce by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = -3f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "accessoryBounce"
-            )
-            // Position accessory based on category
-            val alignment = when (equippedAccessory.category) {
-                PetAccessoryCategory.HAT     -> Alignment.TopCenter
-                PetAccessoryCategory.COLLAR  -> Alignment.CenterEnd
-                PetAccessoryCategory.TOY     -> Alignment.BottomEnd
-                PetAccessoryCategory.BED     -> Alignment.BottomCenter
-                PetAccessoryCategory.SNACK   -> Alignment.CenterStart
-            }
-            Box(
-                modifier = Modifier
-                    .align(alignment)
-                    .graphicsLayer {
-                        translationY = accessoryBounce
-                    }
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Accent.copy(alpha = 0.15f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text(equippedAccessory.emoji, fontSize = 20.sp)
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -1268,7 +1269,7 @@ private fun StatBar(
 // ─── Evolution Progress ─────────────────────────────────────────────────────────
 
 @Composable
-private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1) {
+private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1, pet: PetModel? = null) {
     val stages = PetEvolutionStage.entries
     val currentIndex = stage.ordinal
     val nextStage = stages.getOrNull(currentIndex + 1)
@@ -1346,7 +1347,7 @@ private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1) {
             }
         }
 
-        // Progress bar toward next evolution
+        // Progress bar toward next evolution with stat requirements
         if (nextStage != null) {
             Spacer(Modifier.height(4.dp))
             Row(
@@ -1385,12 +1386,57 @@ private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1) {
                         )
                 )
             }
-            Text(
-                text = "Complete daily tasks to level up and evolve your pet!",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                fontSize = 10.sp
-            )
+
+            // Show stat requirements for next evolution
+            val requirements = pet?.nextEvolutionRequirements()
+            if (requirements != null) {
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF3E5F5)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "📋 Requirements for ${requirements.stage.displayName}:",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Accent
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        val reqs = mutableListOf<String>()
+                        val levelMet = userLevel >= requirements.level
+                        reqs.add("${if (levelMet) "✅" else "⬜"} Level ${requirements.level}")
+                        if (requirements.careLevel > 0) {
+                            val careMet = (pet.careLevel) >= requirements.careLevel
+                            reqs.add("${if (careMet) "✅" else "⬜"} Care Level ${requirements.careLevel}+ (you: ${pet.careLevel})")
+                        }
+                        if (requirements.happiness > 0) {
+                            val hapMet = pet.happiness >= requirements.happiness
+                            reqs.add("${if (hapMet) "✅" else "⬜"} Happiness ${requirements.happiness}+ (you: ${pet.happiness})")
+                        }
+                        if (requirements.style > 0) {
+                            val styleMet = pet.style >= requirements.style
+                            reqs.add("${if (styleMet) "✅" else "⬜"} Style ${requirements.style}+ (you: ${pet.style})")
+                        }
+                        reqs.forEach { req ->
+                            Text(
+                                text = req,
+                                fontSize = 10.sp,
+                                color = TextDark
+                            )
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = "Complete daily tasks to level up and evolve your pet!",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    fontSize = 10.sp
+                )
+            }
         } else {
             Text(
                 text = "👑 Maximum evolution reached!",
@@ -1410,6 +1456,7 @@ private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1) {
 private fun ActivityProgressRow(
     emoji: String,
     label: String,
+    activityKey: String = "",
     count: Int,
     milestone: Int,
     color: Color
@@ -1430,67 +1477,101 @@ private fun ActivityProgressRow(
     )
     val tier = count / milestone  // How many milestones completed
 
-    Row(
+    // Milestone info
+    val milestoneInfo = if (activityKey.isNotEmpty()) {
+        MilestoneData.getNextMilestoneReward(activityKey, count, milestone)
+    } else null
+    val currentTitle = if (tier > 0 && activityKey.isNotEmpty()) {
+        MilestoneData.getTierTitle(activityKey, tier)
+    } else null
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        // Emoji
-        Text(text = emoji, fontSize = 18.sp, modifier = Modifier.width(26.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Emoji
+            Text(text = emoji, fontSize = 18.sp, modifier = Modifier.width(26.dp))
 
-        // Label + count
-        Column(modifier = Modifier.weight(1f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = TextDark
-                )
-                Text(
-                    text = "$count / $nextMilestone",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
-            }
+            // Label + count
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = TextDark
+                    )
+                    Text(
+                        text = "$count / $nextMilestone",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
 
-            Spacer(Modifier.height(3.dp))
+                Spacer(Modifier.height(3.dp))
 
-            // Progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFFEEEEEE))
-            ) {
+                // Progress bar
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(fraction = animatedProgress)
+                        .fillMaxWidth()
+                        .height(8.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(color)
-                )
+                        .background(Color(0xFFEEEEEE))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(fraction = animatedProgress)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(color)
+                    )
+                }
+            }
+
+            // Tier badge (star count for milestones completed)
+            if (tier > 0) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = color.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = "⭐$tier",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = color,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
-        // Tier badge (star count for milestones completed)
-        if (tier > 0) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = color.copy(alpha = 0.15f)
-            ) {
-                Text(
-                    text = "⭐$tier",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = color,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
+        // Current tier title
+        if (currentTitle != null) {
+            Text(
+                text = "🏅 $currentTitle",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = color,
+                modifier = Modifier.padding(start = 34.dp)
+            )
+        }
+
+        // Next milestone reward
+        if (milestoneInfo != null) {
+            Text(
+                text = "🎯 ${milestoneInfo.rewardDescription}",
+                fontSize = 9.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 34.dp)
+            )
         }
     }
 }

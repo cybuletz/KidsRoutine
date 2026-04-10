@@ -209,6 +209,63 @@ class PetEngineTest {
         assertEquals(PetEvolutionStage.MAJESTIC, result.stage)
     }
 
+    @Test
+    fun `checkEvolution requires careLevel for JUVENILE`() {
+        // Level 5 but careLevel 0 — should NOT evolve from BABY to JUVENILE
+        val pet = createPet(stage = PetEvolutionStage.BABY)  // default careLevel = 0
+        val result = engine.checkEvolution(pet, userLevel = 5)
+        assertEquals(PetEvolutionStage.BABY, result.stage)
+    }
+
+    @Test
+    fun `checkEvolution evolves BABY to JUVENILE with sufficient careLevel`() {
+        // Level 5 and enough activities for careLevel >= 20
+        val pet = createPet(stage = PetEvolutionStage.BABY).copy(
+            totalFed = 10, totalPlayed = 10, totalTrained = 5,
+            totalGroomed = 5, totalAdventures = 3, totalNaps = 5,
+            totalTreats = 3, totalTreasureHunts = 2
+        )
+        assertTrue("careLevel should be >= 20 for this test", pet.careLevel >= 20)
+        val result = engine.checkEvolution(pet, userLevel = 5)
+        assertEquals(PetEvolutionStage.JUVENILE, result.stage)
+    }
+
+    @Test
+    fun `checkEvolution ADULT requires happiness`() {
+        // Level 15, high careLevel, but low happiness
+        val pet = createPet(stage = PetEvolutionStage.JUVENILE, happiness = 20).copy(
+            totalFed = 20, totalPlayed = 20, totalTrained = 10,
+            totalGroomed = 10, totalAdventures = 8, totalNaps = 10,
+            totalTreats = 8, totalTreasureHunts = 5
+        )
+        assertTrue("careLevel should be >= 45 for this test", pet.careLevel >= 45)
+        val result = engine.checkEvolution(pet, userLevel = 15)
+        assertEquals(PetEvolutionStage.JUVENILE, result.stage)  // blocked by low happiness
+    }
+
+    @Test
+    fun `computeFullStyle combines all sources`() {
+        val pet = createPet().copy(totalGroomed = 10, totalTrained = 6)
+        val styled = engine.computeFullStyle(pet, permanentItemCount = 2)
+        // accessory: 2*7=14, groom: 10 (capped at 15), train: 6/2=3 (capped at 10)
+        // milestones: 0 (not enough for any tier), care: careLevel/10
+        val expectedMin = 14 + 10 + 3  // = 27 minimum (ignoring care/milestone)
+        assertTrue("Style should be >= $expectedMin, was ${styled.style}", styled.style >= expectedMin)
+    }
+
+    @Test
+    fun `hasEnoughEnergy returns false when energy too low for adventure`() {
+        val tiredPet = createPet(energy = 20)
+        assertFalse(engine.hasEnoughEnergy(tiredPet, "adventure"))  // needs 25
+    }
+
+    @Test
+    fun `hasEnoughEnergy returns true for free activities regardless of energy`() {
+        val tiredPet = createPet(energy = 5)
+        assertTrue(engine.hasEnoughEnergy(tiredPet, "play"))
+        assertTrue(engine.hasEnoughEnergy(tiredPet, "groom"))
+    }
+
     // ── getRecommendedAction ────────────────────────────────────────────
 
     @Test
