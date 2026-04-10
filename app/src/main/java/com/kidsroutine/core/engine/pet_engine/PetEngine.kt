@@ -190,6 +190,60 @@ class PetEngine @Inject constructor() {
     }
 
     /**
+     * Compute comprehensive style from ALL sources:
+     * - Permanent accessories (7 pts each, up to 49)
+     * - Grooming sessions (1 pt each, up to 15)
+     * - Training sessions (1 pt per 2, up to 10)
+     * - Milestone tiers completed (2 pts each)
+     * - Care level bonus (0-10)
+     */
+    fun computeFullStyle(pet: PetModel, permanentItemCount: Int): PetModel {
+        val accessoryStyle = (permanentItemCount * 7).coerceAtMost(49)
+        val groomStyle = pet.totalGroomed.coerceAtMost(15)
+        val trainStyle = (pet.totalTrained / 2).coerceAtMost(10)
+        val milestoneTiers = countMilestoneTiers(pet)
+        val milestoneStyle = (milestoneTiers * 2).coerceAtMost(16)
+        val careBonus = (pet.careLevel / 10).coerceAtMost(10)
+        val newStyle = (accessoryStyle + groomStyle + trainStyle + milestoneStyle + careBonus).coerceIn(0, 100)
+        return pet.copy(style = newStyle)
+    }
+
+    /**
+     * Count total milestone tiers completed across all activities.
+     */
+    private fun countMilestoneTiers(pet: PetModel): Int {
+        return (pet.totalFed / 20) +           // milestone = 20
+               (pet.totalPlayed / 30) +        // milestone = 30
+               (pet.totalTrained / 15) +       // milestone = 15
+               (pet.totalGroomed / 15) +       // milestone = 15
+               (pet.totalAdventures / 10) +    // milestone = 10
+               (pet.totalNaps / 20) +          // milestone = 20
+               (pet.totalTreats / 15) +        // milestone = 15
+               (pet.totalTreasureHunts / 10)   // milestone = 10
+    }
+
+    /**
+     * Check if pet has enough energy for a paid activity.
+     */
+    fun hasEnoughEnergy(pet: PetModel, activityType: String): Boolean = when (activityType) {
+        "train" -> pet.energy >= 15
+        "adventure" -> pet.energy >= 25
+        "treasure_hunt" -> pet.energy >= 20
+        "feed" -> true  // feeding always available
+        else -> true     // free activities always available
+    }
+
+    /**
+     * Get energy requirement for an activity (0 = no requirement).
+     */
+    fun energyRequirement(activityType: String): Int = when (activityType) {
+        "train" -> 15
+        "adventure" -> 25
+        "treasure_hunt" -> 20
+        else -> 0
+    }
+
+    /**
      * Get recommended action text for pet state.
      */
     fun getRecommendedAction(pet: PetModel): String = when (pet.mood) {

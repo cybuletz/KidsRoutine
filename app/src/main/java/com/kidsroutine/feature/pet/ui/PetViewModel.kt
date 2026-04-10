@@ -31,17 +31,37 @@ data class PetUiState(
         const val FEED_COST = 5
 
         val SHOP_ITEMS = listOf(
-            // Permanent accessories (cost more)
+            // ── HATS ──────────────────────────────────────────────
             PetAccessory("hat_crown", "Royal Crown", "👑", "A crown fit for royalty!", 25, PetAccessoryCategory.HAT, happinessBoost = 5),
             PetAccessory("hat_wizard", "Wizard Hat", "🧙", "Magical style!", 20, PetAccessoryCategory.HAT, happinessBoost = 3),
+            PetAccessory("hat_flower", "Flower Crown", "🌸", "Pretty spring vibes!", 12, PetAccessoryCategory.HAT, happinessBoost = 2),
+            PetAccessory("hat_pirate", "Pirate Hat", "🏴‍☠️", "Arrr, adventure awaits!", 18, PetAccessoryCategory.HAT, happinessBoost = 3, energyBoost = 2),
+            PetAccessory("hat_party", "Party Hat", "🎉", "Let's celebrate!", 6, PetAccessoryCategory.HAT, happinessBoost = 4),
+            // ── COLLARS ───────────────────────────────────────────
             PetAccessory("collar_star", "Star Collar", "⭐", "Shine bright!", 15, PetAccessoryCategory.COLLAR, happinessBoost = 2),
             PetAccessory("collar_bell", "Jingle Bell", "🔔", "Ding-a-ling!", 10, PetAccessoryCategory.COLLAR, energyBoost = 2),
+            PetAccessory("collar_rainbow", "Rainbow Bandana", "🌈", "Colorful and cool!", 8, PetAccessoryCategory.COLLAR, happinessBoost = 2, energyBoost = 1),
+            PetAccessory("collar_diamond", "Diamond Collar", "💎", "Sparkling luxury!", 22, PetAccessoryCategory.COLLAR, happinessBoost = 4),
+            PetAccessory("collar_scarf", "Cozy Scarf", "🧣", "Warm and snuggly!", 10, PetAccessoryCategory.COLLAR, energyBoost = 3),
+            // ── TOYS ──────────────────────────────────────────────
             PetAccessory("toy_ball", "Bouncy Ball", "🎾", "Hours of fun!", 8, PetAccessoryCategory.TOY, happinessBoost = 3),
             PetAccessory("toy_bone", "Chew Bone", "🦴", "Yummy to chew!", 12, PetAccessoryCategory.TOY, energyBoost = 3),
+            PetAccessory("toy_duck", "Squeaky Duck", "🦆", "Squeak squeak!", 5, PetAccessoryCategory.TOY, happinessBoost = 2),
+            PetAccessory("toy_wand", "Magic Wand", "🪄", "Cast spells of fun!", 15, PetAccessoryCategory.TOY, happinessBoost = 3, energyBoost = 2),
+            PetAccessory("toy_puzzle", "Puzzle Box", "🧩", "Brain training toy!", 10, PetAccessoryCategory.TOY, happinessBoost = 2, energyBoost = 1),
+            PetAccessory("toy_kite", "Rainbow Kite", "🪁", "Fly high together!", 8, PetAccessoryCategory.TOY, happinessBoost = 3),
+            // ── BEDS ──────────────────────────────────────────────
             PetAccessory("bed_cloud", "Cloud Bed", "☁️", "Fluffy dreams!", 30, PetAccessoryCategory.BED, energyBoost = 5),
-            // Consumable treats (cheaper, temporary — lasts durationMinutes then disappears)
+            PetAccessory("bed_hammock", "Hammock", "🏖️", "Sway gently to sleep!", 15, PetAccessoryCategory.BED, energyBoost = 3, happinessBoost = 1),
+            PetAccessory("bed_throne", "Royal Throne", "🪑", "Sleep like a king!", 50, PetAccessoryCategory.BED, energyBoost = 7, happinessBoost = 3),
+            PetAccessory("bed_nest", "Cozy Nest", "🪺", "A perfect little nest!", 10, PetAccessoryCategory.BED, energyBoost = 4),
+            // ── TREATS (consumable) ───────────────────────────────
             PetAccessory("snack_cookie", "Magic Cookie", "🍪", "Instant energy! (lasts 1 hour)", 3, PetAccessoryCategory.SNACK, energyBoost = 2, durationMinutes = 60),
-            PetAccessory("snack_cake", "Birthday Cake", "🎂", "Party time! (lasts 2 hours)", 8, PetAccessoryCategory.SNACK, happinessBoost = 5, energyBoost = 3, durationMinutes = 120)
+            PetAccessory("snack_cake", "Birthday Cake", "🎂", "Party time! (lasts 2 hours)", 8, PetAccessoryCategory.SNACK, happinessBoost = 5, energyBoost = 3, durationMinutes = 120),
+            PetAccessory("snack_apple", "Golden Apple", "🍎", "Healthy and refreshing! (lasts 1.5 hours)", 5, PetAccessoryCategory.SNACK, happinessBoost = 2, energyBoost = 3, durationMinutes = 90),
+            PetAccessory("snack_smoothie", "Power Smoothie", "🥤", "Energy explosion! (lasts 2 hours)", 12, PetAccessoryCategory.SNACK, energyBoost = 6, durationMinutes = 120),
+            PetAccessory("snack_clover", "Lucky Clover", "🍀", "Brings good fortune! (lasts 1 hour)", 6, PetAccessoryCategory.SNACK, happinessBoost = 4, durationMinutes = 60),
+            PetAccessory("snack_honey", "Honey Pot", "🍯", "Sweet energy boost! (lasts 1.5 hours)", 7, PetAccessoryCategory.SNACK, happinessBoost = 3, energyBoost = 4, durationMinutes = 90)
         )
     }
 }
@@ -73,9 +93,16 @@ class PetViewModel @Inject constructor(
                         Log.d(TAG, "Pet evolved from ${pet.stage} to ${evolvedPet.stage}!")
                         petRepository.savePet(evolvedPet)
                     }
-                    Log.d(TAG, "Loaded pet '${evolvedPet.name}' — mood: ${evolvedPet.mood}")
+                    // Recompute style from all sources
+                    val permanentIds = PetUiState.SHOP_ITEMS.filter { it.isPermanent }.map { it.id }.toSet()
+                    val permanentCount = _uiState.value.ownedAccessoryIds.count { it in permanentIds }
+                    val styledPet = petEngine.computeFullStyle(evolvedPet, permanentCount)
+                    if (styledPet.style != evolvedPet.style) {
+                        petRepository.savePet(styledPet)
+                    }
+                    Log.d(TAG, "Loaded pet '${styledPet.name}' — mood: ${styledPet.mood}")
                     _uiState.value = _uiState.value.copy(
-                        pet = evolvedPet,
+                        pet = styledPet,
                         isLoading = false,
                         adoptionMode = false
                     )
@@ -137,7 +164,8 @@ class PetViewModel @Inject constructor(
                 // Deduct XP first
                 userRepository.updateUserXp(userId, -PetUiState.FEED_COST)
                 val fedPet = petEngine.feedPet(currentPet, xpEarned = 50)
-                val evolvedPet = checkAndApplyEvolution(fedPet)
+                val styledPet = recomputeStyle(fedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Pet fed — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
@@ -156,7 +184,8 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Interacting with pet '${currentPet.name}'")
                 val updatedPet = petEngine.interactWithPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(updatedPet)
+                val styledPet = recomputeStyle(updatedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Interaction complete — happiness: ${evolvedPet.happiness}")
@@ -180,12 +209,21 @@ class PetViewModel @Inject constructor(
             return
         }
 
+        if (!petEngine.hasEnoughEnergy(currentPet, "train")) {
+            val required = petEngine.energyRequirement("train")
+            _uiState.value = _uiState.value.copy(
+                error = "Your pet is too tired! Need $required⚡ energy. Try a Nap or Treat first!"
+            )
+            return
+        }
+
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Training pet '${currentPet.name}' — costing $TRAIN_COST XP")
                 userRepository.updateUserXp(userId, -TRAIN_COST)
                 val trainedPet = petEngine.trainPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(trainedPet)
+                val styledPet = recomputeStyle(trainedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Pet trained — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
@@ -202,7 +240,8 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Grooming pet '${currentPet.name}'")
                 val groomedPet = petEngine.groomPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(groomedPet)
+                val styledPet = recomputeStyle(groomedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Grooming complete — happiness: ${evolvedPet.happiness}")
@@ -224,12 +263,21 @@ class PetViewModel @Inject constructor(
             return
         }
 
+        if (!petEngine.hasEnoughEnergy(currentPet, "adventure")) {
+            val required = petEngine.energyRequirement("adventure")
+            _uiState.value = _uiState.value.copy(
+                error = "Your pet is too tired for an adventure! Need $required⚡ energy. Try a Nap first!"
+            )
+            return
+        }
+
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Going on adventure with pet '${currentPet.name}' — costing $ADVENTURE_COST XP")
                 userRepository.updateUserXp(userId, -ADVENTURE_COST)
                 val adventurePet = petEngine.adventureWithPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(adventurePet)
+                val styledPet = recomputeStyle(adventurePet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Adventure complete — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
@@ -246,7 +294,8 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Putting pet '${currentPet.name}' down for a nap")
                 val nappedPet = petEngine.napPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(nappedPet)
+                val styledPet = recomputeStyle(nappedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Nap complete — energy: ${evolvedPet.energy}")
@@ -273,7 +322,8 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Giving pet '${currentPet.name}' a treat — costing $TREAT_COST XP")
                 userRepository.updateUserXp(userId, -TREAT_COST)
                 val treatedPet = petEngine.treatPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(treatedPet)
+                val styledPet = recomputeStyle(treatedPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Treat given — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
@@ -295,12 +345,21 @@ class PetViewModel @Inject constructor(
             return
         }
 
+        if (!petEngine.hasEnoughEnergy(currentPet, "treasure_hunt")) {
+            val required = petEngine.energyRequirement("treasure_hunt")
+            _uiState.value = _uiState.value.copy(
+                error = "Your pet is too tired for treasure hunting! Need $required⚡ energy. Try a Nap first!"
+            )
+            return
+        }
+
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Treasure hunting with pet '${currentPet.name}' — costing $TREASURE_HUNT_COST XP")
                 userRepository.updateUserXp(userId, -TREASURE_HUNT_COST)
                 val huntPet = petEngine.treasureHuntWithPet(currentPet)
-                val evolvedPet = checkAndApplyEvolution(huntPet)
+                val styledPet = recomputeStyle(huntPet)
+                val evolvedPet = checkAndApplyEvolution(styledPet)
                 petRepository.savePet(evolvedPet)
                 _uiState.value = _uiState.value.copy(pet = evolvedPet)
                 Log.d(TAG, "Treasure hunt complete — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
@@ -363,6 +422,15 @@ class PetViewModel @Inject constructor(
         return evolved
     }
 
+    /**
+     * Recompute style from all sources (accessories, grooming, training, milestones, care).
+     */
+    private fun recomputeStyle(pet: PetModel): PetModel {
+        val permanentIds = PetUiState.SHOP_ITEMS.filter { it.isPermanent }.map { it.id }.toSet()
+        val permanentCount = _uiState.value.ownedAccessoryIds.count { it in permanentIds }
+        return petEngine.computeFullStyle(pet, permanentCount)
+    }
+
     fun purchaseAccessory(accessory: PetAccessory) {
         val state = _uiState.value
         if (state.currentXp < accessory.xpCost) {
@@ -385,7 +453,7 @@ class PetViewModel @Inject constructor(
                         .map { it.id }
                         .toSet()
                     val permanentCount = updatedOwned.count { it in permanentIds }
-                    val styledPet = petEngine.updateStyle(currentPet, permanentCount)
+                    val styledPet = petEngine.computeFullStyle(currentPet, permanentCount)
                     petRepository.savePet(styledPet)
                     _uiState.value = state.copy(
                         ownedAccessoryIds = updatedOwned,

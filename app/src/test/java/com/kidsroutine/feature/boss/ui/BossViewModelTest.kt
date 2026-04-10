@@ -9,8 +9,10 @@ import com.kidsroutine.core.model.UserModel
 import com.kidsroutine.feature.boss.data.BossRepository
 import com.kidsroutine.feature.daily.data.UserRepository
 import io.mockk.*
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -53,6 +55,9 @@ class BossViewModelTest {
 
     @After
     fun tearDown() {
+        // Cancel any pending countdown coroutines that would otherwise leak
+        // into subsequent tests and hang advanceUntilIdle() calls.
+        viewModel.viewModelScope.coroutineContext.cancelChildren()
         Dispatchers.resetMain()
     }
 

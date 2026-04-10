@@ -85,10 +85,29 @@ data class PetModel(
             else -> PetMood.SLEEPING
         }
 
-    /** Whether pet can evolve to next stage based on user level */
+    /** Whether pet can evolve to next stage based on user level and pet stats */
     fun canEvolve(userLevel: Int): Boolean {
-        val nextStage = PetEvolutionStage.entries.getOrNull(stage.ordinal + 1)
-        return nextStage != null && userLevel >= nextStage.requiredLevel
+        val nextStage = PetEvolutionStage.entries.getOrNull(stage.ordinal + 1) ?: return false
+        if (userLevel < nextStage.requiredLevel) return false
+        return when (nextStage) {
+            PetEvolutionStage.EGG -> false
+            PetEvolutionStage.BABY -> true  // just level 1
+            PetEvolutionStage.JUVENILE -> careLevel >= 20
+            PetEvolutionStage.ADULT -> careLevel >= 45 && happiness >= 40
+            PetEvolutionStage.MAJESTIC -> careLevel >= 70 && style >= 25
+        }
+    }
+
+    /** Get the stat requirements for the next evolution stage (for UI display) */
+    fun nextEvolutionRequirements(): EvolutionRequirements? {
+        val nextStage = PetEvolutionStage.entries.getOrNull(stage.ordinal + 1) ?: return null
+        return when (nextStage) {
+            PetEvolutionStage.EGG -> null
+            PetEvolutionStage.BABY -> EvolutionRequirements(nextStage, level = 1)
+            PetEvolutionStage.JUVENILE -> EvolutionRequirements(nextStage, level = 5, careLevel = 20)
+            PetEvolutionStage.ADULT -> EvolutionRequirements(nextStage, level = 15, careLevel = 45, happiness = 40)
+            PetEvolutionStage.MAJESTIC -> EvolutionRequirements(nextStage, level = 30, careLevel = 70, style = 25)
+        }
     }
 
     /** Total number of all activities performed with this pet */
@@ -147,4 +166,58 @@ enum class PetAccessoryCategory(val emoji: String, val label: String) {
     TOY("🧸", "Toys"),
     BED("🛏️", "Beds"),
     SNACK("🍪", "Treats")
+}
+
+data class EvolutionRequirements(
+    val stage: PetEvolutionStage,
+    val level: Int,
+    val careLevel: Int = 0,
+    val happiness: Int = 0,
+    val style: Int = 0
+)
+
+/**
+ * Milestone system — each activity type has repeating tiers.
+ * Reaching a tier grants a title and contributes to style.
+ */
+data class MilestoneInfo(
+    val tierName: String,
+    val rewardDescription: String
+)
+
+object MilestoneData {
+    /** Titles for each milestone tier (0-based index) */
+    private val FEEDING_TITLES = listOf("Snack Helper 🍖", "Kitchen Apprentice 🍳", "Chef's Assistant 👨‍🍳", "Gourmet Chef ⭐", "Master Feeder 🏆")
+    private val PLAYING_TITLES = listOf("Playmate 🎾", "Fun Partner 🎮", "Best Friend 💛", "Joy Master 🎪", "Play Champion 🏆")
+    private val TRAINING_TITLES = listOf("Student 📖", "Apprentice 🎓", "Coach 🏅", "Trainer Pro 💪", "Grand Master 🏆")
+    private val GROOMING_TITLES = listOf("Tidy Helper 🧹", "Spa Assistant 🧴", "Style Scout ✂️", "Grooming Star 💅", "Fashionista 🏆")
+    private val ADVENTURE_TITLES = listOf("Explorer 🗺️", "Pathfinder 🧭", "Trailblazer 🏔️", "Adventurer Elite 🌟", "Legend 🏆")
+    private val NAP_TITLES = listOf("Rest Buddy 😴", "Dream Helper 🌙", "Sleep Guardian ☁️", "Nap Master 💫", "Dream Weaver 🏆")
+    private val TREAT_TITLES = listOf("Cookie Giver 🍪", "Treat Maker 🧁", "Snack Expert 🎂", "Treat Master 🍰", "Pastry Legend 🏆")
+    private val TREASURE_TITLES = listOf("Treasure Scout 🔍", "Treasure Hunter 🗝️", "Gold Finder 💎", "Treasure Master 👑", "Legendary Hunter 🏆")
+
+    fun getTierTitle(activityKey: String, tier: Int): String {
+        val titles = when (activityKey) {
+            "feeding" -> FEEDING_TITLES
+            "playing" -> PLAYING_TITLES
+            "training" -> TRAINING_TITLES
+            "grooming" -> GROOMING_TITLES
+            "adventures" -> ADVENTURE_TITLES
+            "naps" -> NAP_TITLES
+            "treats" -> TREAT_TITLES
+            "treasure_hunts" -> TREASURE_TITLES
+            else -> return "⭐ Tier $tier"
+        }
+        return titles.getOrElse(tier - 1) { titles.lastOrNull() ?: "⭐ Tier $tier" }
+    }
+
+    fun getNextMilestoneReward(activityKey: String, currentCount: Int, milestone: Int): MilestoneInfo {
+        val nextTier = (currentCount / milestone) + 1
+        val nextMilestone = nextTier * milestone
+        val title = getTierTitle(activityKey, nextTier)
+        return MilestoneInfo(
+            tierName = title,
+            rewardDescription = "At $nextMilestone: Earn \"$title\" + ✨ Style boost!"
+        )
+    }
 }
