@@ -142,6 +142,7 @@ fun PetScreen(
                     PetDisplay(
                         pet = uiState.pet!!,
                         currentXp = uiState.currentXp,
+                        userLevel = uiState.userLevel,
                         showShop = uiState.showShop,
                         ownedAccessoryIds = uiState.ownedAccessoryIds,
                         onFeed = { viewModel.feedPet() },
@@ -185,6 +186,7 @@ fun PetScreen(
 private fun PetDisplay(
     pet: PetModel,
     currentXp: Int = 0,
+    userLevel: Int = 1,
     showShop: Boolean = false,
     ownedAccessoryIds: List<String> = emptyList(),
     onFeed: () -> Unit,
@@ -364,32 +366,36 @@ private fun PetDisplay(
                     label = "Happiness",
                     emoji = "😊",
                     value = pet.happiness,
-                    gradientColors = listOf(HappinessGreen, HappinessGreenLight)
+                    gradientColors = listOf(HappinessGreen, HappinessGreenLight),
+                    hint = "Feed, play, and do activities to keep happy"
                 )
 
                 StatBar(
                     label = "Energy",
                     emoji = "⚡",
                     value = pet.energy,
-                    gradientColors = listOf(EnergyBlue, EnergyBlueLight)
+                    gradientColors = listOf(EnergyBlue, EnergyBlueLight),
+                    hint = "Adventures, naps, and treats restore energy"
                 )
 
                 StatBar(
                     label = "Style",
                     emoji = "✨",
                     value = pet.style,
-                    gradientColors = listOf(Color(0xFFE91E63), Color(0xFFF48FB1))
+                    gradientColors = listOf(Color(0xFFE91E63), Color(0xFFF48FB1)),
+                    hint = "Buy accessories from the Pet Shop to increase"
                 )
 
                 StatBar(
                     label = "Care Level",
                     emoji = "💕",
                     value = pet.careLevel,
-                    gradientColors = listOf(Color(0xFFFF6F00), Color(0xFFFFCA28))
+                    gradientColors = listOf(Color(0xFFFF6F00), Color(0xFFFFCA28)),
+                    hint = "Try all 8 activity types to max out care"
                 )
 
                 // Evolution progress
-                EvolutionProgress(stage = pet.stage)
+                EvolutionProgress(stage = pet.stage, userLevel = userLevel)
             }
         }
 
@@ -1201,7 +1207,8 @@ private fun StatBar(
     label: String,
     emoji: String,
     value: Int,
-    gradientColors: List<Color>
+    gradientColors: List<Color>,
+    hint: String = ""
 ) {
     val animatedValue by animateFloatAsState(
         targetValue = value / 100f,
@@ -1246,15 +1253,44 @@ private fun StatBar(
                     .background(Brush.horizontalGradient(gradientColors))
             )
         }
+
+        if (hint.isNotEmpty()) {
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                fontSize = 10.sp
+            )
+        }
     }
 }
 
 // ─── Evolution Progress ─────────────────────────────────────────────────────────
 
 @Composable
-private fun EvolutionProgress(stage: PetEvolutionStage) {
+private fun EvolutionProgress(stage: PetEvolutionStage, userLevel: Int = 1) {
     val stages = PetEvolutionStage.entries
     val currentIndex = stage.ordinal
+    val nextStage = stages.getOrNull(currentIndex + 1)
+
+    // Progress toward next evolution
+    val progressToNext = if (nextStage != null) {
+        val prevRequired = stage.requiredLevel
+        val nextRequired = nextStage.requiredLevel
+        val range = (nextRequired - prevRequired).coerceAtLeast(1)
+        ((userLevel - prevRequired).toFloat() / range).coerceIn(0f, 1f)
+    } else {
+        1f // Already at max stage
+    }
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressToNext,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "evolutionProgress"
+    )
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -1264,6 +1300,7 @@ private fun EvolutionProgress(stage: PetEvolutionStage) {
             color = TextDark
         )
 
+        // Stage dots
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1299,8 +1336,68 @@ private fun EvolutionProgress(stage: PetEvolutionStage) {
                         fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
                         fontSize = 9.sp
                     )
+                    Text(
+                        text = "Lv ${s.requiredLevel}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isReached) Accent.copy(alpha = 0.7f) else Color.LightGray,
+                        fontSize = 8.sp
+                    )
                 }
             }
+        }
+
+        // Progress bar toward next evolution
+        if (nextStage != null) {
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Your level: $userLevel",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Accent
+                )
+                Text(
+                    text = "Next: ${nextStage.displayName} at Lv ${nextStage.requiredLevel}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(Color(0xFFEEEEEE))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = animatedProgress)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Accent, Color(0xFFE040FB))
+                            )
+                        )
+                )
+            }
+            Text(
+                text = "Complete daily tasks to level up and evolve your pet!",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                fontSize = 10.sp
+            )
+        } else {
+            Text(
+                text = "👑 Maximum evolution reached!",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Accent
+            )
         }
     }
 }

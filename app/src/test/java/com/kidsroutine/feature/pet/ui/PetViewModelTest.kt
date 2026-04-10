@@ -35,6 +35,8 @@ class PetViewModelTest {
         petEngine = mockk(relaxed = true)
         userRepository = mockk(relaxed = true)
         every { userRepository.observeUser(any()) } returns flowOf(testUser)
+        // checkEvolution: by default, return the pet unchanged (no evolution)
+        every { petEngine.checkEvolution(any(), any()) } answers { firstArg() }
         viewModel = PetViewModel(petRepository, petEngine, userRepository)
     }
 

@@ -22,6 +22,7 @@ data class PetUiState(
     val adoptionMode: Boolean = false,
     val selectedSpecies: PetSpecies? = null,
     val currentXp: Int = 0,
+    val userLevel: Int = 1,
     val error: String? = null,
     val showShop: Boolean = false,
     val ownedAccessoryIds: List<String> = emptyList()
@@ -65,9 +66,16 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Loading pet for user: $userId")
                 val pet = petRepository.getPet(userId)
                 if (pet != null) {
-                    Log.d(TAG, "Loaded pet '${pet.name}' — mood: ${pet.mood}")
+                    // Check evolution based on user level
+                    val userLevel = _uiState.value.userLevel
+                    val evolvedPet = petEngine.checkEvolution(pet, userLevel)
+                    if (evolvedPet.stage != pet.stage) {
+                        Log.d(TAG, "Pet evolved from ${pet.stage} to ${evolvedPet.stage}!")
+                        petRepository.savePet(evolvedPet)
+                    }
+                    Log.d(TAG, "Loaded pet '${evolvedPet.name}' — mood: ${evolvedPet.mood}")
                     _uiState.value = _uiState.value.copy(
-                        pet = pet,
+                        pet = evolvedPet,
                         isLoading = false,
                         adoptionMode = false
                     )
@@ -87,11 +95,27 @@ class PetViewModel @Inject constructor(
                 )
             }
         }
-        // Observe user XP
+        // Observe user XP and level
         viewModelScope.launch {
             userRepository.observeUser(userId)
                 .collect { user ->
-                    _uiState.value = _uiState.value.copy(currentXp = user.xp)
+                    val previousLevel = _uiState.value.userLevel
+                    _uiState.value = _uiState.value.copy(
+                        currentXp = user.xp,
+                        userLevel = user.level
+                    )
+                    // If level increased, check evolution
+                    if (user.level > previousLevel) {
+                        val currentPet = _uiState.value.pet
+                        if (currentPet != null) {
+                            val evolvedPet = petEngine.checkEvolution(currentPet, user.level)
+                            if (evolvedPet.stage != currentPet.stage) {
+                                Log.d(TAG, "Level up! Pet evolved to ${evolvedPet.stage}")
+                                petRepository.savePet(evolvedPet)
+                                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                            }
+                        }
+                    }
                 }
         }
     }
@@ -113,9 +137,10 @@ class PetViewModel @Inject constructor(
                 // Deduct XP first
                 userRepository.updateUserXp(userId, -PetUiState.FEED_COST)
                 val fedPet = petEngine.feedPet(currentPet, xpEarned = 50)
-                petRepository.savePet(fedPet)
-                _uiState.value = _uiState.value.copy(pet = fedPet)
-                Log.d(TAG, "Pet fed — happiness: ${fedPet.happiness}, energy: ${fedPet.energy}")
+                val evolvedPet = checkAndApplyEvolution(fedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Pet fed — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error feeding pet", e)
                 _uiState.value = _uiState.value.copy(
@@ -131,9 +156,10 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Interacting with pet '${currentPet.name}'")
                 val updatedPet = petEngine.interactWithPet(currentPet)
-                petRepository.savePet(updatedPet)
-                _uiState.value = _uiState.value.copy(pet = updatedPet)
-                Log.d(TAG, "Interaction complete — happiness: ${updatedPet.happiness}")
+                val evolvedPet = checkAndApplyEvolution(updatedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Interaction complete — happiness: ${evolvedPet.happiness}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error interacting with pet", e)
                 _uiState.value = _uiState.value.copy(
@@ -159,9 +185,10 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Training pet '${currentPet.name}' — costing $TRAIN_COST XP")
                 userRepository.updateUserXp(userId, -TRAIN_COST)
                 val trainedPet = petEngine.trainPet(currentPet)
-                petRepository.savePet(trainedPet)
-                _uiState.value = _uiState.value.copy(pet = trainedPet)
-                Log.d(TAG, "Pet trained — happiness: ${trainedPet.happiness}, energy: ${trainedPet.energy}")
+                val evolvedPet = checkAndApplyEvolution(trainedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Pet trained — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error training pet", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to train pet")
@@ -175,9 +202,10 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Grooming pet '${currentPet.name}'")
                 val groomedPet = petEngine.groomPet(currentPet)
-                petRepository.savePet(groomedPet)
-                _uiState.value = _uiState.value.copy(pet = groomedPet)
-                Log.d(TAG, "Grooming complete — happiness: ${groomedPet.happiness}")
+                val evolvedPet = checkAndApplyEvolution(groomedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Grooming complete — happiness: ${evolvedPet.happiness}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error grooming pet", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to groom pet")
@@ -201,9 +229,10 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Going on adventure with pet '${currentPet.name}' — costing $ADVENTURE_COST XP")
                 userRepository.updateUserXp(userId, -ADVENTURE_COST)
                 val adventurePet = petEngine.adventureWithPet(currentPet)
-                petRepository.savePet(adventurePet)
-                _uiState.value = _uiState.value.copy(pet = adventurePet)
-                Log.d(TAG, "Adventure complete — happiness: ${adventurePet.happiness}, energy: ${adventurePet.energy}")
+                val evolvedPet = checkAndApplyEvolution(adventurePet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Adventure complete — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error on adventure", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to go on adventure")
@@ -217,9 +246,10 @@ class PetViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Putting pet '${currentPet.name}' down for a nap")
                 val nappedPet = petEngine.napPet(currentPet)
-                petRepository.savePet(nappedPet)
-                _uiState.value = _uiState.value.copy(pet = nappedPet)
-                Log.d(TAG, "Nap complete — energy: ${nappedPet.energy}")
+                val evolvedPet = checkAndApplyEvolution(nappedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Nap complete — energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error napping pet", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to nap pet")
@@ -243,9 +273,10 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Giving pet '${currentPet.name}' a treat — costing $TREAT_COST XP")
                 userRepository.updateUserXp(userId, -TREAT_COST)
                 val treatedPet = petEngine.treatPet(currentPet)
-                petRepository.savePet(treatedPet)
-                _uiState.value = _uiState.value.copy(pet = treatedPet)
-                Log.d(TAG, "Treat given — happiness: ${treatedPet.happiness}, energy: ${treatedPet.energy}")
+                val evolvedPet = checkAndApplyEvolution(treatedPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Treat given — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error treating pet", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to give treat")
@@ -269,9 +300,10 @@ class PetViewModel @Inject constructor(
                 Log.d(TAG, "Treasure hunting with pet '${currentPet.name}' — costing $TREASURE_HUNT_COST XP")
                 userRepository.updateUserXp(userId, -TREASURE_HUNT_COST)
                 val huntPet = petEngine.treasureHuntWithPet(currentPet)
-                petRepository.savePet(huntPet)
-                _uiState.value = _uiState.value.copy(pet = huntPet)
-                Log.d(TAG, "Treasure hunt complete — happiness: ${huntPet.happiness}, energy: ${huntPet.energy}")
+                val evolvedPet = checkAndApplyEvolution(huntPet)
+                petRepository.savePet(evolvedPet)
+                _uiState.value = _uiState.value.copy(pet = evolvedPet)
+                Log.d(TAG, "Treasure hunt complete — happiness: ${evolvedPet.happiness}, energy: ${evolvedPet.energy}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error on treasure hunt", e)
                 _uiState.value = _uiState.value.copy(error = e.message ?: "Failed to treasure hunt")
@@ -318,6 +350,19 @@ class PetViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showShop = !_uiState.value.showShop)
     }
 
+    /**
+     * After any activity, check if the pet should evolve based on user level.
+     * Returns the (possibly evolved) pet. Caller is responsible for saving.
+     */
+    private fun checkAndApplyEvolution(pet: PetModel): PetModel {
+        val userLevel = _uiState.value.userLevel
+        val evolved = petEngine.checkEvolution(pet, userLevel)
+        if (evolved.stage != pet.stage) {
+            Log.d(TAG, "Pet evolved to ${evolved.stage} after activity!")
+        }
+        return evolved
+    }
+
     fun purchaseAccessory(accessory: PetAccessory) {
         val state = _uiState.value
         if (state.currentXp < accessory.xpCost) {
@@ -332,7 +377,23 @@ class PetViewModel @Inject constructor(
             try {
                 userRepository.updateUserXp(currentUserId, -accessory.xpCost)
                 val updatedOwned = state.ownedAccessoryIds + accessory.id
-                _uiState.value = state.copy(ownedAccessoryIds = updatedOwned)
+                // Update style based on number of permanent accessories owned
+                val currentPet = state.pet
+                if (currentPet != null) {
+                    val permanentIds = PetUiState.SHOP_ITEMS
+                        .filter { it.isPermanent }
+                        .map { it.id }
+                        .toSet()
+                    val permanentCount = updatedOwned.count { it in permanentIds }
+                    val styledPet = petEngine.updateStyle(currentPet, permanentCount)
+                    petRepository.savePet(styledPet)
+                    _uiState.value = state.copy(
+                        ownedAccessoryIds = updatedOwned,
+                        pet = styledPet
+                    )
+                } else {
+                    _uiState.value = state.copy(ownedAccessoryIds = updatedOwned)
+                }
                 equipAccessory(accessory.id)
                 Log.d(TAG, "Purchased accessory: ${accessory.name} for ${accessory.xpCost} XP")
             } catch (e: Exception) {
