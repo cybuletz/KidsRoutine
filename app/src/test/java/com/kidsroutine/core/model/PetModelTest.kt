@@ -76,8 +76,14 @@ class PetModelTest {
     }
 
     @Test
-    fun `BABY can evolve to JUVENILE at level 5`() {
-        val pet = PetModel(stage = PetEvolutionStage.BABY)
+    fun `BABY can evolve to JUVENILE at level 5 with sufficient care`() {
+        val pet = PetModel(
+            stage = PetEvolutionStage.BABY,
+            totalFed = 10, totalPlayed = 10, totalTrained = 5,
+            totalGroomed = 5, totalAdventures = 3, totalNaps = 5,
+            totalTreats = 3, totalTreasureHunts = 2
+        )
+        assertTrue("careLevel should be >= 20", pet.careLevel >= 20)
         assertTrue(pet.canEvolve(5))
     }
 
@@ -88,14 +94,34 @@ class PetModelTest {
     }
 
     @Test
-    fun `JUVENILE can evolve to ADULT at level 15`() {
-        val pet = PetModel(stage = PetEvolutionStage.JUVENILE)
+    fun `BABY cannot evolve without sufficient careLevel`() {
+        val pet = PetModel(stage = PetEvolutionStage.BABY)  // careLevel = 0
+        assertFalse(pet.canEvolve(5))
+    }
+
+    @Test
+    fun `JUVENILE can evolve to ADULT at level 15 with stats`() {
+        val pet = PetModel(
+            stage = PetEvolutionStage.JUVENILE,
+            happiness = 50,
+            totalFed = 20, totalPlayed = 20, totalTrained = 10,
+            totalGroomed = 10, totalAdventures = 8, totalNaps = 10,
+            totalTreats = 8, totalTreasureHunts = 5
+        )
+        assertTrue("careLevel should be >= 45", pet.careLevel >= 45)
         assertTrue(pet.canEvolve(15))
     }
 
     @Test
-    fun `ADULT can evolve to MAJESTIC at level 30`() {
-        val pet = PetModel(stage = PetEvolutionStage.ADULT)
+    fun `ADULT can evolve to MAJESTIC at level 30 with stats`() {
+        val pet = PetModel(
+            stage = PetEvolutionStage.ADULT,
+            style = 30,
+            totalFed = 30, totalPlayed = 30, totalTrained = 20,
+            totalGroomed = 20, totalAdventures = 15, totalNaps = 20,
+            totalTreats = 15, totalTreasureHunts = 10
+        )
+        assertTrue("careLevel should be >= 70", pet.careLevel >= 70)
         assertTrue(pet.canEvolve(30))
     }
 
@@ -212,5 +238,46 @@ class PetModelTest {
             totalTreats = 9999, totalTreasureHunts = 9999
         )
         assertTrue(pet.careLevel <= 100)
+    }
+
+    // ── nextEvolutionRequirements ────────────────────────────────────
+
+    @Test
+    fun `nextEvolutionRequirements returns null for MAJESTIC`() {
+        val pet = PetModel(stage = PetEvolutionStage.MAJESTIC)
+        assertNull(pet.nextEvolutionRequirements())
+    }
+
+    @Test
+    fun `nextEvolutionRequirements returns correct for BABY`() {
+        val pet = PetModel(stage = PetEvolutionStage.BABY)
+        val req = pet.nextEvolutionRequirements()
+        assertNotNull(req)
+        assertEquals(PetEvolutionStage.JUVENILE, req!!.stage)
+        assertEquals(5, req.level)
+        assertEquals(20, req.careLevel)
+    }
+
+    @Test
+    fun `nextEvolutionRequirements ADULT requires happiness`() {
+        val pet = PetModel(stage = PetEvolutionStage.JUVENILE)
+        val req = pet.nextEvolutionRequirements()
+        assertNotNull(req)
+        assertEquals(40, req!!.happiness)
+    }
+
+    // ── MilestoneData ────────────────────────────────────────────────
+
+    @Test
+    fun `MilestoneData returns valid tier title`() {
+        val title = MilestoneData.getTierTitle("feeding", 1)
+        assertTrue(title.isNotEmpty())
+    }
+
+    @Test
+    fun `MilestoneData next milestone info is descriptive`() {
+        val info = MilestoneData.getNextMilestoneReward("playing", 0, 30)
+        assertTrue(info.rewardDescription.contains("30"))
+        assertTrue(info.tierName.isNotEmpty())
     }
 }

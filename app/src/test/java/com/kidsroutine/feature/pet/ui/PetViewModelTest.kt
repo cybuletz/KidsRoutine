@@ -37,6 +37,10 @@ class PetViewModelTest {
         every { userRepository.observeUser(any()) } returns flowOf(testUser)
         // checkEvolution: by default, return the pet unchanged (no evolution)
         every { petEngine.checkEvolution(any(), any()) } answers { firstArg() }
+        // computeFullStyle: by default, return the pet unchanged
+        every { petEngine.computeFullStyle(any(), any()) } answers { firstArg() }
+        // hasEnoughEnergy: by default, always true
+        every { petEngine.hasEnoughEnergy(any(), any()) } returns true
         viewModel = PetViewModel(petRepository, petEngine, userRepository)
     }
 
@@ -205,6 +209,21 @@ class PetViewModelTest {
         assertTrue(viewModel.uiState.value.error!!.contains("Not enough XP"))
     }
 
+    @Test
+    fun `trainPet not enough energy shows error`() = runTest {
+        coEvery { petRepository.getPet("u1") } returns testPet
+        every { petEngine.hasEnoughEnergy(any(), eq("train")) } returns false
+        every { petEngine.energyRequirement("train") } returns 15
+
+        viewModel.loadPet("u1")
+        advanceUntilIdle()
+
+        viewModel.trainPet("u1")
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertTrue(viewModel.uiState.value.error!!.contains("tired"))
+    }
+
     // ── groomPet ──────────────────────────────────────────────────────
 
     @Test
@@ -256,6 +275,21 @@ class PetViewModelTest {
 
         assertNotNull(viewModel.uiState.value.error)
         assertTrue(viewModel.uiState.value.error!!.contains("Not enough XP"))
+    }
+
+    @Test
+    fun `adventureWithPet not enough energy shows error`() = runTest {
+        coEvery { petRepository.getPet("u1") } returns testPet
+        every { petEngine.hasEnoughEnergy(any(), eq("adventure")) } returns false
+        every { petEngine.energyRequirement("adventure") } returns 25
+
+        viewModel.loadPet("u1")
+        advanceUntilIdle()
+
+        viewModel.adventureWithPet("u1")
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertTrue(viewModel.uiState.value.error!!.contains("tired"))
     }
 
     // ── napPet ──────────────────────────────────────────────────────
@@ -350,6 +384,21 @@ class PetViewModelTest {
 
         assertNotNull(viewModel.uiState.value.error)
         assertTrue(viewModel.uiState.value.error!!.contains("Not enough XP"))
+    }
+
+    @Test
+    fun `treasureHuntWithPet not enough energy shows error`() = runTest {
+        coEvery { petRepository.getPet("u1") } returns testPet
+        every { petEngine.hasEnoughEnergy(any(), eq("treasure_hunt")) } returns false
+        every { petEngine.energyRequirement("treasure_hunt") } returns 20
+
+        viewModel.loadPet("u1")
+        advanceUntilIdle()
+
+        viewModel.treasureHuntWithPet("u1")
+
+        assertNotNull(viewModel.uiState.value.error)
+        assertTrue(viewModel.uiState.value.error!!.contains("tired"))
     }
 
     // ── purchaseAccessory ──────────────────────────────────────────────
