@@ -352,14 +352,13 @@ class PetViewModel @Inject constructor(
 
     /**
      * After any activity, check if the pet should evolve based on user level.
-     * Returns the (possibly evolved) pet and saves if evolution happened.
+     * Returns the (possibly evolved) pet. Caller is responsible for saving.
      */
-    private suspend fun checkAndApplyEvolution(pet: PetModel): PetModel {
+    private fun checkAndApplyEvolution(pet: PetModel): PetModel {
         val userLevel = _uiState.value.userLevel
         val evolved = petEngine.checkEvolution(pet, userLevel)
         if (evolved.stage != pet.stage) {
             Log.d(TAG, "Pet evolved to ${evolved.stage} after activity!")
-            petRepository.savePet(evolved)
         }
         return evolved
     }
@@ -381,9 +380,11 @@ class PetViewModel @Inject constructor(
                 // Update style based on number of permanent accessories owned
                 val currentPet = state.pet
                 if (currentPet != null) {
-                    val permanentCount = updatedOwned.count { ownedId ->
-                        PetUiState.SHOP_ITEMS.find { it.id == ownedId }?.isPermanent == true
-                    }
+                    val permanentIds = PetUiState.SHOP_ITEMS
+                        .filter { it.isPermanent }
+                        .map { it.id }
+                        .toSet()
+                    val permanentCount = updatedOwned.count { it in permanentIds }
                     val styledPet = petEngine.updateStyle(currentPet, permanentCount)
                     petRepository.savePet(styledPet)
                     _uiState.value = state.copy(

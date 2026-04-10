@@ -1,7 +1,6 @@
 package com.kidsroutine.feature.auth.ui
 
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.kidsroutine.core.database.dao.UserDao
 import com.kidsroutine.core.model.AuthState
 import com.kidsroutine.core.model.UserModel
